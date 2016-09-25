@@ -131,7 +131,7 @@ class Converter
     public function getResultMime()
     {
         $resultMime = false;
-        if (!$this->resultMime) {
+        if ($this->resultMime) {
             $resultMime = $this->resultMime;
         } elseif ($this->cacheEnabled) {
             if ($resultFilePath = $this->getCacheFileName()) {
@@ -171,9 +171,9 @@ class Converter
     {
         $result = false;
         if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
-            $className = "ConverterPlugin_multiartist";
+            $className = '\ZxImage\\ConverterPlugin_multiartist';
         } else {
-            $className = "ConverterPlugin_" . $this->type;
+            $className = '\ZxImage\\ConverterPlugin_' . $this->type;
         }
         if (class_exists($className)) {
             /**
