@@ -23,7 +23,7 @@ class Converter
     protected $hash = false;
     protected $colors = array();
     protected $gigascreenMode = 'mix';
-    protected $cachePath = '';
+    protected $cachePath;
     protected $sourceFilePath;
     protected $resultFilePath;
     protected $cacheDirMarkerPath;
@@ -45,10 +45,41 @@ class Converter
 
     public function __construct()
     {
-        $this->cachePath = ZX_CACHE_PATH;
-        $this->cacheDirMarkerPath = $this->cachePath . '/_marker';
         $this->palette = $this->palette1;
         $this->cacheExpirationLimit = 60 * 60 * 24 * 30; //delete files older than 1 month
+    }
+
+    /**
+     * @param mixed $cachePath
+     */
+    public function setCachePath($cachePath)
+    {
+        $this->cachePath = $cachePath;
+        $this->cacheDirMarkerPath = $this->cachePath . '/_marker';
+    }
+
+    /**
+     * @param bool|int $cacheExpirationLimit
+     */
+    public function setCacheExpirationLimit($cacheExpirationLimit)
+    {
+        $this->cacheExpirationLimit = $cacheExpirationLimit;
+    }
+
+    /**
+     * @param int $cacheDeletionAmount
+     */
+    public function setCacheDeletionAmount($cacheDeletionAmount)
+    {
+        $this->cacheDeletionAmount = $cacheDeletionAmount;
+    }
+
+    /**
+     * @param int $cacheDeletionPeriod
+     */
+    public function setCacheDeletionPeriod($cacheDeletionPeriod)
+    {
+        $this->cacheDeletionPeriod = $cacheDeletionPeriod;
     }
 
     public function setGigascreenMode($mode)
@@ -115,55 +146,51 @@ class Converter
 
     public function executeProcess()
     {
-        if (!is_dir($this->cachePath)) {
-            mkdir($this->cachePath, DEFAULT_CACHE_PERMISSIONS, true);
-        }
-
         $resultFilePath = $this->getCacheFileName();
         if (!file_exists($resultFilePath) || !$this->useCache) {
             $converter = false;
             if ($this->type == 'standard') {
-                $converter = new plugin_standard($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_standard($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'hidden') {
-                $converter = new spectrumConverter_plugin_hidden($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_hidden($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'monochrome') {
-                $converter = new spectrumConverter_plugin_monochrome($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_monochrome($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'flash') {
-                $converter = new spectrumConverter_plugin_flash($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_flash($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'gigascreen') {
-                $converter = new spectrumConverter_plugin_gigascreen($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_gigascreen($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'tricolor') {
-                $converter = new spectrumConverter_plugin_tricolor($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_tricolor($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'multiartist' || $this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
-                $converter = new spectrumConverter_plugin_multiartist($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_multiartist($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'multicolor') {
-                $converter = new spectrumConverter_plugin_multicolor($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_multicolor($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'multicolor4') {
-                $converter = new spectrumConverter_plugin_multicolor4($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_multicolor4($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'mc') {
-                $converter = new spectrumConverter_plugin_mc($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_mc($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'timex81') {
-                $converter = new spectrumConverter_plugin_timex81($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_timex81($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'bsc') {
-                $converter = new spectrumConverter_plugin_bsc($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_bsc($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'bmc4') {
-                $converter = new spectrumConverter_plugin_bmc4($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_bmc4($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'attributes') {
-                $converter = new spectrumConverter_plugin_attributes($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_attributes($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'lowresgs') {
-                $converter = new spectrumConverter_plugin_lowresgs($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_lowresgs($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'chr$') {
-                $converter = new spectrumConverter_plugin_chrd($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_chrd($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'attributesm') {
-                $converter = new spectrumConverter_plugin_attributesm($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_attributesm($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'ulaplus') {
-                $converter = new spectrumConverter_plugin_ulaplus($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_ulaplus($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'sam4') {
-                $converter = new spectrumConverter_plugin_sam4($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_sam4($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'zxevo') {
-                $converter = new plugin_zxevo($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_zxevo($this->sourceFilePath, $resultFilePath);
             } elseif ($this->type == 'sxg') {
-                $converter = new plugin_sxg($this->sourceFilePath, $resultFilePath);
+                $converter = new ConverterPlugin_sxg($this->sourceFilePath, $resultFilePath);
             }
             if ($converter) {
                 $converter->setBorder($this->border);
@@ -293,7 +320,6 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
     {
         $this->sourceFilePath = $sourceFilePath;
         $this->resultFilePath = $resultFilePath;
-        require_once(LIBS_PATH . 'GIFEncoder/GIFEncoder.class.php');
     }
 
     public function setBorder($border)
@@ -782,6 +808,11 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
         return $result;
     }
 
+    abstract protected function loadBits();
+
+    abstract protected function parseScreen($data);
+
+    abstract protected function exportData($parsedData, $flashedImage = false);
 }
 
 class ConverterPlugin_standard extends ConverterPlugin
@@ -991,7 +1022,7 @@ class ConverterPlugin_standard extends ConverterPlugin
     }
 }
 
-class spectrumConverter_plugin_hidden extends ConverterPlugin_standard
+class ConverterPlugin_hidden extends ConverterPlugin_standard
 {
     protected function exportData($parsedData, $flashedImage = false)
     {
@@ -1038,7 +1069,7 @@ class spectrumConverter_plugin_hidden extends ConverterPlugin_standard
     }
 }
 
-class spectrumConverter_plugin_ulaplus extends ConverterPlugin_standard
+class ConverterPlugin_ulaplus extends ConverterPlugin_standard
 {
     protected $fileSize = 6976;
 
@@ -1153,7 +1184,7 @@ class spectrumConverter_plugin_ulaplus extends ConverterPlugin_standard
     }
 }
 
-class spectrumConverter_plugin_sam4 extends ConverterPlugin_standard
+class ConverterPlugin_sam4 extends ConverterPlugin_standard
 {
     protected $fileSize = 24617;
 
@@ -1286,7 +1317,7 @@ class ConverterPlugin_zxevo extends ConverterPlugin
     public function convert()
     {
         if ($gdObject = $this->loadBits()) {
-            $image = $this->adjustImage($gdObject, false);
+            $image = $this->adjustImage($gdObject);
             imagepng($image, $this->resultFilePath);
         }
     }
@@ -1294,7 +1325,6 @@ class ConverterPlugin_zxevo extends ConverterPlugin
     protected function loadBits()
     {
         if (file_exists($this->sourceFilePath)) {
-            include_once(LIBS_PATH . 'imageProcess/class.imageProcess.php');
             $gdObject = imagecreatefrombmp($this->sourceFilePath);
             return $gdObject;
         }
@@ -1352,6 +1382,10 @@ class ConverterPlugin_zxevo extends ConverterPlugin
         }
         return $attributesData;
     }
+
+    protected function parseScreen($data) { }
+
+    protected function exportData($parsedData, $flashedImage = false) { }
 }
 
 
@@ -1397,14 +1431,12 @@ class ConverterPlugin_sxg extends ConverterPlugin
                 'pixelsArray'  => [],
                 'paletteArray' => [],
             );
-            $fileSize = filesize($this->sourceFilePath);
-            $length = 0;
             $firstByte = $this->readByte();
             $signature = $this->readString(3);
             if ($firstByte == 127 && $signature == 'SXG') {
-                $version = $this->readByte();
-                $background = $this->readByte();
-                $packed = $this->readByte();
+                $this->readByte(); //version
+                $this->readByte(); //background
+                $this->readByte(); //packed
                 $this->sxgFormat = $this->readByte();
                 $this->width = $this->readWord();
                 $this->height = $this->readWord();
@@ -1519,7 +1551,7 @@ class ConverterPlugin_sxg extends ConverterPlugin
 }
 
 
-class spectrumConverter_plugin_bsc extends ConverterPlugin_standard
+class ConverterPlugin_bsc extends ConverterPlugin_standard
 {
     protected $attributesLength = 768;
     protected $borderWidth = 64;
@@ -1621,7 +1653,7 @@ class spectrumConverter_plugin_bsc extends ConverterPlugin_standard
     }
 }
 
-class spectrumConverter_plugin_bmc4 extends spectrumConverter_plugin_bsc
+class ConverterPlugin_bmc4 extends ConverterPlugin_bsc
 {
     protected $attributesLength = 1536;
     protected $attributeHeight = 4;
@@ -1646,7 +1678,7 @@ class spectrumConverter_plugin_bmc4 extends spectrumConverter_plugin_bsc
 
 }
 
-class spectrumConverter_plugin_gigascreen extends ConverterPlugin_standard
+class ConverterPlugin_gigascreen extends ConverterPlugin_standard
 {
     public function convert()
     {
@@ -1825,7 +1857,7 @@ class spectrumConverter_plugin_gigascreen extends ConverterPlugin_standard
     }
 }
 
-class spectrumConverter_plugin_chrd extends spectrumConverter_plugin_gigascreen
+class ConverterPlugin_chrd extends ConverterPlugin_gigascreen
 {
     protected $colorType;
 
@@ -1964,7 +1996,7 @@ class spectrumConverter_plugin_chrd extends spectrumConverter_plugin_gigascreen
     }
 }
 
-class spectrumConverter_plugin_monochrome extends ConverterPlugin_standard
+class ConverterPlugin_monochrome extends ConverterPlugin_standard
 {
     protected $inkColorZX = '000';
     protected $paperColorZX = '111';
@@ -2025,7 +2057,7 @@ class spectrumConverter_plugin_monochrome extends ConverterPlugin_standard
     }
 }
 
-class spectrumConverter_plugin_flash extends ConverterPlugin_standard
+class ConverterPlugin_flash extends ConverterPlugin_standard
 {
     public function convert()
     {
@@ -2077,7 +2109,7 @@ class spectrumConverter_plugin_flash extends ConverterPlugin_standard
 
 }
 
-class spectrumConverter_plugin_tricolor extends ConverterPlugin_standard
+class ConverterPlugin_tricolor extends ConverterPlugin_standard
 {
     public function convert()
     {
@@ -2187,7 +2219,7 @@ class spectrumConverter_plugin_tricolor extends ConverterPlugin_standard
     }
 }
 
-class spectrumConverter_plugin_multicolor extends ConverterPlugin_standard
+class ConverterPlugin_multicolor extends ConverterPlugin_standard
 {
     protected $attributeHeight = 2;
     protected $fileSize = 9216;
@@ -2215,13 +2247,13 @@ class spectrumConverter_plugin_multicolor extends ConverterPlugin_standard
     }
 }
 
-class spectrumConverter_plugin_multicolor4 extends spectrumConverter_plugin_multicolor
+class ConverterPlugin_multicolor4 extends ConverterPlugin_multicolor
 {
     protected $attributeHeight = 4;
     protected $fileSize = 7680;
 }
 
-class spectrumConverter_plugin_multiartist extends spectrumConverter_plugin_gigascreen
+class ConverterPlugin_multiartist extends ConverterPlugin_gigascreen
 {
     protected $mghMode = false;
     protected $borders = array();
@@ -2534,7 +2566,7 @@ class spectrumConverter_plugin_multiartist extends spectrumConverter_plugin_giga
     }
 }
 
-class spectrumConverter_plugin_attributesm extends spectrumConverter_plugin_multiartist
+class ConverterPlugin_attributesm extends ConverterPlugin_multiartist
 {
     protected function loadBits()
     {
@@ -2582,7 +2614,7 @@ class spectrumConverter_plugin_attributesm extends spectrumConverter_plugin_mult
     }
 }
 
-class spectrumConverter_plugin_attributes extends ConverterPlugin_standard
+class ConverterPlugin_attributes extends ConverterPlugin_standard
 {
     protected function loadBits()
     {
@@ -2641,7 +2673,7 @@ class spectrumConverter_plugin_attributes extends ConverterPlugin_standard
     }
 }
 
-class spectrumConverter_plugin_lowresgs extends spectrumConverter_plugin_gigascreen
+class ConverterPlugin_lowresgs extends ConverterPlugin_gigascreen
 {
     protected function loadBits()
     {
@@ -2692,7 +2724,7 @@ class spectrumConverter_plugin_lowresgs extends spectrumConverter_plugin_gigascr
     }
 }
 
-class spectrumConverter_plugin_mc extends ConverterPlugin_standard
+class ConverterPlugin_mc extends ConverterPlugin_standard
 {
     protected $attributeHeight = 1;
 
@@ -2725,7 +2757,7 @@ class spectrumConverter_plugin_mc extends ConverterPlugin_standard
     }
 }
 
-class spectrumConverter_plugin_timex81 extends ConverterPlugin_standard
+class ConverterPlugin_timex81 extends ConverterPlugin_standard
 {
     protected $attributeHeight = 1;
 
