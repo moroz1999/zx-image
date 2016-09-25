@@ -7,9 +7,11 @@ $converter = new \ZxImage\Converter();
 $converter->setType('standard');
 $converter->setPath('/6192.scr'); //
 $converter->setBorder(0); //black
-$converter->setSize($value); //1 for 320*240 (256*192 with border)
+$converter->setSize(1); //1 for 320*240 (256*192 with border)
 $binary = $converter->convertToBinary(); //convert and return image data
-$imageType = $converter->getResultMime();
+$imageType = $converter->getResultMime(); //after conversion we can ask for a mime type of last operation
+
+//do something with the image
 header('Content-Type: '.$imageType);
 echo $binary;
 ```
@@ -27,13 +29,15 @@ $converter->setCachePath($folderForCache);
 //enable file cache
 $converter->setCacheEnabled(true);
 ```
+After this all images will be stored in folder as a cache. Converter will check and delete outdated images automatically.
+
 
 ## Installation
 Composer
 ```json
 {
     "require": {
-		"moroz1999/ZxImage": "*"
+		"moroz1999/zx-image": "*"
     }
 }
 ```
