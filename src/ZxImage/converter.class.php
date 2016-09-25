@@ -35,7 +35,15 @@ class Converter
     protected $size = '2';
     protected $rotation = '0';
     protected $cacheFileName;
-    protected $useCache = true;
+    protected $cacheEnabled = true;
+
+    /**
+     * @param boolean $cacheEnabled
+     */
+    public function setCacheEnabled($cacheEnabled)
+    {
+        $this->cacheEnabled = $cacheEnabled;
+    }
 
     protected $palette = '';
     protected $palette1 = '00,76,CD,E9,FF,9F:FF,00,00;00,FF,00;00,00,FF'; //pulsar
@@ -146,62 +154,66 @@ class Converter
 
     public function executeProcess()
     {
-        $resultFilePath = $this->getCacheFileName();
-        if (!file_exists($resultFilePath) || !$this->useCache) {
-            $converter = false;
-            if ($this->type == 'standard') {
-                $converter = new ConverterPlugin_standard($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'hidden') {
-                $converter = new ConverterPlugin_hidden($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'monochrome') {
-                $converter = new ConverterPlugin_monochrome($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'flash') {
-                $converter = new ConverterPlugin_flash($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'gigascreen') {
-                $converter = new ConverterPlugin_gigascreen($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'tricolor') {
-                $converter = new ConverterPlugin_tricolor($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'multiartist' || $this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
-                $converter = new ConverterPlugin_multiartist($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'multicolor') {
-                $converter = new ConverterPlugin_multicolor($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'multicolor4') {
-                $converter = new ConverterPlugin_multicolor4($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'mc') {
-                $converter = new ConverterPlugin_mc($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'timex81') {
-                $converter = new ConverterPlugin_timex81($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'bsc') {
-                $converter = new ConverterPlugin_bsc($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'bmc4') {
-                $converter = new ConverterPlugin_bmc4($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'attributes') {
-                $converter = new ConverterPlugin_attributes($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'lowresgs') {
-                $converter = new ConverterPlugin_lowresgs($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'chr$') {
-                $converter = new ConverterPlugin_chrd($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'attributesm') {
-                $converter = new ConverterPlugin_attributesm($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'ulaplus') {
-                $converter = new ConverterPlugin_ulaplus($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'sam4') {
-                $converter = new ConverterPlugin_sam4($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'zxevo') {
-                $converter = new ConverterPlugin_zxevo($this->sourceFilePath, $resultFilePath);
-            } elseif ($this->type == 'sxg') {
-                $converter = new ConverterPlugin_sxg($this->sourceFilePath, $resultFilePath);
-            }
-            if ($converter) {
-                $converter->setBorder($this->border);
-                $converter->setPalette($this->palette);
-                $converter->setSize($this->size);
-                $converter->setRotation($this->rotation);
-                $converter->setGigascreenMode($this->gigascreenMode);
-                $converter->convert();
+        if (!$this->cacheEnabled) {
+            $resultFilePath = $this->getCacheFileName();
+            if (!file_exists($resultFilePath)) {
+                $converter = false;
+                if ($this->type == 'standard') {
+                    $converter = new ConverterPlugin_standard($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'hidden') {
+                    $converter = new ConverterPlugin_hidden($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'monochrome') {
+                    $converter = new ConverterPlugin_monochrome($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'flash') {
+                    $converter = new ConverterPlugin_flash($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'gigascreen') {
+                    $converter = new ConverterPlugin_gigascreen($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'tricolor') {
+                    $converter = new ConverterPlugin_tricolor($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'multiartist' || $this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
+                    $converter = new ConverterPlugin_multiartist($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'multicolor') {
+                    $converter = new ConverterPlugin_multicolor($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'multicolor4') {
+                    $converter = new ConverterPlugin_multicolor4($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'mc') {
+                    $converter = new ConverterPlugin_mc($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'timex81') {
+                    $converter = new ConverterPlugin_timex81($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'bsc') {
+                    $converter = new ConverterPlugin_bsc($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'bmc4') {
+                    $converter = new ConverterPlugin_bmc4($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'attributes') {
+                    $converter = new ConverterPlugin_attributes($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'lowresgs') {
+                    $converter = new ConverterPlugin_lowresgs($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'chr$') {
+                    $converter = new ConverterPlugin_chrd($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'attributesm') {
+                    $converter = new ConverterPlugin_attributesm($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'ulaplus') {
+                    $converter = new ConverterPlugin_ulaplus($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'sam4') {
+                    $converter = new ConverterPlugin_sam4($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'zxevo') {
+                    $converter = new ConverterPlugin_zxevo($this->sourceFilePath, $resultFilePath);
+                } elseif ($this->type == 'sxg') {
+                    $converter = new ConverterPlugin_sxg($this->sourceFilePath, $resultFilePath);
+                }
+                if ($converter) {
+                    $converter->setBorder($this->border);
+                    $converter->setPalette($this->palette);
+                    $converter->setSize($this->size);
+                    $converter->setRotation($this->rotation);
+                    $converter->setGigascreenMode($this->gigascreenMode);
+                    $converter->convert();
+                }
             }
         }
-        $this->checkCache();
+        if ($this->cacheEnabled){
+            $this->checkCacheClearing();
+        }
         return true;
     }
 
@@ -245,18 +257,18 @@ class Converter
         return $this->hash;
     }
 
-    protected function checkCache()
+    protected function checkCacheClearing()
     {
-        if ($date = $this->getCacheDeletionDate()) {
+        if ($date = $this->getCacheLastClearedDate()) {
             $now = time();
             if ($now - $date >= $this->cacheDeletionPeriod) {
                 touch($this->cacheDirMarkerPath);
-                $this->clearCache();
+                $this->clearOutdatedCache();
             }
         }
     }
 
-    protected function clearCache()
+    protected function clearOutdatedCache()
     {
         $c = 0;
         $now = time();
@@ -279,7 +291,7 @@ class Converter
         return $c;
     }
 
-    protected function getCacheDeletionDate()
+    protected function getCacheLastClearedDate()
     {
         $date = false;
 
