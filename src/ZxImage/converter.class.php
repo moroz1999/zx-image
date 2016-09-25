@@ -1,23 +1,6 @@
 <?php
 namespace ZxImage;
 
-interface ConverterPluginConfigurable
-{
-    public function __construct($sourceFilePath, $resultFilePath);
-
-    public function convert();
-
-    public function setBorder($border);
-
-    public function setPalette($palette);
-
-    public function setSize($size);
-
-    public function setRotation($rotation);
-
-    public function setGigascreenMode($mode);
-}
-
 class Converter
 {
     protected $hash = false;
@@ -36,6 +19,7 @@ class Converter
     protected $rotation = '0';
     protected $cacheFileName;
     protected $cacheEnabled = false;
+    protected $resultMime;
 
     /**
      * @param boolean $cacheEnabled
@@ -144,6 +128,21 @@ class Converter
         $this->sourceFilePath = $path;
     }
 
+    public function getResultMime()
+    {
+        $resultMime = false;
+        if (!$this->resultMime) {
+            $resultMime = $this->resultMime;
+        } elseif ($this->cacheEnabled) {
+            if ($resultFilePath = $this->getCacheFileName()) {
+                if (is_file($resultFilePath) && ($info = getimagesize($resultFilePath))) {
+                    $resultMime = $info['mime'];
+                }
+            }
+        }
+        return $resultMime;
+    }
+
     public function getCacheFileName()
     {
         $parametersHash = $this->getHash();
@@ -152,69 +151,48 @@ class Converter
         return $this->cacheFileName;
     }
 
-    public function executeProcess()
+    public function convertToBinary()
     {
         if (!$this->cacheEnabled) {
+            $result = $this->generateImage();
+        } else {
             $resultFilePath = $this->getCacheFileName();
             if (!file_exists($resultFilePath)) {
-                $converter = false;
-                if ($this->type == 'standard') {
-                    $converter = new ConverterPlugin_standard($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'hidden') {
-                    $converter = new ConverterPlugin_hidden($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'monochrome') {
-                    $converter = new ConverterPlugin_monochrome($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'flash') {
-                    $converter = new ConverterPlugin_flash($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'gigascreen') {
-                    $converter = new ConverterPlugin_gigascreen($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'tricolor') {
-                    $converter = new ConverterPlugin_tricolor($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'multiartist' || $this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
-                    $converter = new ConverterPlugin_multiartist($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'multicolor') {
-                    $converter = new ConverterPlugin_multicolor($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'multicolor4') {
-                    $converter = new ConverterPlugin_multicolor4($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'mc') {
-                    $converter = new ConverterPlugin_mc($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'timex81') {
-                    $converter = new ConverterPlugin_timex81($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'bsc') {
-                    $converter = new ConverterPlugin_bsc($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'bmc4') {
-                    $converter = new ConverterPlugin_bmc4($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'attributes') {
-                    $converter = new ConverterPlugin_attributes($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'lowresgs') {
-                    $converter = new ConverterPlugin_lowresgs($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'chr$') {
-                    $converter = new ConverterPlugin_chrd($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'attributesm') {
-                    $converter = new ConverterPlugin_attributesm($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'ulaplus') {
-                    $converter = new ConverterPlugin_ulaplus($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'sam4') {
-                    $converter = new ConverterPlugin_sam4($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'zxevo') {
-                    $converter = new ConverterPlugin_zxevo($this->sourceFilePath, $resultFilePath);
-                } elseif ($this->type == 'sxg') {
-                    $converter = new ConverterPlugin_sxg($this->sourceFilePath, $resultFilePath);
-                }
-                if ($converter) {
-                    $converter->setBorder($this->border);
-                    $converter->setPalette($this->palette);
-                    $converter->setSize($this->size);
-                    $converter->setRotation($this->rotation);
-                    $converter->setGigascreenMode($this->gigascreenMode);
-                    $converter->convert();
+                $result = $this->generateImage($resultFilePath);
+            } else {
+                $result = file_get_contents($resultFilePath);
+            }
+            $this->checkCacheClearing();
+        }
+        return $result;
+    }
+
+    public function generateImage($resultFilePath = false)
+    {
+        $result = false;
+        if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
+            $className = "ConverterPlugin_multiartist";
+        } else {
+            $className = "ConverterPlugin_" . $this->type;
+        }
+        if (class_exists($className)) {
+            /**
+             * @var \ZxImage\ConverterPlugin $converter
+             */
+            $converter = new $className($this->sourceFilePath);
+            $converter->setBorder($this->border);
+            $converter->setPalette($this->palette);
+            $converter->setSize($this->size);
+            $converter->setRotation($this->rotation);
+            $converter->setGigascreenMode($this->gigascreenMode);
+            if ($result = $converter->convert()) {
+                $this->resultMime = $converter->getResultMime();
+                if ($resultFilePath) {
+                    file_put_contents($resultFilePath, $result);
                 }
             }
         }
-        if ($this->cacheEnabled) {
-            $this->checkCacheClearing();
-        }
-        return true;
+        return $result;
     }
 
     public function getHash()
@@ -306,6 +284,24 @@ class Converter
     }
 }
 
+interface ConverterPluginConfigurable
+{
+    public function __construct($sourceFilePath);
+
+    public function convert();
+
+    public function setBorder($border);
+
+    public function setPalette($palette);
+
+    public function setSize($size);
+
+    public function setRotation($rotation);
+
+    public function setGigascreenMode($mode);
+}
+
+
 abstract class ConverterPlugin implements ConverterPluginConfigurable
 {
     protected $handle = null;
@@ -316,7 +312,7 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
     protected $palette = false;
     protected $border = false;
     protected $size = '0';
-    protected $resultFilePath = '';
+    protected $resultMime;
 
     protected $width = 256;
     protected $height = 192;
@@ -328,10 +324,9 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
     protected $rotation;
     protected $interlaceMultiplier = 0.75;
 
-    public function __construct($sourceFilePath, $resultFilePath)
+    public function __construct($sourceFilePath)
     {
         $this->sourceFilePath = $sourceFilePath;
-        $this->resultFilePath = $resultFilePath;
     }
 
     public function setBorder($border)
@@ -822,11 +817,30 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
 
     protected function makePngFromGd($image)
     {
+        $this->resultMime = 'image/png';
         ob_start();
         imagepng($image);
         $binary = ob_get_contents();
         ob_end_clean();
         return $binary;
+    }
+
+    protected function makeGifFromGd($image)
+    {
+        $this->resultMime = 'image/gif';
+        ob_start();
+        imagegif($image);
+        $binary = ob_get_contents();
+        ob_end_clean();
+        return $binary;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getResultMime()
+    {
+        return $this->resultMime;
     }
 
     abstract protected function loadBits();
@@ -856,7 +870,6 @@ class ConverterPlugin_standard extends ConverterPlugin
 
                 $delays = array(32, 32);
                 $result = $this->buildAnimatedGif($gifImages, $delays);
-                file_put_contents($this->resultFilePath, $result);
             } else {
                 $image = $this->exportData($parsedData, false);
                 $result = $this->makePngFromGd($image);
@@ -1010,14 +1023,10 @@ class ConverterPlugin_standard extends ConverterPlugin
 
     protected function getRightPaletteGif($srcImage)
     {
-        $temporaryFileName = 'test.gif';
         $palettedImage = imagecreate(imagesx($srcImage), imagesy($srcImage));
         imagecopy($palettedImage, $srcImage, 0, 0, 0, 0, imagesx($srcImage), imagesy($srcImage));
         imagecolormatch($srcImage, $palettedImage);
-        imagegif($palettedImage, $temporaryFileName);
-        $gifFile = file_get_contents($temporaryFileName);
-        unlink($temporaryFileName);
-        return $gifFile;
+        return $this->makeGifFromGd($palettedImage);
     }
 
     protected function interlaceMix(&$image1, &$image2, $lineHeight)
@@ -1756,7 +1765,6 @@ class ConverterPlugin_gigascreen extends ConverterPlugin_standard
                     }
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
-                    file_put_contents($this->resultFilePath, $result);
                 } else {
                     $image1 = $this->exportData($parsedData1, false);
                     $image2 = $this->exportData($parsedData2, false);
@@ -1773,7 +1781,6 @@ class ConverterPlugin_gigascreen extends ConverterPlugin_standard
                     $delays = array(2, 2);
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
-                    file_put_contents($this->resultFilePath, $result);
                 }
             } else {
                 if (count($parsedData1['attributesData']['flashMap']) > 0 || count(
@@ -1789,7 +1796,6 @@ class ConverterPlugin_gigascreen extends ConverterPlugin_standard
                     $delays = array(32, 32);
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
-                    file_put_contents($this->resultFilePath, $result);
                 } else {
                     $image = $this->exportDataMerged($parsedData1, $parsedData2, false);
                     $result = $this->makePngFromGd($image);
@@ -1904,7 +1910,6 @@ class ConverterPlugin_chrd extends ConverterPlugin_gigascreen
 
                     $delays = array(32, 32);
                     $result = $this->buildAnimatedGif($gifImages, $delays);
-                    file_put_contents($this->resultFilePath, $result);
                 } else {
                     $image = $this->exportData($parsedData, false);
                     $result = $this->makePngFromGd($image);
@@ -2034,7 +2039,7 @@ class ConverterPlugin_monochrome extends ConverterPlugin_standard
             $parsedData = $this->parseScreen($bits);
 
             $image = $this->exportData($parsedData, false);
-            imagegif($image, $this->resultFilePath);
+            $result = $this->makeGifFromGd($image);
         }
         return $result;
     }
@@ -2091,7 +2096,7 @@ class ConverterPlugin_flash extends ConverterPlugin_standard
             $parsedData = $this->parseScreen($bits);
 
             $image = $this->exportData($parsedData);
-            $result = imagegif($image, $this->resultFilePath);
+            $result = $this->makeGifFromGd($image);
         }
         return $result;
     }
@@ -2156,7 +2161,6 @@ class ConverterPlugin_tricolor extends ConverterPlugin_standard
                 $delays = array(2, 2, 2);
 
                 $result = $this->buildAnimatedGif($gifImages, $delays);
-                file_put_contents($this->resultFilePath, $result);
             } else {
                 $resources = array();
                 $resources[] = $this->exportData($parsedData[0], false);
@@ -2164,7 +2168,6 @@ class ConverterPlugin_tricolor extends ConverterPlugin_standard
                 $resources[] = $this->exportData($parsedData[2], false);
 
                 $result = $this->buildMixedPng($resources);
-                file_put_contents($this->resultFilePath, $result);
             }
         }
         return $result;
@@ -2522,7 +2525,6 @@ class ConverterPlugin_multiartist extends ConverterPlugin_gigascreen
                     }
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
-                    file_put_contents($this->resultFilePath, $result);
                 } else {
                     $this->border = $this->borders[0];
                     $image1 = $this->exportData($parsedData1, false);
@@ -2542,7 +2544,6 @@ class ConverterPlugin_multiartist extends ConverterPlugin_gigascreen
                     $delays = array(2, 2);
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
-                    file_put_contents($this->resultFilePath, $result);
                 }
             } else {
                 if (count($parsedData1['attributesData']['flashMap']) > 0 || count(
@@ -2560,7 +2561,6 @@ class ConverterPlugin_multiartist extends ConverterPlugin_gigascreen
                     $delays = array(32, 32);
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
-                    file_put_contents($this->resultFilePath, $result);
                 } else {
                     $this->mghMixedBorder = true;
                     $image = $this->exportDataMerged($parsedData1, $parsedData2, false);
@@ -2684,7 +2684,6 @@ class ConverterPlugin_attributes extends ConverterPlugin_standard
 
                 $delays = array(32, 32);
                 $result = $this->buildAnimatedGif($gifImages, $delays);
-                file_put_contents($this->resultFilePath, $result);
             } else {
                 $image = $this->exportData($parsedData, false);
                 $result = $this->makePngFromGd($image);
