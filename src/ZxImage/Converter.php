@@ -151,23 +151,32 @@ class Converter
         return $this->cacheFileName;
     }
 
-    public function convertToBinary()
+    public function getBinary()
     {
         if (!$this->cacheEnabled) {
-            $result = $this->generateImage();
+            return $this->generateBinary();
         } else {
-            $resultFilePath = $this->getCacheFileName();
+            return $this->generateCacheFile();
+        }
+    }
+
+    public function generateCacheFile()
+    {
+        $result = false;
+        if ($resultFilePath = $this->getCacheFileName()) {
             if (!file_exists($resultFilePath)) {
-                $result = $this->generateImage($resultFilePath);
+                $result = $this->generateBinary();
+                file_put_contents($resultFilePath, $result);
             } else {
                 $result = file_get_contents($resultFilePath);
             }
+
             $this->checkCacheClearing();
         }
         return $result;
     }
 
-    public function generateImage($resultFilePath = false)
+    public function generateBinary()
     {
         $result = false;
         if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
@@ -187,9 +196,6 @@ class Converter
             $converter->setGigascreenMode($this->gigascreenMode);
             if ($result = $converter->convert()) {
                 $this->resultMime = $converter->getResultMime();
-                if ($resultFilePath) {
-                    file_put_contents($resultFilePath, $result);
-                }
             }
         }
         return $result;
