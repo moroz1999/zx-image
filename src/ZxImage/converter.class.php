@@ -35,7 +35,7 @@ class Converter
     protected $size = '2';
     protected $rotation = '0';
     protected $cacheFileName;
-    protected $cacheEnabled = true;
+    protected $cacheEnabled = false;
 
     /**
      * @param boolean $cacheEnabled
@@ -211,7 +211,7 @@ class Converter
                 }
             }
         }
-        if ($this->cacheEnabled){
+        if ($this->cacheEnabled) {
             $this->checkCacheClearing();
         }
         return true;
@@ -815,9 +815,18 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
             $image = $this->exportData($parsedData, false);
-            $result = imagepng($image, $this->resultFilePath);
+            $result = $this->makePngFromGd($image);
         }
         return $result;
+    }
+
+    protected function makePngFromGd($image)
+    {
+        ob_start();
+        imagepng($image);
+        $binary = ob_get_contents();
+        ob_end_clean();
+        return $binary;
     }
 
     abstract protected function loadBits();
@@ -850,7 +859,8 @@ class ConverterPlugin_standard extends ConverterPlugin
                 file_put_contents($this->resultFilePath, $result);
             } else {
                 $image = $this->exportData($parsedData, false);
-                $result = imagepng($image, $this->resultFilePath);
+                $result = $this->makePngFromGd($image);
+
             }
         }
         return $result;
@@ -1328,10 +1338,13 @@ class ConverterPlugin_zxevo extends ConverterPlugin
 
     public function convert()
     {
+        $result = false;
         if ($gdObject = $this->loadBits()) {
             $image = $this->adjustImage($gdObject);
-            imagepng($image, $this->resultFilePath);
+            $result = $this->makePngFromGd($image);
+
         }
+        return $result;
     }
 
     protected function loadBits()
@@ -1779,7 +1792,7 @@ class ConverterPlugin_gigascreen extends ConverterPlugin_standard
                     file_put_contents($this->resultFilePath, $result);
                 } else {
                     $image = $this->exportDataMerged($parsedData1, $parsedData2, false);
-                    $result = imagepng($image, $this->resultFilePath);
+                    $result = $this->makePngFromGd($image);
                 }
             }
         }
@@ -1894,7 +1907,7 @@ class ConverterPlugin_chrd extends ConverterPlugin_gigascreen
                     file_put_contents($this->resultFilePath, $result);
                 } else {
                     $image = $this->exportData($parsedData, false);
-                    $result = imagepng($image, $this->resultFilePath);
+                    $result = $this->makePngFromGd($image);
                 }
             }
         } elseif ($this->colorType == '18') {
@@ -2162,7 +2175,7 @@ class ConverterPlugin_tricolor extends ConverterPlugin_standard
         $first = reset($resources);
         $width = imagesx($first);
         $height = imagesy($first);
-        $mixed = imagecreatetruecolor($width, $height);
+        $image = imagecreatetruecolor($width, $height);
 
         for ($y = 0; $y < $height; $y++) {
             for ($x = 0; $x < $width; $x++) {
@@ -2171,14 +2184,10 @@ class ConverterPlugin_tricolor extends ConverterPlugin_standard
                     $color = imagecolorat($resource, $x, $y);
                     $overall = $overall + $color;
                 }
-                imagesetpixel($mixed, $x, $y, $overall);
+                imagesetpixel($image, $x, $y, $overall);
             }
         }
-        $temporary = 'test.png';
-        imagepng($mixed, $temporary);
-
-        $result = file_get_contents($temporary);
-        unlink($temporary);
+        $result = $this->makePngFromGd($image);
         return $result;
     }
 
@@ -2555,7 +2564,7 @@ class ConverterPlugin_multiartist extends ConverterPlugin_gigascreen
                 } else {
                     $this->mghMixedBorder = true;
                     $image = $this->exportDataMerged($parsedData1, $parsedData2, false);
-                    $result = imagepng($image, $this->resultFilePath);
+                    $result = $this->makePngFromGd($image);
                 }
             }
         }
@@ -2678,7 +2687,7 @@ class ConverterPlugin_attributes extends ConverterPlugin_standard
                 file_put_contents($this->resultFilePath, $result);
             } else {
                 $image = $this->exportData($parsedData, false);
-                $result = imagepng($image, $this->resultFilePath);
+                $result = $this->makePngFromGd($image);
             }
         }
         return $result;
