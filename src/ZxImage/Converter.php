@@ -181,6 +181,8 @@ class Converter
         $result = false;
         if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
             $className = '\ZxImage\\ConverterPlugin_multiartist';
+        } elseif ($this->type == 'chr$') {
+            $className = '\ZxImage\\ConverterPlugin_chrd';
         } else {
             $className = '\ZxImage\\ConverterPlugin_' . $this->type;
         }
