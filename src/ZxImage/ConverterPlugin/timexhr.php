@@ -26,7 +26,7 @@ class ConverterPlugin_timexhr extends ConverterPlugin_standard
         //001 - Blue on Yellow     101 - Cyan on Red
         //010 - Red on Cyan        110 - Yellow on Blue
         //011 - Magenta on Green   111 - White on Black
-        $color = substr($attributesArray, 3, 3);
+        $color = substr($attributesArray, 2, 3);
         switch ($color) {
             case '000':
                 $attributesData['inkMap'] = '1000';
