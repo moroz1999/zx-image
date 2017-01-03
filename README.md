@@ -41,7 +41,7 @@ After this all images will be stored in folder as a cache. Converter will check 
 
 
 ## Installation
-Composer
+Installation through Composer:
 ```json
 {
     "require": {
@@ -49,6 +49,7 @@ Composer
     }
 }
 ```
+The library is also capable of working without Composer autoloader.
 
 # Supported formats
 * "standard" - standard ZX Spectrum screen memory dump. Size: 6912. 6144 bytes of pixel data, 768 bytes of attributes.
