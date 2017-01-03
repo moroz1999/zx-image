@@ -20,6 +20,7 @@ class Converter
     protected $cacheFileName;
     protected $cacheEnabled = false;
     protected $resultMime;
+    protected $basePath;
 
     /**
      * @param boolean $cacheEnabled
@@ -39,6 +40,19 @@ class Converter
     {
         $this->palette = $this->palette1;
         $this->cacheExpirationLimit = 60 * 60 * 24 * 30; //delete files older than 1 month
+        $this->basePath = pathinfo((__FILE__), PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR;
+        if (!class_exists('\ZxImage\ConverterPluginConfigurable')) {
+            $path = $this->basePath . 'ConverterPluginConfigurable.php';
+            if (file_exists($path)) {
+                include_once($path);
+            }
+        }
+        if (!class_exists('\ZxImage\ConverterPlugin')) {
+            $path = $this->basePath . 'ConverterPlugin.php';
+            if (file_exists($path)) {
+                include_once($path);
+            }
+        }
     }
 
     /**
@@ -46,8 +60,8 @@ class Converter
      */
     public function setCachePath($cachePath)
     {
-        $this->cachePath = $cachePath;
-        $this->cacheDirMarkerPath = $this->cachePath . '/_marker';
+        $this->cachePath = $cachePath . DIRECTORY_SEPARATOR;
+        $this->cacheDirMarkerPath = $this->cachePath . DIRECTORY_SEPARATOR . '_marker';
     }
 
     /**
@@ -180,11 +194,20 @@ class Converter
     {
         $result = false;
         if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
+            $fileName = 'ConverterPlugin\\multiartist.php';
             $className = '\ZxImage\\ConverterPlugin_multiartist';
         } elseif ($this->type == 'chr$') {
+            $fileName = 'ConverterPlugin\\chrd.php';
             $className = '\ZxImage\\ConverterPlugin_chrd';
         } else {
+            $fileName = 'ConverterPlugin\\' . $this->type . '.php';
             $className = '\ZxImage\\ConverterPlugin_' . $this->type;
+        }
+        if (!class_exists($className)) {
+            $path = $this->basePath . $fileName;
+            if (file_exists($path)) {
+                include_once($path);
+            }
         }
         if (class_exists($className)) {
             /**

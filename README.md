@@ -3,17 +3,25 @@ PHP-based ZX Spectrum images parsing into PNG/GIF. Supports animation, supports 
 
 ## Basic usage example
 ```php
+<?php
+include_once('../src/ZxImage/Converter.php');
+
 $converter = new \ZxImage\Converter();
 $converter->setType('standard');
-$converter->setPath('/6192.scr'); //
-$converter->setBorder(0); //black
-$converter->setSize(1); //1 for 320*240 (256*192 with border)
-$binary = $converter->convertToBinary(); //convert and return image data
-$imageType = $converter->getResultMime(); //after conversion we can ask for a mime type of last operation
+$converter->setPath('example.scr'); //
+$converter->setBorder(5); //cyan
+$converter->setSize(2); //2 for 320*240 (256*192 with border)
 
-//do something with the image
-header('Content-Type: '.$imageType);
-echo $binary;
+//convert and return image data
+if ($binary = $converter->getBinary()) {
+    //after conversion we can ask for a mime type of last operation and send it to browser
+    $imageType = $converter->getResultMime();
+    header('Content-Type: ' . $imageType);
+
+    //send image contents to browser
+    echo $binary;
+}
+
 ```
 
 ## File cache setup example
