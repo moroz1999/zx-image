@@ -189,13 +189,13 @@ class Converter
     {
         $result = false;
         if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
-            $fileName = 'ConverterPlugin\\multiartist.php';
+            $fileName = 'ConverterPlugin' . DIRECTORY_SEPARATOR . 'multiartist.php';
             $className = '\ZxImage\\ConverterPlugin_multiartist';
         } elseif ($this->type == 'chr$') {
-            $fileName = 'ConverterPlugin\\chrd.php';
+            $fileName = 'ConverterPlugin' . DIRECTORY_SEPARATOR . 'chrd.php';
             $className = '\ZxImage\\ConverterPlugin_chrd';
         } else {
-            $fileName = 'ConverterPlugin\\' . $this->type . '.php';
+            $fileName = 'ConverterPlugin' . DIRECTORY_SEPARATOR . $this->type . '.php';
             $className = '\ZxImage\\ConverterPlugin_' . $this->type;
         }
         if (!class_exists($className)) {
