@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPlugin_gigascreen')) {
+    include_once('gigascreen.php');
+}
 
 class ConverterPlugin_lowresgs extends ConverterPlugin_gigascreen
 {
@@ -23,11 +26,11 @@ class ConverterPlugin_lowresgs extends ConverterPlugin_gigascreen
             $pixelsArray = $this->generatePixelsArray($texture);
             $resultBits = array(
                 $resultBits = array(
-                    'pixelsArray'     => $pixelsArray,
+                    'pixelsArray' => $pixelsArray,
                     'attributesArray' => $attributesArray[0],
                 ),
                 array(
-                    'pixelsArray'     => $pixelsArray,
+                    'pixelsArray' => $pixelsArray,
                     'attributesArray' => $attributesArray[1],
                 ),
             );

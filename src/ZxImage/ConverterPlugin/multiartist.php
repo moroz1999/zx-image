@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPlugin_gigascreen')) {
+    include_once('gigascreen.php');
+}
 
 class ConverterPlugin_multiartist extends ConverterPlugin_gigascreen
 {

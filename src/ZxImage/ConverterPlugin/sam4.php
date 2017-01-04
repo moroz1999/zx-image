@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
+    include_once('standard.php');
+}
 
 class ConverterPlugin_sam4 extends ConverterPlugin_standard
 {
@@ -22,7 +25,7 @@ class ConverterPlugin_sam4 extends ConverterPlugin_standard
                 $length++;
             }
             $resultBits = array(
-                'pixelsArray'  => $pixelsArray,
+                'pixelsArray' => $pixelsArray,
                 'paletteArray' => $paletteArray,
             );
             return $resultBits;

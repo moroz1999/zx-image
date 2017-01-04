@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
+    include_once('standard.php');
+}
 
 class ConverterPlugin_ulaplus extends ConverterPlugin_standard
 {
@@ -25,9 +28,9 @@ class ConverterPlugin_ulaplus extends ConverterPlugin_standard
                 $length++;
             }
             $resultBits = array(
-                'pixelsArray'     => $pixelsArray,
+                'pixelsArray' => $pixelsArray,
                 'attributesArray' => $attributesArray,
-                'paletteArray'    => $paletteArray,
+                'paletteArray' => $paletteArray,
             );
             return $resultBits;
         }

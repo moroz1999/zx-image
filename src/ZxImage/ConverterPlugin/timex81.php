@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
+    include_once('standard.php');
+}
 
 class ConverterPlugin_timex81 extends ConverterPlugin_standard
 {

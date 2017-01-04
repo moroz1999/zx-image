@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
+    include_once('standard.php');
+}
 
 class ConverterPlugin_timexhr extends ConverterPlugin_standard
 {
@@ -109,7 +112,7 @@ class ConverterPlugin_timexhr extends ConverterPlugin_standard
                 }
                 $color = $this->colors[$ZXcolor];
                 imagesetpixel($image, $x, $y, $color);
-                imagesetpixel($image, $x, $y+1, $color);
+                imagesetpixel($image, $x, $y + 1, $color);
             }
         }
         $this->border = bindec($parsedData['attributesData']['paperMap']);

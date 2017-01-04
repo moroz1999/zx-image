@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPlugin')) {
+    include_once('../ConverterPlugin.php');
+}
 
 class ConverterPlugin_standard extends ConverterPlugin
 {

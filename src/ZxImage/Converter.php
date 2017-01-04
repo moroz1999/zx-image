@@ -41,12 +41,7 @@ class Converter
         $this->palette = $this->palette1;
         $this->cacheExpirationLimit = 60 * 60 * 24 * 30; //delete files older than 1 month
         $this->basePath = pathinfo((__FILE__), PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR;
-        if (!class_exists('\ZxImage\ConverterPluginConfigurable')) {
-            $path = $this->basePath . 'ConverterPluginConfigurable.php';
-            if (file_exists($path)) {
-                include_once($path);
-            }
-        }
+
         if (!class_exists('\ZxImage\ConverterPlugin')) {
             $path = $this->basePath . 'ConverterPlugin.php';
             if (file_exists($path)) {

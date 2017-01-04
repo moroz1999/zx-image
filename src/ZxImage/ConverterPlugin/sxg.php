@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPlugin')) {
+    include_once('../ConverterPlugin.php');
+}
 
 class ConverterPlugin_sxg extends ConverterPlugin
 {
@@ -8,16 +11,16 @@ class ConverterPlugin_sxg extends ConverterPlugin
     protected $sxgFormat = 2;
 
     protected $table = [
-        0  => 0,
-        1  => 10,
-        2  => 21,
-        3  => 31,
-        4  => 42,
-        5  => 53,
-        6  => 63,
-        7  => 74,
-        8  => 85,
-        9  => 95,
+        0 => 0,
+        1 => 10,
+        2 => 21,
+        3 => 31,
+        4 => 42,
+        5 => 53,
+        6 => 63,
+        7 => 74,
+        8 => 85,
+        9 => 95,
         10 => 106,
         11 => 117,
         12 => 127,
@@ -40,7 +43,7 @@ class ConverterPlugin_sxg extends ConverterPlugin
         if (file_exists($this->sourceFilePath)) {
             $this->handle = fopen($this->sourceFilePath, "rb");
             $resultBits = array(
-                'pixelsArray'  => [],
+                'pixelsArray' => [],
                 'paletteArray' => [],
             );
             $firstByte = $this->readByte();

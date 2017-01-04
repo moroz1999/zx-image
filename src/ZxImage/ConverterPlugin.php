@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPluginConfigurable')) {
+    include_once('ConverterPluginConfigurable.php');
+}
 
 abstract class ConverterPlugin implements ConverterPluginConfigurable
 {

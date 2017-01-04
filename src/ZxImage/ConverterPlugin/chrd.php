@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPlugin_gigascreen')) {
+    include_once('gigascreen.php');
+}
 
 class ConverterPlugin_chrd extends ConverterPlugin_gigascreen
 {
@@ -93,7 +96,7 @@ class ConverterPlugin_chrd extends ConverterPlugin_gigascreen
                 );
             } elseif ($this->colorType == '9') {
                 $resultBits = array(
-                    'pixelsArray'     => $pixelsArray,
+                    'pixelsArray' => $pixelsArray,
                     'attributesArray' => $attributesArray
                 );
             } elseif ($this->colorType == '18') {

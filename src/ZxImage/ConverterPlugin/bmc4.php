@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPlugin_bsc')) {
+    include_once('bsc.php');
+}
 
 class ConverterPlugin_bmc4 extends ConverterPlugin_bsc
 {

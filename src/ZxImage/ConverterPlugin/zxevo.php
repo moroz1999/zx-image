@@ -1,5 +1,8 @@
 <?php
 namespace ZxImage;
+if (!class_exists('\ZxImage\ConverterPlugin')) {
+    include_once('../ConverterPlugin.php');
+}
 
 class ConverterPlugin_zxevo extends ConverterPlugin
 {
@@ -78,7 +81,11 @@ class ConverterPlugin_zxevo extends ConverterPlugin
         return $attributesData;
     }
 
-    protected function parseScreen($data) { }
+    protected function parseScreen($data)
+    {
+    }
 
-    protected function exportData($parsedData, $flashedImage = false) { }
+    protected function exportData($parsedData, $flashedImage = false)
+    {
+    }
 }
