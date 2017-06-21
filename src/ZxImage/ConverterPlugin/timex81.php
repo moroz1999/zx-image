@@ -46,7 +46,7 @@ class ConverterPlugin_timex81 extends ConverterPlugin_standard
 
             $flashStatus = substr($bits, 0, 1);
             if ($flashStatus == '1') {
-                $attributesData['flashMap'][$y][$x] = $flashStatus;
+                $attributesData['flashMap'][$zxY][$x] = $flashStatus;
             }
 
             if ($x == ($this->width / 8) - 1) {
