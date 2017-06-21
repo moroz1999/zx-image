@@ -68,9 +68,10 @@ The library is also capable of working without Composer autoloader.
 * "multicolor4" - multicolor 8*4. Size: 7680. 6144 bytes of pixels data, 1536 bytes of attributes data.
 * "multiartist" - ZX Spectrum multicolor gigascreen image exported from Multiartist (MG1, MG2, MG4, MG8, not PC-native MGS). Size: varies.
 * "attributes" - ZX Spectrum native attributes screen, 53colors achieved by using grid. Size: 768. Contains only 768 bytes of attributes.
-* "lowresgs" - ZX Spectrum gigascreen 8*4 attributes screen. Size: 1628. 84 bytes of ?, 8 bytes of texture, 768 bytes of first screen attributes, 768 bytes of second screen attributes.  
-* "mc" - ZX Spectrum multicolor 8*1 screen. Size: 12288. 6144 bytes of pixel data, 6144 bytes of attributes.  
-* "timex81" - Timex multicolor 8*1 screen. Size: 12288. 6144 bytes of pixel data, 6144 bytes of attributes in Timex format.  
+* "lowresgs" - ZX Spectrum gigascreen 8*4 attributes screen. Size: 1628. 84 bytes of ?, 8 bytes of texture, 768 bytes of first screen attributes, 768 bytes of second screen attributes.
+* "mc" - ZX Spectrum multicolor 8*1 screen. Size: 12288. 6144 bytes of linear pixel data, 6144 bytes of linear attributes data.
+* "mlt" - ZX Spectrum multicolor 8*1 screen. Size: 12288. 6144 bytes of non-linear pixel data, 6144 bytes of linear attributes data.
+* "timex81" - Timex multicolor 8*1 screen. Size: 12288. 6144 bytes of non-linear pixel data, 6144 bytes of attributes in non-linear format (Timex screen memory dump).
 * "timexhr" - Timex hi-res 512*192 screen. Size: 12289. 6144 bytes of odd columns pixel data, 6144 bytes of even columns pixel data, 1 byte of color information.  
 
 ## License
