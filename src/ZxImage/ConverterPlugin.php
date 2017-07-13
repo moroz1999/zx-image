@@ -1,5 +1,6 @@
 <?php
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPluginConfigurable')) {
     include_once('ConverterPluginConfigurable.php');
 }
@@ -296,6 +297,7 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
 
         $srcWidth = imagesx($srcImage);
         $srcHeight = imagesy($srcImage);
+        imagegammacorrect($srcImage, 2.2, 1.0);
 
         if ($this->size == '0') {
             $dstWidth = $srcWidth * 0.1875;
@@ -303,8 +305,7 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
 
             $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
             imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
-        }
-        if ($this->size == '1') {
+        } elseif ($this->size == '1') {
             $dstWidth = $srcWidth / 4;
             $dstHeight = $srcHeight / 4;
 
@@ -426,7 +427,16 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
                     imagesetpixel($dstImage, $x, $y, $color);
                 }
             }
+        } elseif ($this->size == '6') {
+            $dstWidth = $srcWidth;
+            $dstHeight = $srcHeight;
+
+            $dstImage2 = imagecreatetruecolor($dstWidth / 2, $dstHeight);
+            imagecopyresampled($dstImage2, $srcImage, 0, 0, 0, 0, $dstWidth / 2, $dstHeight, $srcWidth, $srcHeight);
+            $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
+            imagecopyresampled($dstImage, $dstImage2, 0, 0, 0, 0, $dstWidth, $dstHeight, $dstWidth / 2, $srcHeight);
         }
+        imagegammacorrect($dstImage, 1.0, 2.2);
 
         return $dstImage;
     }

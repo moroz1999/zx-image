@@ -121,7 +121,7 @@ class Converter
     {
         if (is_numeric($size)) {
             $size = intval($size);
-            if ($size >= 0 && $size <= 5) {
+            if ($size >= 0 && $size <= 6) {
                 $this->size = $size;
             }
         }
