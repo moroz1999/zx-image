@@ -105,26 +105,4 @@ class ConverterPlugin_sam4 extends ConverterPlugin_standard
         $resultImage = $this->checkRotation($resultImage);
         return $resultImage;
     }
-
-    protected function parseAttributes($attributesArray)
-    {
-        $x = 0;
-        $y = 0;
-        $attributesData = array('inkMap' => array(), 'paperMap' => array());
-        foreach ($attributesArray as &$bits) {
-            $ink = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 5, 3));
-            $paper = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 2, 3)) + 8;
-
-            $attributesData['inkMap'][$y][$x] = $ink;
-            $attributesData['paperMap'][$y][$x] = $paper;
-
-            if ($x == ($this->width / 8) - 1) {
-                $x = 0;
-                $y++;
-            } else {
-                $x++;
-            }
-        }
-        return $attributesData;
-    }
 }
