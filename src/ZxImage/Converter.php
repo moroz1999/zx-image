@@ -239,7 +239,8 @@ class Converter
                     'mg4',
                     'mg8',
                     'lowresgs',
-                    'chr$'
+                    'chr$',
+                    'bsp',
                 )
             )
             ) {
