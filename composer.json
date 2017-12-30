@@ -1,16 +1,23 @@
 {
-    "name": "moroz1999/zx-image",
-    "description": "Zx Spectrum images converter in PHP",
-    "keywords": ["php", "zx spectrum", "zx evolution", "sam coupe"],
-    "homepage": "https://github.com/moroz1999/zx-image",
-    "license": "CC0 1.0 Universal",
-    "type": "package",
-    "require": {
-        "php": ">=5.4.0",
-	"moroz1999/gif-creator": "*",
-	"wapmorgan/imagery": "*"
-    },
-    "autoload": {
-        "psr-0": { "ZxImage": "src/" } 
+  "name": "moroz1999/zx-image",
+  "description": "Zx Spectrum images converter in PHP",
+  "keywords": [
+    "php",
+    "zx spectrum",
+    "zx evolution",
+    "sam coupe"
+  ],
+  "homepage": "https://github.com/moroz1999/zx-image",
+  "license": "CC0 1.0 Universal",
+  "type": "package",
+  "require": {
+    "php": ">=5.4.0",
+    "moroz1999/gif-creator": "*",
+    "wapmorgan/imagery": "*"
+  },
+  "autoload": {
+    "psr-0": {
+      "ZxImage": "src/"
     }
+  }
 }

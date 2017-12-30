@@ -49,7 +49,7 @@ class ConverterPlugin_bsc extends ConverterPlugin_standard
         return $parsedData;
     }
 
-    protected function drawBorder($centerImage, $parsedData)
+    protected function drawBorder($centerImage, $parsedData1 = false, $parsedData2 = false, $merged = false)
     {
         if (is_numeric($this->border)) {
             $resultImage = imagecreatetruecolor(
@@ -60,7 +60,7 @@ class ConverterPlugin_bsc extends ConverterPlugin_standard
             $x = 0;
             $y = 0;
 
-            foreach ($parsedData['borderData'] as $byte) {
+            foreach ($parsedData1['borderData'] as $byte) {
                 $left = "0" . substr($byte, 5, 3);
 
                 $code = sprintf('%04.0f', $left);

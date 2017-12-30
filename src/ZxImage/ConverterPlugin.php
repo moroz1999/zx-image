@@ -61,12 +61,18 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
         $this->generateGigaColors();
     }
 
-    protected function read8BitString()
+    protected function read8BitString($length = 1)
     {
-        if (($byte = $this->readByte()) !== false) {
-            return str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
+        $strings = [];
+        while ($length) {
+
+            if (($byte = $this->readByte()) !== false) {
+                $strings[] = str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
+            }
+            $length--;
         }
-        return false;
+
+        return $strings;
     }
 
     protected function read16BitString()
@@ -441,7 +447,7 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
         return $dstImage;
     }
 
-    protected function drawBorder($centerImage, $parsedData)
+    protected function drawBorder($centerImage, $parsedData1 = false, $parsedData2 = false, $merged = false)
     {
         if (is_numeric($this->border)) {
             $resultImage = imagecreatetruecolor(

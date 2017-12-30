@@ -298,7 +298,7 @@ class ConverterPlugin_multiartist extends ConverterPlugin_gigascreen
         return $result;
     }
 
-    protected function drawBorder($centerImage, $parsedData)
+    protected function drawBorder($centerImage, $parsedData1 = false, $parsedData2 = false, $merged = false)
     {
         if (is_numeric($this->borders[0]) && is_numeric($this->borders[1]) && $this->mghMixedBorder == true) {
             $resultImage = imagecreatetruecolor(320, 240);
@@ -308,7 +308,7 @@ class ConverterPlugin_multiartist extends ConverterPlugin_gigascreen
             imagefill($resultImage, 0, 0, $color);
             imagecopy($resultImage, $centerImage, 32, 24, 0, 0, $this->width, $this->height);
         } else {
-            $resultImage = parent::drawBorder($centerImage, $parsedData);
+            $resultImage = parent::drawBorder($centerImage, $parsedData1);
         }
         return $resultImage;
     }
