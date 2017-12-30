@@ -39,7 +39,7 @@ class Converter
     public function __construct()
     {
         $this->palette = $this->palette1;
-        $this->cacheExpirationLimit = 60 * 60 * 24 * 30; //delete files older than 1 month
+        $this->cacheExpirationLimit = 60 * 60 * 24 * 30 * 2; //delete files older than 2 months
         $this->basePath = pathinfo((__FILE__), PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR;
 
         if (!class_exists('\ZxImage\ConverterPlugin')) {
