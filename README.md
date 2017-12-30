@@ -58,6 +58,7 @@ The library is also capable of working without Composer autoloader.
 * "zxevo" - ZX Evolution screen saved as standard BMP file with 16 colors.
 * "sxg" - ZX Evolution (also supports TSConf screens) screen in SXG format.
 * "bsc" - Border Screen. Size: 11136. 6144 bytes of pixel data, 768 bytes of attributes, 4224 bytes of border "pixels".
+* "bsp" - Border Screen by Trefi. Size: varies. Supports 6912, gigascreen, byte for border data, as well as optional border "pixel" data.
 * "bmc4" - multicolor 8*4 with border. Size: 11904. 6144 bytes of pixel data, 1536 bytes of attributes, 4224 bytes of border "pixels".
 * "gigascreen" - two standard screens shown as 50hz software flickering. Size: 13824. Contains two standard SCR files: 6144 bytes of pixel data, 768 bytes of attributes, 6144 bytes of pixel data, 768 bytes of attributes.
 * "chrd" - CHR$ format by Alone Coder, supports monochrome, standard and gigascreen images of variable width/height. Size: variable according to images width/height. Data is contained char by char separately.
