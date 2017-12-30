@@ -26,7 +26,7 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
             $this->fileSize = filesize($this->sourceFilePath);
             $this->handle = fopen($this->sourceFilePath, "rb");
             if ($this->readString(3) == 'bsp') {
-                if ($configByte = $this->readByte()) {
+                if (($configByte = $this->readByte()) !== false) {
 
                     $this->hasGigaData = (boolean)($configByte & 0b10000000);
                     $this->hasBorderData = (boolean)($configByte & 0b01000000);
@@ -36,11 +36,8 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
 
                     $borderColor = $this->readByte();
                     if (!$this->hasBorderData) {
-                        //if borders displaying is switched on, force internal border color
-                        if ($this->border !== false) {
-                            $this->borders[0] = $borderColor & 0b100000111;
-                            $this->borders[1] = $borderColor & 0b100111000 >> 3;
-                        }
+                        $this->borders[0] = $colorCode = str_pad(decbin($borderColor & 0b100000111), 4, '0', STR_PAD_LEFT);
+                        $this->borders[1] = $colorCode = str_pad(decbin($borderColor & 0b100111000 >> 3), 4, '0', STR_PAD_LEFT);
                     }
                     $this->title = trim($this->readString(32));
                     $this->author = trim($this->readString(32));
@@ -50,12 +47,12 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
                             $secondBorderDataOffset = $this->readWord();
 
                             $firstImage = [
-                                'pixelsArray'     => $this->read8BitString(6144),
-                                'attributesArray' => $this->read8BitString(768)
+                                'pixelsArray'     => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768)
                             ];
                             $secondImage = [
-                                'pixelsArray'     => $this->read8BitString(6144),
-                                'attributesArray' => $this->read8BitString(768)
+                                'pixelsArray'     => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768)
                             ];
                             $firstImageBorderDataLength = $secondBorderDataOffset - 6912 * 2 - 70 - 2;
                             $secondBorderDataLength = $this->fileSize - $secondBorderDataOffset;
@@ -65,8 +62,8 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
                             return [$firstImage, $secondImage];
                         } else {
                             $firstImage = [
-                                'pixelsArray'     => $this->read8BitString(6144),
-                                'attributesArray' => $this->read8BitString(768)
+                                'pixelsArray'     => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768)
                             ];
                             $firstImageBorderDataLength = $this->fileSize - 6912 - 70;
                             $firstImage['borderArray'] = $this->readBytes($firstImageBorderDataLength);
@@ -75,18 +72,18 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
                     } else {
                         if ($this->hasGigaData) {
                             $firstImage = [
-                                'pixelsArray'     => $this->read8BitString(6144),
-                                'attributesArray' => $this->read8BitString(768)
+                                'pixelsArray'     => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768)
                             ];
                             $secondImage = [
-                                'pixelsArray'     => $this->read8BitString(6144),
-                                'attributesArray' => $this->read8BitString(768)
+                                'pixelsArray'     => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768)
                             ];
                             return [$firstImage, $secondImage];
                         } else {
                             $firstImage = [
-                                'pixelsArray'     => $this->read8BitString(6144),
-                                'attributesArray' => $this->read8BitString(768)
+                                'pixelsArray'     => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768)
                             ];
                             return $firstImage;
                         }
@@ -102,7 +99,9 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
         $parsedData = array();
         $parsedData['attributesData'] = $this->parseAttributes($data['attributesArray']);
         $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
-        $parsedData['borderData'] = $this->parseBorder($data['borderArray']);
+        if (isset($data['borderArray'])) {
+            $parsedData['borderData'] = $this->parseBorder($data['borderArray']);
+        }
         return $parsedData;
     }
 
@@ -126,7 +125,7 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
             } elseif ($tacts == 2) {
                 $line = 12;
             } else {
-                $line = $tacts + 16;
+                $line = $tacts + 13;
             }
             $line *= 2;
             while ($untilEnd || $line--) {
@@ -171,9 +170,13 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
                         $parsedData2['attributesData']['flashMap']
                     ) > 0
                 ) {
+                    $this->border = $this->borders[0];
                     $image1 = $this->exportData($parsedData1, false);
+                    $this->border = $this->borders[1];
                     $image2 = $this->exportData($parsedData2, false);
+                    $this->border = $this->borders[0];
                     $image1f = $this->exportData($parsedData1, true);
+                    $this->border = $this->borders[1];
                     $image2f = $this->exportData($parsedData2, true);
 
                     if ($this->gigascreenMode == 'interlace1') {
@@ -209,7 +212,9 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
                 } else {
+                    $this->border = $this->borders[0];
                     $image1 = $this->exportData($parsedData1, false);
+                    $this->border = $this->borders[1];
                     $image2 = $this->exportData($parsedData2, false);
 
                     if ($this->gigascreenMode == 'interlace1') {
@@ -308,18 +313,27 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
             if ($merged) {
                 for ($y = 0; $y < $totalHeight; $y++) {
                     for ($x = 0; $x < $totalWidth; $x++) {
-                        if (isset($parsedData1['borderData'][$y][$x]) || isset($parsedData2['borderData'][$y][$x])) {
-                            $colorCode = $parsedData1['borderData'][$y][$x] . $parsedData2['borderData'][$y][$x];
-                            imagesetpixel($resultImage, $x, $y, $this->gigaColors[$colorCode]);
+                        if ($this->hasBorderData) {
+                            if (isset($parsedData1['borderData'][$y][$x]) || isset($parsedData2['borderData'][$y][$x])) {
+                                $colorCode = $parsedData1['borderData'][$y][$x] . $parsedData2['borderData'][$y][$x];
+                                imagesetpixel($resultImage, $x, $y, $this->gigaColors[$colorCode]);
+                            }
+                        } else {
+                            imagesetpixel($resultImage, $x, $y, $this->gigaColors[$this->borders[0] . $this->borders[1]]);
                         }
                     }
                 }
+
             } else {
                 for ($y = 0; $y < $totalHeight; $y++) {
                     for ($x = 0; $x < $totalWidth; $x++) {
-                        if (isset($parsedData1['borderData'][$y][$x])) {
-                            $colorCode = $parsedData1['borderData'][$y][$x];
-                            imagesetpixel($resultImage, $x, $y, $this->colors[$colorCode]);
+                        if ($this->hasBorderData) {
+                            if (isset($parsedData1['borderData'][$y][$x])) {
+                                $colorCode = $parsedData1['borderData'][$y][$x];
+                                imagesetpixel($resultImage, $x, $y, $this->colors[$colorCode]);
+                            } else {
+                                imagesetpixel($resultImage, $x, $y, $this->colors[$this->border]);
+                            }
                         }
                     }
                 }
@@ -335,7 +349,6 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
                 $this->width,
                 $this->height
             );
-
         } else {
             $resultImage = $centerImage;
         }

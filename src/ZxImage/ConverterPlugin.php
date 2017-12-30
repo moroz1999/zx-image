@@ -61,7 +61,15 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
         $this->generateGigaColors();
     }
 
-    protected function read8BitString($length = 1)
+    protected function read8BitString()
+    {
+        if (($byte = $this->readByte()) !== false) {
+            return str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
+        }
+        return false;
+    }
+
+    protected function read8BitStrings($length = 1)
     {
         $strings = [];
         while ($length) {
