@@ -8,7 +8,7 @@
     "sam coupe"
   ],
   "homepage": "https://github.com/moroz1999/zx-image",
-  "license": "CC0 1.0 Universal",
+  "license": "CC0-1.0",
   "type": "package",
   "require": {
     "php": ">=5.4.0",
