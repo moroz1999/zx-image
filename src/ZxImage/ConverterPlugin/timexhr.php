@@ -67,8 +67,7 @@ class ConverterPlugin_timexhr extends ConverterPlugin_standard
     protected function loadBits()
     {
         $pixelsArray = array();
-        if (file_exists($this->sourceFilePath) && filesize($this->sourceFilePath) == $this->fileSize) {
-            $this->handle = fopen($this->sourceFilePath, "rb");
+        if ($this->makeHandle()) {
             $attribute = 0;
             $length = 0;
             $pixelsArray1 = [];

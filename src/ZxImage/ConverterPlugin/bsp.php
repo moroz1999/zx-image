@@ -22,9 +22,7 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
 
     protected function loadBits()
     {
-        if (file_exists($this->sourceFilePath)) {
-            $this->fileSize = filesize($this->sourceFilePath);
-            $this->handle = fopen($this->sourceFilePath, "rb");
+        if ($this->makeHandle()) {
             if ($this->readString(3) == 'bsp') {
                 if (($configByte = $this->readByte()) !== false) {
 

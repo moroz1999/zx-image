@@ -9,6 +9,7 @@ class ConverterPlugin_monochrome extends ConverterPlugin_standard
     protected $inkColorZX = '000';
     protected $paperColorZX = '111';
     protected $brightnessZX = '1';
+    protected $fileSize = 6144;
 
     public function convert()
     {
@@ -25,9 +26,7 @@ class ConverterPlugin_monochrome extends ConverterPlugin_standard
     protected function loadBits()
     {
         $pixelsArray = array();
-        if (file_exists($this->sourceFilePath) && filesize($this->sourceFilePath) >= 6144) {
-            $this->handle = fopen($this->sourceFilePath, "rb");
-
+        if ($this->makeHandle()) {
             $length = 0;
             while ($bin = $this->read8BitString()) {
                 if ($length < 6144) {

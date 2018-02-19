@@ -81,8 +81,7 @@ class ConverterPlugin_multiartist extends ConverterPlugin_gigascreen
 
     protected function loadBits()
     {
-        if (file_exists($this->sourceFilePath)) {
-            $this->handle = fopen($this->sourceFilePath, "rb");
+        if ($this->makeHandle()) {
 
             $length = 0;
             $header = '';

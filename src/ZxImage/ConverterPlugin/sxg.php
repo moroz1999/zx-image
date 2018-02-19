@@ -40,8 +40,7 @@ class ConverterPlugin_sxg extends ConverterPlugin
 
     protected function loadBits()
     {
-        if (file_exists($this->sourceFilePath)) {
-            $this->handle = fopen($this->sourceFilePath, "rb");
+        if ($this->makeHandle()) {
             $resultBits = array(
                 'pixelsArray' => [],
                 'paletteArray' => [],

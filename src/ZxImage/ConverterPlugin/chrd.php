@@ -43,8 +43,7 @@ class ConverterPlugin_chrd extends ConverterPlugin_gigascreen
         $attributesArray = array();
         $pixelsArray2 = array();
         $attributesArray2 = array();
-        if (file_exists($this->sourceFilePath)) {
-            $this->handle = fopen($this->sourceFilePath, "rb");
+        if ($this->makeHandle()) {
 
             $length = 0;
             $signature = '';

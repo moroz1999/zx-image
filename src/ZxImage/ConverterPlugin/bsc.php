@@ -16,9 +16,7 @@ class ConverterPlugin_bsc extends ConverterPlugin_standard
         $pixelsArray = array();
         $attributesArray = array();
         $borderArray = array();
-        if (file_exists($this->sourceFilePath) && filesize($this->sourceFilePath) == $this->fileSize) {
-            $this->handle = fopen($this->sourceFilePath, "rb");
-
+        if ($this->makeHandle()) {
             $length = 0;
             while ($bin = $this->read8BitString()) {
                 if ($length < 6144) {

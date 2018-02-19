@@ -6,6 +6,7 @@ if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
 
 class ConverterPlugin_gigascreen extends ConverterPlugin_standard
 {
+    protected $fileSize = 13824;
     public function convert()
     {
         $result = false;
@@ -101,8 +102,7 @@ class ConverterPlugin_gigascreen extends ConverterPlugin_standard
     {
         $pixelsArray = array();
         $attributesArray = array();
-        if (file_exists($this->sourceFilePath) && filesize($this->sourceFilePath) == 13824) {
-            $this->handle = fopen($this->sourceFilePath, "rb");
+        if ($this->makeHandle()) {
 
             $length = 0;
             $firstImage = false;

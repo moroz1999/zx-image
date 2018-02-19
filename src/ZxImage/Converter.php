@@ -7,6 +7,7 @@ class Converter
     protected $colors = array();
     protected $gigascreenMode = 'mix';
     protected $cachePath;
+    protected $sourceFileContents;
     protected $sourceFilePath;
     protected $resultFilePath;
     protected $cacheDirMarkerPath;
@@ -22,14 +23,6 @@ class Converter
     protected $resultMime;
     protected $basePath;
 
-    /**
-     * @param boolean $cacheEnabled
-     */
-    public function setCacheEnabled($cacheEnabled)
-    {
-        $this->cacheEnabled = $cacheEnabled;
-    }
-
     protected $palette = '';
     protected $palette1 = '00,76,CD,E9,FF,9F:FF,00,00;00,FF,00;00,00,FF'; //pulsar
     protected $palette2 = '00,76,CD,E9,FF,9F:D0,00,00;00,E4,00;00,00,FF'; //orthodox
@@ -39,7 +32,7 @@ class Converter
     public function __construct()
     {
         $this->palette = $this->palette1;
-        $this->cacheExpirationLimit = 60 * 60 * 24 * 30 * 2; //delete files older than 2 months
+        $this->cacheExpirationLimit = 60 * 60 * 24 * 30 * 1; //delete files older than 2 months
         $this->basePath = pathinfo((__FILE__), PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR;
 
         if (!class_exists('\ZxImage\ConverterPlugin')) {
@@ -48,6 +41,22 @@ class Converter
                 include_once($path);
             }
         }
+    }
+
+    /**
+     * @param mixed $sourceFileContents
+     */
+    public function setSourceFileContents($sourceFileContents)
+    {
+        $this->sourceFileContents = $sourceFileContents;
+    }
+
+    /**
+     * @param boolean $cacheEnabled
+     */
+    public function setCacheEnabled($cacheEnabled)
+    {
+        $this->cacheEnabled = $cacheEnabled;
     }
 
     /**
@@ -174,8 +183,9 @@ class Converter
         $result = false;
         if ($resultFilePath = $this->getCacheFileName()) {
             if (!file_exists($resultFilePath)) {
-                $result = $this->generateBinary();
-                file_put_contents($resultFilePath, $result);
+                if ($result = $this->generateBinary()){
+                    file_put_contents($resultFilePath, $result);
+                }
             } else {
                 $result = file_get_contents($resultFilePath);
             }
@@ -208,7 +218,7 @@ class Converter
             /**
              * @var \ZxImage\ConverterPlugin $converter
              */
-            $converter = new $className($this->sourceFilePath);
+            $converter = new $className($this->sourceFilePath, $this->sourceFileContents);
             $converter->setBorder($this->border);
             $converter->setPalette($this->palette);
             $converter->setSize($this->size);
@@ -223,10 +233,15 @@ class Converter
 
     public function getHash()
     {
-        if (!$this->hash && is_file($this->sourceFilePath)) {
+        if (!$this->hash && ($this->sourceFileContents || is_file($this->sourceFilePath))) {
             $text = '';
-            $text .= $this->sourceFilePath;
-            $text .= filemtime($this->sourceFilePath);
+            if (is_file($this->sourceFilePath)) {
+                $text .= $this->sourceFilePath;
+                $text .= filemtime($this->sourceFilePath);
+            }
+            elseif ($this->sourceFileContents) {
+                $text .= md5($this->sourceFileContents);
+            }
             $text .= $this->type;
             if (in_array(
                 $this->type,

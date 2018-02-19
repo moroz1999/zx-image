@@ -1,5 +1,6 @@
 <?php
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin')) {
     include_once('../ConverterPlugin.php');
 }
@@ -137,8 +138,7 @@ class ConverterPlugin_standard extends ConverterPlugin
     {
         $pixelsArray = array();
         $attributesArray = array();
-        if (file_exists($this->sourceFilePath) && filesize($this->sourceFilePath) == $this->fileSize) {
-            $this->handle = fopen($this->sourceFilePath, "rb");
+        if ($this->makeHandle()) {
 
             $length = 0;
             while ($bin = $this->read8BitString()) {

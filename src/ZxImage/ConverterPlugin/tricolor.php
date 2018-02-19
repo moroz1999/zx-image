@@ -6,6 +6,7 @@ if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
 
 class ConverterPlugin_tricolor extends ConverterPlugin_standard
 {
+    protected $fileSize = 18432;
     public function convert()
     {
         $result = false;
@@ -62,8 +63,7 @@ class ConverterPlugin_tricolor extends ConverterPlugin_standard
     protected function loadBits()
     {
         $pixelsArray = array();
-        if (file_exists($this->sourceFilePath) && filesize($this->sourceFilePath) == 6144 * 3) {
-            $this->handle = fopen($this->sourceFilePath, "rb");
+        if ($this->makeHandle()) {
 
             $length = 0;
             $image = 0;

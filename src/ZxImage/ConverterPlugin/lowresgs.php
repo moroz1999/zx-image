@@ -6,12 +6,12 @@ if (!class_exists('\ZxImage\ConverterPlugin_gigascreen')) {
 
 class ConverterPlugin_lowresgs extends ConverterPlugin_gigascreen
 {
+    protected $fileSize = 1628;
     protected function loadBits()
     {
         $texture = array();
         $attributesArray = array(array(), array());
-        if (file_exists($this->sourceFilePath) && filesize($this->sourceFilePath) == 1628) {
-            $this->handle = fopen($this->sourceFilePath, "rb");
+        if ($this->makeHandle()) {
             $length = 0;
             while ($bin = $this->read8BitString()) {
                 if ($length >= 84 && $length < 92) {

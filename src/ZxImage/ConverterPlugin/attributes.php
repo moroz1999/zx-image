@@ -1,17 +1,19 @@
 <?php
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
     include_once('standard.php');
 }
 
 class ConverterPlugin_attributes extends ConverterPlugin_standard
 {
+    protected $fileSize = 768;
+
     protected function loadBits()
     {
         $attributesArray = array();
-        if (file_exists($this->sourceFilePath) && filesize($this->sourceFilePath) == 768) {
-            $this->handle = fopen($this->sourceFilePath, "rb");
 
+        if ($this->makeHandle()) {
             while ($bin = $this->read8BitString()) {
                 $attributesArray[] = $bin;
             }

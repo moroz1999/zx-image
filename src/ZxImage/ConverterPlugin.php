@@ -7,10 +7,12 @@ if (!class_exists('\ZxImage\ConverterPluginConfigurable')) {
 
 abstract class ConverterPlugin implements ConverterPluginConfigurable
 {
-    protected $handle = null;
+    protected $handle;
+    protected $fileSize;
     protected $colors = array();
     protected $gigaColors = array();
     protected $sourceFilePath;
+    protected $sourceFileContents;
     protected $gigascreenMode = 'mix';
     protected $palette = false;
     protected $border = false;
@@ -27,9 +29,32 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
     protected $rotation;
     protected $interlaceMultiplier = 0.75;
 
-    public function __construct($sourceFilePath)
+    public function __construct($sourceFilePath = null, $sourceFileContents = null)
     {
         $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+    }
+
+    protected function makeHandle()
+    {
+        if (file_exists($this->sourceFilePath)) {
+            if (!$this->fileSize) {
+                $this->fileSize = filesize($this->sourceFilePath);
+            }
+            if ($this->fileSize == filesize($this->sourceFilePath)) {
+                $this->handle = fopen($this->sourceFilePath, "rb");
+                return true;
+            }
+        } elseif ($this->sourceFileContents) {
+            if (!$this->fileSize) {
+                $this->fileSize = strlen($this->sourceFileContents);
+            }
+            $this->handle = fopen('php://memory', 'w+');
+            fwrite($this->handle, $this->sourceFileContents);
+            rewind($this->handle);
+            return true;
+        }
+        return false;
     }
 
     public function setBorder($border)
