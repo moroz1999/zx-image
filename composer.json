@@ -19,5 +19,13 @@
     "psr-0": {
       "ZxImage": "src/"
     }
-  }
+  },
+  "archive": {
+        "exclude": [
+		".gitignore", 
+		"LICENSE", 
+		"README", 
+		"/example/"
+	]
+    }
 }
