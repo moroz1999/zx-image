@@ -7,6 +7,7 @@ if (!class_exists('\ZxImage\ConverterPlugin_gigascreen')) {
 class ConverterPlugin_chrd extends ConverterPlugin_gigascreen
 {
     protected $colorType;
+protected $fileSize;
 
     public function convert()
     {

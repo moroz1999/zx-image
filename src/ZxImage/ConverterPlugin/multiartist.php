@@ -9,7 +9,7 @@ class ConverterPlugin_multiartist extends ConverterPlugin_gigascreen
     protected $mghMode = false;
     protected $borders = array();
     protected $mghMixedBorder = false;
-
+protected $fileSize;
     protected function parseScreen($data)
     {
         if ($this->mghMode == 1) {
