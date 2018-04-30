@@ -1,4 +1,5 @@
 <?php
+
 namespace ZxImage;
 
 class Converter
@@ -28,6 +29,7 @@ class Converter
     protected $palette2 = '00,76,CD,E9,FF,9F:D0,00,00;00,E4,00;00,00,FF'; //orthodox
     protected $palette3 = '00,60,A0,E0,FF,A0:FF,00,00;00,FF,00;00,00,FF'; //alone
     protected $palette4 = '4F,A1,DD,F0,FF,BD:39,73,1D;3C,77,1E;46,8C,23'; //electroscale
+    protected $palette5 = '00,96,CD,E8,FF,BB:FF,00,00;00,FF,00;00,00,FF'; //srgb
 
     public function __construct()
     {
@@ -114,6 +116,8 @@ class Converter
             $this->palette = $this->palette3;
         } elseif ($palette == 'electroscale') {
             $this->palette = $this->palette4;
+        } elseif ($palette == 'srgb') {
+            $this->palette = $this->palette5;
         } else {
             $this->palette = $this->palette1;
         }
@@ -183,7 +187,7 @@ class Converter
         $result = false;
         if ($resultFilePath = $this->getCacheFileName()) {
             if (!file_exists($resultFilePath)) {
-                if ($result = $this->generateBinary()){
+                if ($result = $this->generateBinary()) {
                     file_put_contents($resultFilePath, $result);
                 }
             } else {
@@ -238,8 +242,7 @@ class Converter
             if (is_file($this->sourceFilePath)) {
                 $text .= $this->sourceFilePath;
                 $text .= filemtime($this->sourceFilePath);
-            }
-            elseif ($this->sourceFileContents) {
+            } elseif ($this->sourceFileContents) {
                 $text .= md5($this->sourceFileContents);
             }
             $text .= $this->type;
@@ -256,6 +259,7 @@ class Converter
                     'lowresgs',
                     'chr$',
                     'bsp',
+                    'timexhrg',
                 )
             )
             ) {
