@@ -29,7 +29,7 @@ class Converter
     protected $palette2 = '00,76,CD,E9,FF,9F:D0,00,00;00,E4,00;00,00,FF'; //orthodox
     protected $palette3 = '00,60,A0,E0,FF,A0:FF,00,00;00,FF,00;00,00,FF'; //alone
     protected $palette4 = '4F,A1,DD,F0,FF,BD:39,73,1D;3C,77,1E;46,8C,23'; //electroscale
-    protected $palette5 = '00,96,CD,E8,FF,BB:FF,00,00;00,FF,00;00,00,FF'; //srgb
+    protected $palette5 = '00,96,CD,E8,FF,BC:FF,00,00;00,FF,00;00,00,FF'; //srgb
 
     public function __construct()
     {
