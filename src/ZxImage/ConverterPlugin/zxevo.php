@@ -23,6 +23,11 @@ class ConverterPlugin_zxevo extends ConverterPlugin
     protected function loadBits()
     {
         if (file_exists($this->sourceFilePath)) {
+            if ($sizes = getimagesize($this->sourceFilePath)) {
+                $this->width = $sizes[0];
+                $this->height = $sizes[1];
+            }
+
             $gdObject = imagecreatefrombmp($this->sourceFilePath);
             return $gdObject;
         }
