@@ -74,6 +74,7 @@ The library is also capable of working without Composer autoloader.
 * "mlt" - ZX Spectrum multicolor 8*1 screen. Size: 12288. 6144 bytes of non-linear pixel data, 6144 bytes of linear attributes data.
 * "timex81" - Timex multicolor 8*1 screen. Size: 12288. 6144 bytes of non-linear pixel data, 6144 bytes of attributes in non-linear format (Timex screen memory dump).
 * "timexhr" - Timex hi-res 512*192 screen. Size: 12289. 6144 bytes of odd columns pixel data, 6144 bytes of even columns pixel data, 1 byte of color information.  
+* "stellar" - A ZX Spectrum graphics mode combining multicolour and 128K screen switching to produce 4x4-pixel blocks of alternating bright and dark colours, giving an effective palette of 64 colours at 64x48 resolution with no attribute restrictions and no flicker. First achieved by RST7 in Eye Ache 2 for Pentagon machines, and re-implemented for original Spectrums by Gasman in Buttercream Sputnik..
 
 ## License
 Creative Commons Zero v1.0 Universal
