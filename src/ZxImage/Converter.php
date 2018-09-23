@@ -260,6 +260,7 @@ class Converter
                     'chr$',
                     'bsp',
                     'timexhrg',
+                    'stellar',
                 )
             )
             ) {
