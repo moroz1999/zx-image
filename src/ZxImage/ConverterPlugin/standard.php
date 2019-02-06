@@ -14,7 +14,7 @@ class ConverterPlugin_standard extends ConverterPlugin
         $result = false;
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
-            if (count($parsedData['attributesData']['flashMap']) > 0) {
+            if (!empty($parsedData['attributesData']) && $parsedData['attributesData']['flashMap']) {
                 $gifImages = array();
 
                 $image = $this->exportData($parsedData, false);
