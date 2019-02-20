@@ -5,34 +5,47 @@ namespace ZxImage;
 class ConverterPlugin_atmega extends ConverterPlugin
 {
     const PIXELPAGESIZE = 8000;
+    protected $width = 320;
+    protected $height = 200;
 
     protected function loadBits()
     {
         if ($this->makeHandle()) {
-            $pixelPageSize = self::PIXELPAGESIZE;
-            $pixelsArray = $this->read8BitStrings($pixelPageSize * 4);
-            $this->height = $this->readByte();
-            $this->width = $this->readByte() * 8;
-            $paletteArray = $this->read8BitStrings(16);
+            $pixelsArray = [];
+            if ($this->fileSize == 32896) {
+                $pixelsArray = array_merge($pixelsArray, $this->read8BitStrings(self::PIXELPAGESIZE));
+                $this->readBytes(192);
+                $pixelsArray = array_merge($pixelsArray, $this->read8BitStrings(self::PIXELPAGESIZE));
+                $this->readBytes(192);
+                $pixelsArray = array_merge($pixelsArray, $this->read8BitStrings(self::PIXELPAGESIZE));
+                $this->readBytes(192);
+                $pixelsArray = array_merge($pixelsArray, $this->read8BitStrings(self::PIXELPAGESIZE));
+                $this->readBytes(192);
+            } else {
+                $pixelsArray = array_merge($pixelsArray, $this->read8BitStrings(self::PIXELPAGESIZE * 4));
+            }
+            //            $this->height = $this->readByte();
+            //            $this->width = $this->readByte() * 8;
+            //            $paletteArray = $this->read8BitStrings(16);
 
-//            $paletteArray = [
-//                '00000000', //black
-//                '00000001', //blue
-//                '00000010', //red
-//                '00000011', //magenta
-//                '00010000', //green
-//                '00010001', //cyan
-//                '00010010', //yellow
-//                '00010011', //white
-//                '00000000', //black2
-//                '00100001', //blue
-//                '01000010', //red
-//                '01100011', //magenta
-//                '10010000', //green
-//                '10110001', //cyan
-//                '11010010', //yellow
-//                '11110011', //white
-//            ];
+            $paletteArray = [
+                '00000000', //black
+                '00000001', //blue
+                '00000010', //red
+                '00000011', //magenta
+                '00010000', //green
+                '00010001', //cyan
+                '00010010', //yellow
+                '00010011', //white
+                '00000000', //black2
+                '00100001', //blue
+                '01000010', //red
+                '01100011', //magenta
+                '10010000', //green
+                '10110001', //cyan
+                '11010010', //yellow
+                '11110011', //white
+            ];
 
             $resultBits = array(
                 'pixelsArray'  => $pixelsArray,
@@ -79,7 +92,6 @@ class ConverterPlugin_atmega extends ConverterPlugin
 
         }
         return $pixelsData;
-
     }
 
     //grbG..RB

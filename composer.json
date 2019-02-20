@@ -11,9 +11,8 @@
   "license": "CC0-1.0",
   "type": "package",
   "require": {
-    "php": ">=5.4.0",
-    "moroz1999/gif-creator": "*",
-    "wapmorgan/imagery": "*"
+    "php": ">=7.2",
+    "moroz1999/gif-creator": "*"
   },
   "autoload": {
     "psr-0": {
