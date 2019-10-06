@@ -8,8 +8,6 @@ if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
 class ConverterPlugin_bsp extends ConverterPlugin_standard
 {
     protected $attributesLength = 768;
-    protected $width = 256;
-    protected $height = 192;
     protected $borderWidth = 64;
     protected $borderHeightTop = 64;
     protected $borderHeightBottom = 48;

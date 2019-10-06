@@ -88,6 +88,7 @@ protected $fileSize;
             while ($string = fgetc($this->handle)) {
                 $header .= $string;
                 $length++;
+
                 if ($length == 256) {
                     break;
                 }

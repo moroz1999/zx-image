@@ -4,7 +4,7 @@ PHP-based ZX Spectrum images parsing into PNG/GIF. Supports animation, supports 
 ## Basic usage example
 ```php
 <?php
-include_once('../src/ZxImage/Converter.php');
+include_once('src/ZxImage/Converter.php');
 
 $converter = new \ZxImage\Converter();
 $converter->setType('standard');
@@ -54,7 +54,8 @@ The library is also capable of working without Composer autoloader.
 # Supported formats
 * "standard" - standard ZX Spectrum screen memory dump. Size: 6912. 6144 bytes of pixel data, 768 bytes of attributes.
 * "ulaplus" - ZX Spectrum screen with attached ULA+ palette. Size: 6976. 6144 bytes of pixel data, 768 bytes of attributes, 64 bytes of ULA+ palette.
-* "sam4" - Sam Coupe mode 4 screen dump. Size: 24617. 24576 of pixel data, 41 bytes of Mode4 palette.
+* "sam3" - Sam Coupe mode 3 screen dump. Size: 24617. 24576 of pixel data, 4 bytes of Mode3 palette, 37 bytes unused.
+* "sam4" - Sam Coupe mode 4 screen dump. Size: 24617. 24576 of pixel data, 16 bytes of Mode4 palette, 25 bytes unused.
 * "zxevo" - ZX Evolution screen saved as standard BMP file with 16 colors.
 * "sxg" - ZX Evolution (also supports TSConf screens) screen in SXG format.
 * "bsc" - Border Screen. Size: 11136. 6144 bytes of pixel data, 768 bytes of attributes, 4224 bytes of border "pixels".
@@ -74,7 +75,9 @@ The library is also capable of working without Composer autoloader.
 * "mlt" - ZX Spectrum multicolor 8*1 screen. Size: 12288. 6144 bytes of non-linear pixel data, 6144 bytes of linear attributes data.
 * "timex81" - Timex multicolor 8*1 screen. Size: 12288. 6144 bytes of non-linear pixel data, 6144 bytes of attributes in non-linear format (Timex screen memory dump).
 * "timexhr" - Timex hi-res 512*192 screen. Size: 12289. 6144 bytes of odd columns pixel data, 6144 bytes of even columns pixel data, 1 byte of color information.  
-* "stellar" - A ZX Spectrum graphics mode combining multicolour and 128K screen switching to produce 4x4-pixel blocks of alternating bright and dark colours, giving an effective palette of 64 colours at 64x48 resolution with no attribute restrictions and no flicker. First achieved by RST7 in Eye Ache 2 for Pentagon machines, and re-implemented for original Spectrums by Gasman in Buttercream Sputnik..
+* "timexhrg" - Timex hi-res gigascreen 512*192 screen. Size: 24578. Two timexhr screens one by one  
+* "stellar" - ZX Spectrum graphics mode combining multicolour and 128K screen switching to produce 4x4-pixel blocks of alternating bright and dark colours, giving an effective palette of 64 colours at 64x48 resolution with no attribute restrictions and no flicker. First achieved by RST7 in Eye Ache 2 for Pentagon machines, and re-implemented for original Spectrums by Gasman in Buttercream Sputnik..
+* "atmega" - ATM Turbo 2+ EGA graphics mode. 32128 file containing pixel data and palette.
 
 ## License
 Creative Commons Zero v1.0 Universal
