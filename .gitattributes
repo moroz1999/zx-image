@@ -1,4 +1,5 @@
-# .gitattributes
-LICENSE export-ignore
-README.md export-ignore
-example/ export-ignore
+/LICENSE export-ignore
+/README.md export-ignore
+/example/ export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
