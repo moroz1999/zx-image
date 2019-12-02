@@ -474,6 +474,12 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
             imagecopyresampled($dstImage2, $srcImage, 0, 0, 0, 0, $dstWidth / 2, $dstHeight, $srcWidth, $srcHeight);
             $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
             imagecopyresampled($dstImage, $dstImage2, 0, 0, 0, 0, $dstWidth, $dstHeight, $dstWidth / 2, $srcHeight);
+        } elseif ($this->size == '7') {
+            $dstWidth = $srcWidth * 3;
+            $dstHeight = $srcHeight * 3;
+
+            $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
+            imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
         }
         imagegammacorrect($dstImage, 1.0, 2.2);
 
