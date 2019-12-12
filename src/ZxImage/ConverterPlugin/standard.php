@@ -187,7 +187,7 @@ class ConverterPlugin_standard extends ConverterPlugin
     protected function interlaceMix(&$image1, &$image2, $lineHeight)
     {
         $multiplier = 1;
-        if ($this->size == '3' || $this->size == '4') {
+        if ($this->zoom == '3' || $this->zoom == '4') {
             $multiplier = 2;
         }
 

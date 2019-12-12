@@ -6,8 +6,7 @@ include_once('../src/ZxImage/Converter.php');
 
 $converter = new \ZxImage\Converter();
 $converter->setType('standard')
-    ->setPath('example.scr')
-    ->setZoom(1);
+    ->setPath('example.scr');
 
 $folderForCache = __DIR__ . '/tmp/';
 //ensure that there is a folder for converted images cache

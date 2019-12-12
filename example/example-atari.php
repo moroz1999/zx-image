@@ -6,7 +6,9 @@ include_once('../src/ZxImage/Converter.php');
 
 $converter = new \ZxImage\Converter();
 $converter->setType('standard')
-    ->setPath('example.scr');
+    ->setPath('example.scr')
+    ->setZoom(2)
+    ->addPreFilter('atari');
 
 //convert and return image data
 if ($binary = $converter->getBinary()) {

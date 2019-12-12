@@ -17,8 +17,11 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
     protected $gigascreenMode = 'mix';
     protected $palette = false;
     protected $border = false;
-    protected $size = '0';
+    protected $zoom = 1;
     protected $resultMime;
+
+    protected $preFilters = [];
+    protected $postFilters = [];
 
     protected $width = 256;
     protected $height = 192;
@@ -28,12 +31,20 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
     protected $borderWidth = 32;
     protected $borderHeight = 24;
     protected $rotation;
-    protected $interlaceMultiplier = 0.75;
+    protected $basePath;
 
     public function __construct($sourceFilePath = null, $sourceFileContents = null)
     {
         $this->sourceFilePath = $sourceFilePath;
         $this->sourceFileContents = $sourceFileContents;
+    }
+
+    /**
+     * @param mixed $basePath
+     */
+    public function setBasePath($basePath)
+    {
+        $this->basePath = $basePath;
     }
 
     protected function makeHandle()
@@ -58,14 +69,30 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
         return false;
     }
 
+    /**
+     * @param array $filters
+     */
+    public function setPreFilters($filters)
+    {
+        $this->preFilters = $filters;
+    }
+
+    /**
+     * @param array $filters
+     */
+    public function setPostFilters($filters)
+    {
+        $this->postFilters = $filters;
+    }
+
     public function setBorder($border)
     {
         $this->border = $border;
     }
 
-    public function setSize($size)
+    public function setZoom($zoom)
     {
-        $this->size = $size;
+        $this->zoom = $zoom;
     }
 
     public function setRotation($rotation)
@@ -333,158 +360,98 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
 
     protected function resizeImage($srcImage)
     {
-        $dstImage = false;
-
         $srcWidth = imagesx($srcImage);
         $srcHeight = imagesy($srcImage);
         imagegammacorrect($srcImage, 2.2, 1.0);
 
-        if ($this->size == '0') {
-            $dstWidth = $srcWidth * 0.1875;
-            $dstHeight = $srcHeight * 0.1875;
-
-            $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
-            imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
-        } elseif ($this->size == '1') {
+        $dstWidth = $srcWidth;
+        $dstHeight = $srcHeight;
+        if ($this->zoom == 0.25) {
             $dstWidth = $srcWidth / 4;
             $dstHeight = $srcHeight / 4;
-
-            $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
-            imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
-        } elseif ($this->size == '2') {
-            $dstImage = $srcImage;
-        } elseif ($this->size == '4') {
+        } elseif ($this->zoom == 0.5) {
+            $dstWidth = $srcWidth / 2;
+            $dstHeight = $srcHeight / 2;
+        } elseif ($this->zoom == 2) {
             $dstWidth = $srcWidth * 2;
             $dstHeight = $srcHeight * 2;
-
-            $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
-            imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
-        } elseif ($this->size == '3') {
-            $dstWidth = $srcWidth * 2;
-            $dstHeight = $srcHeight * 2;
-
-            $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
-            imagealphablending($dstImage, false);
-            imagesavealpha($dstImage, true);
-            imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
-
-            for ($y = 0; $y < $dstHeight; $y = $y + 2) {
-
-                for ($x = 0; $x < $dstWidth; $x++) {
-                    $rgb = imagecolorat($dstImage, $x, $y);
-                    $r = ($rgb >> 16) & 0xFF;
-                    $g = ($rgb >> 8) & 0xFF;
-                    $b = $rgb & 0xFF;
-
-                    $r = ceil($r * $this->interlaceMultiplier);
-                    $g = ceil($g * $this->interlaceMultiplier);
-                    $b = ceil($b * $this->interlaceMultiplier);
-
-                    $color = $r * 0x010000 + $g * 0x0100 + $b;
-
-                    imagesetpixel($dstImage, $x, $y, $color);
-                }
-            }
-        } elseif ($this->size == '5') {
-            $haloImage = imagecreatetruecolor($srcWidth, $srcHeight);
-            imagealphablending($haloImage, false);
-            imagesavealpha($haloImage, true);
-            imagecopyresampled($haloImage, $srcImage, 0, 0, 0, 0, $srcWidth, $srcHeight, $srcWidth, $srcHeight);
-            imagefilter($haloImage, IMG_FILTER_GAUSSIAN_BLUR);
-
-            for ($j = 0; $j < $srcHeight; $j++) {
-                for ($i = 0; $i < $srcWidth; $i++) {
-                    $rgb = imagecolorat($haloImage, $i, $j);
-
-                    $r = ($rgb >> 16) & 0xFF;
-                    $g = ($rgb >> 8) & 0xFF;
-                    $b = $rgb & 0xFF;
-
-                    $luminance = ((0.2126 * $r) + (0.7152 * $g) + (0.0722 * $b)) / 2;
-                    $color = ((int)(127 - $luminance)) * 0x1000000 + $rgb;
-                    imagesetpixel($haloImage, $i, $j, $color);
-                }
-            }
-            $dstWidth = $srcWidth * 2;
-            $dstHeight = $srcHeight * 2;
-
-            $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
-            imagealphablending($dstImage, false);
-            imagesavealpha($dstImage, true);
-
-            $blurImage = imagecreatetruecolor($dstWidth, $dstHeight);
-            imagealphablending($blurImage, false);
-            imagesavealpha($blurImage, true);
-            imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
-
-            $gaussian = [[1.0, 2.0, 1.0], [2.0, 4.0, 2.0], [1.0, 2.0, 1.0]];
-            imageconvolution($dstImage, $gaussian, 16, 0);
-            imagecopyresampled($blurImage, $haloImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
-
-            imagecopymerge($dstImage, $blurImage, 0, 0, 0, 0, $dstWidth, $dstHeight, 50);
-
-            imagegammacorrect($dstImage, 1, 1.5);
-
-            $vert1 = 1;
-            $vert2 = 1;
-
-            $ycounter = 0;
-            for ($y = 0; $y < $dstHeight; $y++) {
-                if ($y % 2) {
-                    $int = 0.92;
-                } else {
-                    $int = 1;
-                }
-
-                if ($ycounter > 1) {
-                    $ycounter = 0;
-                    if ($vert1 == 1) {
-                        $vert1 = 0.8;
-                        $vert2 = 1;
-                    } else {
-                        $vert1 = 1;
-                        $vert2 = 0.8;
-                    }
-                }
-                $ycounter++;
-
-                for ($x = 0; $x < $dstWidth; $x++) {
-                    $rgb = imagecolorat($dstImage, $x, $y);
-                    $r = ($rgb >> 16) & 0xFF;
-                    $g = ($rgb >> 8) & 0xFF;
-                    $b = $rgb & 0xFF;
-                    if ($x % 2) {
-                        $r = ceil($r * $vert1 * $int);
-                        $g = ceil($g * $vert1 * $int);
-                        $b = ceil($b * $vert1 * $int);
-                    } else {
-                        $r = ceil($r * $vert2 * $int);
-                        $g = ceil($g * $vert2 * $int);
-                        $b = ceil($b * $vert2 * $int);
-                    }
-                    $color = $r * 0x010000 + $g * 0x0100 + $b;
-
-                    imagesetpixel($dstImage, $x, $y, $color);
-                }
-            }
-        } elseif ($this->size == '6') {
-            $dstWidth = $srcWidth;
-            $dstHeight = $srcHeight;
-
-            $dstImage2 = imagecreatetruecolor($dstWidth / 2, $dstHeight);
-            imagecopyresampled($dstImage2, $srcImage, 0, 0, 0, 0, $dstWidth / 2, $dstHeight, $srcWidth, $srcHeight);
-            $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
-            imagecopyresampled($dstImage, $dstImage2, 0, 0, 0, 0, $dstWidth, $dstHeight, $dstWidth / 2, $srcHeight);
-        } elseif ($this->size == '7') {
+        } elseif ($this->zoom == 3) {
             $dstWidth = $srcWidth * 3;
             $dstHeight = $srcHeight * 3;
+        }
+        $this->applyPreFilters($srcImage);
 
+        if ($this->zoom == 1) {
+            $dstImage = $srcImage;
+        } else {
             $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
+            imagealphablending($dstImage, false);
+            imagesavealpha($dstImage, true);
+
             imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
         }
+        $this->applyPostFilters($srcImage, $dstImage);
+
         imagegammacorrect($dstImage, 1.0, 2.2);
 
         return $dstImage;
+    }
+
+    protected function applyPreFilters($srcImage)
+    {
+        if (!class_exists('\ZxImage\ConverterFilter')) {
+            $path = $this->basePath . 'ConverterFilter.php';
+            if (file_exists($path)) {
+                include_once($path);
+            }
+        }
+        foreach ($this->preFilters as $filterType) {
+            $filterType = ucfirst($filterType);
+            $fileName = 'Filter' . DIRECTORY_SEPARATOR . $filterType . '.php';
+            $className = '\ZxImage\\' . $filterType;
+
+            if (!class_exists($className)) {
+                $path = $this->basePath . $fileName;
+                if (file_exists($path)) {
+                    include_once($path);
+                }
+            }
+            if (class_exists($className)) {
+                /**
+                 * @var ConverterFilter
+                 */
+                $filter = new $className;
+                $srcImage = $filter->apply($srcImage);
+            }
+        }
+    }
+    protected function applyPostFilters($srcImage, $dstImage = false)
+    {
+        if (!class_exists('\ZxImage\ConverterFilter')) {
+            $path = $this->basePath . 'ConverterFilter.php';
+            if (file_exists($path)) {
+                include_once($path);
+            }
+        }
+        foreach ($this->postFilters as $filterType) {
+            $filterType = ucfirst($filterType);
+            $fileName = 'Filter' . DIRECTORY_SEPARATOR . $filterType . '.php';
+            $className = '\ZxImage\\' . $filterType;
+
+            if (!class_exists($className)) {
+                $path = $this->basePath . $fileName;
+                if (file_exists($path)) {
+                    include_once($path);
+                }
+            }
+            if (class_exists($className)) {
+                /**
+                 * @var ConverterFilter
+                 */
+                $filter = new $className;
+                $dstImage = $filter->apply($dstImage, $srcImage);
+            }
+        }
     }
 
     protected function drawBorder($centerImage, $parsedData1 = false, $parsedData2 = false, $merged = false)

@@ -6,7 +6,8 @@ include_once('../src/ZxImage/Converter.php');
 
 $converter = new \ZxImage\Converter();
 $converter->setType('standard')
-    ->setPath('example.scr');
+    ->setPath('example.scr')
+    ->setZoom(0.5);
 
 //convert and return image data
 if ($binary = $converter->getBinary()) {

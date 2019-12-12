@@ -17,12 +17,14 @@ class Converter
     protected $cacheExpirationLimit = false;
     protected $type = 'standard';
     protected $border = false;
-    protected $size = '2';
+    protected $zoom = 1;
     protected $rotation = '0';
     protected $cacheFileName;
     protected $cacheEnabled = false;
     protected $resultMime;
     protected $basePath;
+    protected $preFilters = [];
+    protected $postFilters = [];
 
     protected $palette = '';
     protected $palette1 = '00,76,CD,E9,FF,9F:FF,00,00;00,FF,00;00,00,FF'; //pulsar
@@ -122,6 +124,18 @@ class Converter
         return $this;
     }
 
+    public function addPreFilter($type)
+    {
+        $this->preFilters[] = $type;
+        return $this;
+    }
+
+    public function addPostFilter($type)
+    {
+        $this->postFilters[] = $type;
+        return $this;
+    }
+
     public function setPalette($palette)
     {
         if ($palette == 'orthodox') {
@@ -157,7 +171,48 @@ class Converter
         if (is_numeric($size)) {
             $size = intval($size);
             if ($size >= 0 && $size <= 7) {
-                $this->size = $size;
+                switch ($size) {
+                    case 0:
+                    case 1:
+                        $this->setZoom(0.25);
+                        break;
+                    case 2:
+                        $this->setZoom(1);
+                        break;
+                    case 3:
+                        $this->setZoom(2);
+                        $this->addPostFilter('scanlines');
+                        break;
+                    case 4:
+                        $this->setZoom(2);
+                        break;
+                    case 5:
+                        $this->setZoom(2);
+                        $this->addPostFilter('blur');
+                        break;
+                    case 6:
+                        $this->setZoom(1);
+                        $this->addPreFilter('atari');
+                        break;
+                    case 7:
+                        $this->setZoom(3);
+                        break;
+                }
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * @param $zoom
+     * @return $this
+     */
+    public function setZoom($zoom)
+    {
+        if (is_numeric($zoom)) {
+            $zoom = floatval($zoom);
+            if ($zoom >= 0.25 && $zoom <= 3) {
+                $this->zoom = $zoom;
             }
         }
         return $this;
@@ -248,11 +303,14 @@ class Converter
              * @var \ZxImage\ConverterPlugin $converter
              */
             $converter = new $className($this->sourceFilePath, $this->sourceFileContents);
+            $converter->setBasePath($this->basePath);
             $converter->setBorder($this->border);
             $converter->setPalette($this->palette);
-            $converter->setSize($this->size);
+            $converter->setZoom($this->zoom);
             $converter->setRotation($this->rotation);
             $converter->setGigascreenMode($this->gigascreenMode);
+            $converter->setPreFilters($this->preFilters);
+            $converter->setPostFilters($this->postFilters);
             if ($result = $converter->convert()) {
                 $this->resultMime = $converter->getResultMime();
             }
@@ -289,7 +347,7 @@ class Converter
                 ]
             )
             ) {
-                if (($this->gigascreenMode == 'interlace1' || $this->gigascreenMode == 'interlace2') && ($this->size == '0' || $this->size == '1')) {
+                if (($this->gigascreenMode == 'interlace1' || $this->gigascreenMode == 'interlace2') && ($this->zoom == '0' || $this->zoom == '1')) {
                     $text .= 'flicker';
                 } else {
                     $text .= $this->gigascreenMode;
@@ -297,7 +355,9 @@ class Converter
             }
             $text .= $this->border;
             $text .= $this->palette;
-            $text .= $this->size;
+            $text .= $this->zoom;
+            $text .= implode($this->preFilters);
+            $text .= implode($this->postFilters);
             if ($this->rotation > 0) {
                 $text .= $this->rotation;
             }

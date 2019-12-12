@@ -12,7 +12,7 @@ interface ConverterPluginConfigurable
 
     public function setPalette($palette);
 
-    public function setSize($size);
+    public function setZoom($zoom);
 
     public function setRotation($rotation);
 
