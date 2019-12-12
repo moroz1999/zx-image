@@ -1,4 +1,5 @@
 <?php
+
 namespace ZxImage;
 
 if (!class_exists('\ZxImage\ConverterPluginConfigurable')) {
@@ -9,8 +10,8 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
 {
     protected $handle;
     protected $fileSize;
-    protected $colors = array();
-    protected $gigaColors = array();
+    protected $colors = [];
+    protected $gigaColors = [];
     protected $sourceFilePath;
     protected $sourceFileContents;
     protected $gigascreenMode = 'mix';
@@ -193,7 +194,7 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
         $greenData = explode(',', $correctionColors[1]);
         $blueData = explode(',', $correctionColors[2]);
 
-        $result = array();
+        $result = [];
 
         $result['ZZ'] = intval($baseColors[0], 16);
         $result['ZN'] = intval($baseColors[1], 16);
@@ -219,7 +220,7 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
 
     protected function generateGigaColors()
     {
-        $colors = array();
+        $colors = [];
         $colors[] = '0000';
         $colors[] = '0001';
         $colors[] = '0010';
@@ -238,14 +239,14 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
         $colors[] = '1111';
 
         $palette = $this->palette;
-        $gigaColors = array();
+        $gigaColors = [];
         foreach ($colors as &$zxColor1) {
             foreach ($colors as &$zxColor2) {
                 $gigaColors[$zxColor1 . $zxColor2] = 0;
             }
         }
 
-        $cache = array();
+        $cache = [];
         $cache['00'] = 'Z';
         $cache['01'] = 'N';
         $cache['10'] = 'Z';
@@ -287,7 +288,7 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
 
     protected function generateColors()
     {
-        $colors = array();
+        $colors = [];
         $colors['0000'] = 0;
         $colors['0001'] = 0;
         $colors['0010'] = 0;
@@ -416,7 +417,7 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
             imagesavealpha($blurImage, true);
             imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
 
-            $gaussian = array(array(1.0, 2.0, 1.0), array(2.0, 4.0, 2.0), array(1.0, 2.0, 1.0));
+            $gaussian = [[1.0, 2.0, 1.0], [2.0, 4.0, 2.0], [1.0, 2.0, 1.0]];
             imageconvolution($dstImage, $gaussian, 16, 0);
             imagecopyresampled($blurImage, $haloImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
 

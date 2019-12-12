@@ -15,8 +15,8 @@ class ConverterPlugin_stellar extends ConverterPlugin_gigascreen
 
     protected function loadBits()
     {
-        $texture = array();
-        $attributesArray = array(array(), array());
+        $texture = [];
+        $attributesArray = [[], []];
         if ($this->makeHandle()) {
             while (($bin = $this->read8BitString()) && ($bin2 = $this->read8BitString()) && ($bin3 = $this->read8BitString()) && ($bin4 = $this->read8BitString())) {
                 $attributesArray[0][] = $bin;
@@ -25,16 +25,16 @@ class ConverterPlugin_stellar extends ConverterPlugin_gigascreen
                 $attributesArray[1][] = $bin4;
             }
             $pixelsArray = $this->generatePixelsArray($texture);
-            $resultBits = array(
-                $resultBits = array(
-                    'pixelsArray'     => $pixelsArray,
+            $resultBits = [
+                $resultBits = [
+                    'pixelsArray' => $pixelsArray,
                     'attributesArray' => $attributesArray[0],
-                ),
-                array(
-                    'pixelsArray'     => $pixelsArray,
+                ],
+                [
+                    'pixelsArray' => $pixelsArray,
                     'attributesArray' => $attributesArray[1],
-                ),
-            );
+                ],
+            ];
             return $resultBits;
         }
         return false;
@@ -42,7 +42,7 @@ class ConverterPlugin_stellar extends ConverterPlugin_gigascreen
 
     protected function generatePixelsArray()
     {
-        $pixelsArray = array();
+        $pixelsArray = [];
         for ($x = 0; $x < $this->width * $this->height / 8; $x++) {
             $pixelsArray[] = '00001111';
 

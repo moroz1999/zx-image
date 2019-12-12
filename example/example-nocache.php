@@ -5,10 +5,9 @@ if (is_file('../vendor/autoload.php')) {
 include_once('../src/ZxImage/Converter.php');
 
 $converter = new \ZxImage\Converter();
-$converter->setType('standard');
-$converter->setPath('example.scr'); //
-$converter->setBorder(5); //cyan
-$converter->setSize(2); //2 for 320*240 (256*192 with border)
+$converter->setType('standard')
+    ->setPath('example.scr')
+    ->setZoom(1);
 
 //convert and return image data
 if ($binary = $converter->getBinary()) {

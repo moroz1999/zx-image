@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
     include_once('standard.php');
 }
@@ -25,7 +27,7 @@ class ConverterPlugin_monochrome extends ConverterPlugin_standard
 
     protected function loadBits()
     {
-        $pixelsArray = array();
+        $pixelsArray = [];
         if ($this->makeHandle()) {
             $length = 0;
             while ($bin = $this->read8BitString()) {
@@ -34,7 +36,7 @@ class ConverterPlugin_monochrome extends ConverterPlugin_standard
                 }
                 $length++;
             }
-            $resultBits = array('pixelsArray' => $pixelsArray);
+            $resultBits = ['pixelsArray' => $pixelsArray];
             return $resultBits;
         }
         return false;
@@ -42,7 +44,7 @@ class ConverterPlugin_monochrome extends ConverterPlugin_standard
 
     protected function parseScreen($data)
     {
-        $parsedData = array();
+        $parsedData = [];
         $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
         $parsedData['attributesData'] = $this->generateAttributesArray();
         return $parsedData;
@@ -52,14 +54,14 @@ class ConverterPlugin_monochrome extends ConverterPlugin_standard
     {
         $inkColorCode = $this->brightnessZX . $this->inkColorZX;
         $paperColorCode = $this->brightnessZX . $this->paperColorZX;
-        $attributesData = array();
+        $attributesData = [];
         for ($y = 0; $y < 24; $y++) {
             for ($x = 0; $x < 32; $x++) {
                 $attributesData['inkMap'][$y][$x] = $inkColorCode;
                 $attributesData['paperMap'][$y][$x] = $paperColorCode;
             }
         }
-        $attributesData['flashMap'] = array();
+        $attributesData['flashMap'] = [];
         return $attributesData;
     }
 }

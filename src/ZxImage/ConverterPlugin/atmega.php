@@ -47,10 +47,10 @@ class ConverterPlugin_atmega extends ConverterPlugin
                 '11110011', //white
             ];
 
-            $resultBits = array(
-                'pixelsArray'  => $pixelsArray,
+            $resultBits = [
+                'pixelsArray' => $pixelsArray,
                 'paletteArray' => $paletteArray,
-            );
+            ];
             return $resultBits;
         }
         return false;
@@ -58,7 +58,7 @@ class ConverterPlugin_atmega extends ConverterPlugin
 
     protected function parseScreen($data)
     {
-        $parsedData = array();
+        $parsedData = [];
         $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
         $parsedData['colorsData'] = $this->parseAtmPalette($data['paletteArray']);
         return $parsedData;
@@ -70,7 +70,7 @@ class ConverterPlugin_atmega extends ConverterPlugin
         $y = 0;
         $length = 0;
         $block = 0;
-        $pixelsData = array();
+        $pixelsData = [];
         foreach ($pixelsArray as &$bits) {
             $length++;
             $p1 = substr($bits, 1, 1) . substr($bits, 5, 3);
@@ -106,12 +106,12 @@ class ConverterPlugin_atmega extends ConverterPlugin
 
     protected function parseAtmPalette($paletteArray)
     {
-        $paletteData = array();
+        $paletteData = [];
         $levels = [
             0,
             0x55,
             0xaa,
-            0xff
+            0xff,
         ];
         foreach ($paletteArray as $clutItem) {
             $rValue = ((int)substr($clutItem, 6, 1) * 2 + (int)substr($clutItem, 1, 1));

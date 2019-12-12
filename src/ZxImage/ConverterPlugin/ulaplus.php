@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
     include_once('standard.php');
 }
@@ -10,9 +12,9 @@ class ConverterPlugin_ulaplus extends ConverterPlugin_standard
 
     protected function loadBits()
     {
-        $pixelsArray = array();
-        $attributesArray = array();
-        $paletteArray = array();
+        $pixelsArray = [];
+        $attributesArray = [];
+        $paletteArray = [];
         if ($this->makeHandle()) {
 
             $length = 0;
@@ -26,11 +28,11 @@ class ConverterPlugin_ulaplus extends ConverterPlugin_standard
                 }
                 $length++;
             }
-            $resultBits = array(
+            $resultBits = [
                 'pixelsArray' => $pixelsArray,
                 'attributesArray' => $attributesArray,
                 'paletteArray' => $paletteArray,
-            );
+            ];
             return $resultBits;
         }
         return false;
@@ -38,7 +40,7 @@ class ConverterPlugin_ulaplus extends ConverterPlugin_standard
 
     protected function parseScreen($data)
     {
-        $parsedData = array();
+        $parsedData = [];
         $parsedData['attributesData'] = $this->parseAttributes($data['attributesArray']);
         $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
         $parsedData['colorsData'] = $this->parseUlaPlusPalette($data['paletteArray']);
@@ -47,7 +49,7 @@ class ConverterPlugin_ulaplus extends ConverterPlugin_standard
 
     protected function parseUlaPlusPalette($paletteArray)
     {
-        $paletteData = array();
+        $paletteData = [];
         foreach ($paletteArray as &$ulaColor) {
             $r = bindec(substr($ulaColor, 3, 3)) * 32;
             $g = bindec(substr($ulaColor, 0, 3)) * 32;
@@ -99,7 +101,7 @@ class ConverterPlugin_ulaplus extends ConverterPlugin_standard
     {
         $x = 0;
         $y = 0;
-        $attributesData = array('inkMap' => array(), 'paperMap' => array());
+        $attributesData = ['inkMap' => [], 'paperMap' => []];
         foreach ($attributesArray as &$bits) {
             $ink = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 5, 3));
             $paper = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 2, 3)) + 8;

@@ -5,7 +5,7 @@ namespace ZxImage;
 class Converter
 {
     protected $hash = false;
-    protected $colors = array();
+    protected $colors = [];
     protected $gigascreenMode = 'mix';
     protected $cachePath;
     protected $sourceFileContents;
@@ -47,51 +47,63 @@ class Converter
 
     /**
      * @param mixed $sourceFileContents
+     * @return Converter
      */
     public function setSourceFileContents($sourceFileContents)
     {
         $this->sourceFileContents = $sourceFileContents;
+        return $this;
     }
 
     /**
      * @param boolean $cacheEnabled
+     * @return Converter
      */
     public function setCacheEnabled($cacheEnabled)
     {
         $this->cacheEnabled = $cacheEnabled;
+        return $this;
     }
 
     /**
      * @param mixed $cachePath
+     * @return Converter
      */
     public function setCachePath($cachePath)
     {
         $this->cachePath = $cachePath . DIRECTORY_SEPARATOR;
         $this->cacheDirMarkerPath = $this->cachePath . DIRECTORY_SEPARATOR . '_marker';
+        return $this;
     }
 
     /**
      * @param bool|int $cacheExpirationLimit
+     * @return Converter
      */
     public function setCacheExpirationLimit($cacheExpirationLimit)
     {
         $this->cacheExpirationLimit = $cacheExpirationLimit;
+        return $this;
     }
 
     /**
      * @param int $cacheDeletionAmount
+     * @return Converter
      */
     public function setCacheDeletionAmount($cacheDeletionAmount)
     {
         $this->cacheDeletionAmount = $cacheDeletionAmount;
+        return $this;
     }
 
     /**
      * @param int $cacheDeletionPeriod
+     * @return Converter
      */
     public function setCacheDeletionPeriod($cacheDeletionPeriod)
     {
         $this->cacheDeletionPeriod = $cacheDeletionPeriod;
+        return $this;
     }
 
     public function setGigascreenMode($mode)
@@ -99,13 +111,15 @@ class Converter
         if ($mode == 'flicker' || $mode == 'interlace2' || $mode == 'interlace1' || $mode == 'mix') {
             $this->gigascreenMode = $mode;
         }
+        return $this;
     }
 
     public function setRotation($rotation)
     {
-        if (in_array($rotation, array(0, 90, 180, 270))) {
+        if (in_array($rotation, [0, 90, 180, 270])) {
             $this->rotation = $rotation;
         }
+        return $this;
     }
 
     public function setPalette($palette)
@@ -121,6 +135,7 @@ class Converter
         } else {
             $this->palette = $this->palette1;
         }
+        return $this;
     }
 
     public function setBorder($border)
@@ -128,8 +143,15 @@ class Converter
         if ($border >= 0 && $border < 8 || $border === false) {
             $this->border = $border;
         }
+        return $this;
     }
 
+    /**
+     * @param $size
+     * @return $this
+     *
+     * @deprecated
+     */
     public function setSize($size)
     {
         if (is_numeric($size)) {
@@ -138,16 +160,19 @@ class Converter
                 $this->size = $size;
             }
         }
+        return $this;
     }
 
     public function setType($type)
     {
         $this->type = $type;
+        return $this;
     }
 
     public function setPath($path)
     {
         $this->sourceFilePath = $path;
+        return $this;
     }
 
     public function getResultMime()
@@ -248,7 +273,7 @@ class Converter
             $text .= $this->type;
             if (in_array(
                 $this->type,
-                array(
+                [
                     'gigascreen',
                     'tricolor',
                     'multiartist',
@@ -261,7 +286,7 @@ class Converter
                     'bsp',
                     'timexhrg',
                     'stellar',
-                )
+                ]
             )
             ) {
                 if (($this->gigascreenMode == 'interlace1' || $this->gigascreenMode == 'interlace2') && ($this->size == '0' || $this->size == '1')) {

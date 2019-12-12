@@ -1,4 +1,5 @@
 <?php
+
 namespace ZxImage;
 
 interface ConverterPluginConfigurable

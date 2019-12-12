@@ -7,16 +7,7 @@ include_once('../src/ZxImage/Converter.php');
 $converter = new \ZxImage\Converter();
 $converter->setType('standard')
     ->setPath('example.scr')
-    ->setZoom(1);
-
-$folderForCache = __DIR__ . '/tmp/';
-//ensure that there is a folder for converted images cache
-if (!is_dir($folderForCache)) {
-    mkdir($folderForCache);
-}
-//set cache path
-$converter->setCachePath($folderForCache)
-    ->setCacheEnabled(true);
+    ->setZoom(3);
 
 //convert and return image data
 if ($binary = $converter->getBinary()) {

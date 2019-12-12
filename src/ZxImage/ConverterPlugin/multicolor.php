@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
     include_once('standard.php');
 }
@@ -11,8 +13,8 @@ class ConverterPlugin_multicolor extends ConverterPlugin_standard
 
     protected function loadBits()
     {
-        $pixelsArray = array();
-        $attributesArray = array();
+        $pixelsArray = [];
+        $attributesArray = [];
         if ($this->makeHandle()) {
             $length = 0;
             while ($bin = $this->read8BitString()) {
@@ -23,7 +25,7 @@ class ConverterPlugin_multicolor extends ConverterPlugin_standard
                 }
                 $length++;
             }
-            $resultBits = array('pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray);
+            $resultBits = ['pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray];
             return $resultBits;
         }
         return false;

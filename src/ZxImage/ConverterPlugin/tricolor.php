@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
     include_once('standard.php');
 }
@@ -7,6 +9,7 @@ if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
 class ConverterPlugin_tricolor extends ConverterPlugin_standard
 {
     protected $fileSize = 18432;
+
     public function convert()
     {
         $result = false;
@@ -14,7 +17,7 @@ class ConverterPlugin_tricolor extends ConverterPlugin_standard
             $parsedData = $this->parseScreen($bits);
 
             if ($this->gigascreenMode == 'flicker') {
-                $gifImages = array();
+                $gifImages = [];
                 $image = $this->exportData($parsedData[0], false);
                 $gifImages[] = $this->getRightPaletteGif($image);
 
@@ -24,11 +27,11 @@ class ConverterPlugin_tricolor extends ConverterPlugin_standard
                 $image = $this->exportData($parsedData[2], false);
                 $gifImages[] = $this->getRightPaletteGif($image);
 
-                $delays = array(2, 2, 2);
+                $delays = [2, 2, 2];
 
                 $result = $this->buildAnimatedGif($gifImages, $delays);
             } else {
-                $resources = array();
+                $resources = [];
                 $resources[] = $this->exportData($parsedData[0], false);
                 $resources[] = $this->exportData($parsedData[1], false);
                 $resources[] = $this->exportData($parsedData[2], false);
@@ -62,7 +65,7 @@ class ConverterPlugin_tricolor extends ConverterPlugin_standard
 
     protected function loadBits()
     {
-        $pixelsArray = array();
+        $pixelsArray = [];
         if ($this->makeHandle()) {
 
             $length = 0;
@@ -71,12 +74,12 @@ class ConverterPlugin_tricolor extends ConverterPlugin_standard
                 if ($length == 6144) {
                     $length = 0;
                     $image++;
-                    $pixelsArray[$image] = array();
+                    $pixelsArray[$image] = [];
                 }
                 $pixelsArray[$image][] = $bin;
                 $length++;
             }
-            $resultBits = array('pixelsArray' => $pixelsArray);
+            $resultBits = ['pixelsArray' => $pixelsArray];
             return $resultBits;
         }
         return false;
@@ -84,7 +87,7 @@ class ConverterPlugin_tricolor extends ConverterPlugin_standard
 
     protected function parseScreen($data)
     {
-        $parsedData = array();
+        $parsedData = [];
         $parsedData[0]['pixelsData'] = $this->parsePixels($data['pixelsArray'][0]);
         $parsedData[0]['attributesData'] = $this->generateAttributesArray('1010', '0000');
         $parsedData[1]['pixelsData'] = $this->parsePixels($data['pixelsArray'][1]);
@@ -96,14 +99,14 @@ class ConverterPlugin_tricolor extends ConverterPlugin_standard
 
     protected function generateAttributesArray($inkColorCode, $paperColorCode)
     {
-        $attributesData = array();
+        $attributesData = [];
         for ($y = 0; $y < 24; $y++) {
             for ($x = 0; $x < 32; $x++) {
                 $attributesData['inkMap'][$y][$x] = $inkColorCode;
                 $attributesData['paperMap'][$y][$x] = $paperColorCode;
             }
         }
-        $attributesData['flashMap'] = array();
+        $attributesData['flashMap'] = [];
         return $attributesData;
     }
 }

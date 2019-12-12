@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
     include_once('standard.php');
 }
@@ -13,7 +15,7 @@ class ConverterPlugin_mlt extends ConverterPlugin_standard
     {
         $x = 0;
         $y = 0;
-        $attributesData = array('inkMap' => array(), 'paperMap' => array(), 'flashMap' => array());
+        $attributesData = ['inkMap' => [], 'paperMap' => [], 'flashMap' => []];
         foreach ($attributesArray as &$bits) {
             $ink = substr($bits, 1, 1) . substr($bits, 5);
             $paper = substr($bits, 1, 4);

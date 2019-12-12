@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
     include_once('standard.php');
 }
@@ -7,6 +9,7 @@ if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
 class ConverterPlugin_gigascreen extends ConverterPlugin_standard
 {
     protected $fileSize = 13824;
+
     public function convert()
     {
         $result = false;
@@ -14,7 +17,7 @@ class ConverterPlugin_gigascreen extends ConverterPlugin_standard
             $parsedData1 = $this->parseScreen($bits[0]);
             $parsedData2 = $this->parseScreen($bits[1]);
 
-            $gifImages = array();
+            $gifImages = [];
 
             if ($this->gigascreenMode == 'flicker' || $this->gigascreenMode == 'interlace1' || $this->gigascreenMode == 'interlace2') {
                 if (count($parsedData1['attributesData']['flashMap']) > 0 || count(
@@ -39,7 +42,7 @@ class ConverterPlugin_gigascreen extends ConverterPlugin_standard
                     $frame1f = $this->getRightPaletteGif($image1f);
                     $frame2f = $this->getRightPaletteGif($image2f);
 
-                    $delays = array();
+                    $delays = [];
                     for ($i = 0; $i < 32; $i++) {
                         if ($i < 16) {
                             if ($i & 1) {
@@ -71,7 +74,7 @@ class ConverterPlugin_gigascreen extends ConverterPlugin_standard
                     $gifImages[] = $this->getRightPaletteGif($image1);
                     $gifImages[] = $this->getRightPaletteGif($image2);
 
-                    $delays = array(2, 2);
+                    $delays = [2, 2];
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
                 }
@@ -86,7 +89,7 @@ class ConverterPlugin_gigascreen extends ConverterPlugin_standard
                     $image2 = $this->exportDataMerged($parsedData1, $parsedData2, true);
                     $gifImages[] = $this->getRightPaletteGif($image2);
 
-                    $delays = array(32, 32);
+                    $delays = [32, 32];
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
                 } else {
@@ -100,8 +103,8 @@ class ConverterPlugin_gigascreen extends ConverterPlugin_standard
 
     protected function loadBits()
     {
-        $pixelsArray = array();
-        $attributesArray = array();
+        $pixelsArray = [];
+        $attributesArray = [];
         if ($this->makeHandle()) {
 
             $length = 0;
@@ -114,19 +117,19 @@ class ConverterPlugin_gigascreen extends ConverterPlugin_standard
                 }
                 $length++;
                 if ($length == 6912 && !$firstImage) {
-                    $firstImage = array();
+                    $firstImage = [];
                     $firstImage['pixelsArray'] = $pixelsArray;
                     $firstImage['attributesArray'] = $attributesArray;
 
-                    $pixelsArray = array();
-                    $attributesArray = array();
+                    $pixelsArray = [];
+                    $attributesArray = [];
                     $length = 0;
                 }
             }
-            $secondImage = array();
+            $secondImage = [];
             $secondImage['pixelsArray'] = $pixelsArray;
             $secondImage['attributesArray'] = $attributesArray;
-            $resultBits = array($firstImage, $secondImage);
+            $resultBits = [$firstImage, $secondImage];
             return $resultBits;
         }
         return false;

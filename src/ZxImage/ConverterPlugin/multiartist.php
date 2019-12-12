@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin_gigascreen')) {
     include_once('gigascreen.php');
 }
@@ -7,20 +9,21 @@ if (!class_exists('\ZxImage\ConverterPlugin_gigascreen')) {
 class ConverterPlugin_multiartist extends ConverterPlugin_gigascreen
 {
     protected $mghMode = false;
-    protected $borders = array();
+    protected $borders = [];
     protected $mghMixedBorder = false;
-protected $fileSize;
+    protected $fileSize;
+
     protected function parseScreen($data)
     {
         if ($this->mghMode == 1) {
-            $parsedData = array();
+            $parsedData = [];
             $parsedData['attributesData'] = $this->parseMGH1Attributes(
                 $data['attributesArray'],
                 $data['outerAttributesArray']
             );
             $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
         } else {
-            $parsedData = array();
+            $parsedData = [];
             $parsedData['attributesData'] = $this->parseAttributes($data['attributesArray']);
             $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
         }
@@ -32,7 +35,7 @@ protected $fileSize;
     {
         $x = 8;
         $y = 0;
-        $attributesData = array('inkMap' => array(), 'paperMap' => array(), 'flashMap' => array());
+        $attributesData = ['inkMap' => [], 'paperMap' => [], 'flashMap' => []];
         foreach ($attributesArray as &$bits) {
             $ink = substr($bits, 1, 1) . substr($bits, 5);
             $paper = substr($bits, 1, 4);
@@ -127,8 +130,8 @@ protected $fileSize;
             }
 
             if ($signature == 'MGH' && $version == '1') {
-                $firstImage = array();
-                $secondImage = array();
+                $firstImage = [];
+                $secondImage = [];
 
                 if ($this->mghMode == 1) {
                     $length = 0;
@@ -139,27 +142,27 @@ protected $fileSize;
                         $length++;
                         if ($length == $pixelsLength) {
                             $firstImage['pixelsArray'] = $bytesArray;
-                            $bytesArray = array();
+                            $bytesArray = [];
                         }
                         if ($length == $pixelsLength * 2) {
                             $secondImage['pixelsArray'] = $bytesArray;
-                            $bytesArray = array();
+                            $bytesArray = [];
                         }
                         if ($length == $pixelsLength * 2 + $attributesLength) {
                             $firstImage['attributesArray'] = $bytesArray;
-                            $bytesArray = array();
+                            $bytesArray = [];
                         }
                         if ($length == $pixelsLength * 2 + $attributesLength * 2) {
                             $secondImage['attributesArray'] = $bytesArray;
-                            $bytesArray = array();
+                            $bytesArray = [];
                         }
                         if ($length == $pixelsLength * 2 + $attributesLength * 2 + $outerAttributesLength) {
                             $firstImage['outerAttributesArray'] = $bytesArray;
-                            $bytesArray = array();
+                            $bytesArray = [];
                         }
                         if ($length == $pixelsLength * 2 + $attributesLength * 2 + $outerAttributesLength * 2) {
                             $secondImage['outerAttributesArray'] = $bytesArray;
-                            $bytesArray = array();
+                            $bytesArray = [];
                         }
                     }
                 } else {
@@ -171,23 +174,23 @@ protected $fileSize;
                         $length++;
                         if ($length == $pixelsLength) {
                             $firstImage['pixelsArray'] = $bytesArray;
-                            $bytesArray = array();
+                            $bytesArray = [];
                         }
                         if ($length == $pixelsLength * 2) {
                             $secondImage['pixelsArray'] = $bytesArray;
-                            $bytesArray = array();
+                            $bytesArray = [];
                         }
                         if ($length == $pixelsLength * 2 + $attributesLength) {
                             $firstImage['attributesArray'] = $bytesArray;
-                            $bytesArray = array();
+                            $bytesArray = [];
                         }
                         if ($length == $pixelsLength * 2 + $attributesLength * 2) {
                             $secondImage['attributesArray'] = $bytesArray;
-                            $bytesArray = array();
+                            $bytesArray = [];
                         }
                     }
                 }
-                $resultBits = array($firstImage, $secondImage);
+                $resultBits = [$firstImage, $secondImage];
                 return $resultBits;
             }
         }
@@ -201,7 +204,7 @@ protected $fileSize;
             $parsedData1 = $this->parseScreen($bits[0]);
             $parsedData2 = $this->parseScreen($bits[1]);
 
-            $gifImages = array();
+            $gifImages = [];
 
             if ($this->gigascreenMode == 'flicker' || $this->gigascreenMode == 'interlace1' || $this->gigascreenMode == 'interlace2') {
                 if (count($parsedData1['attributesData']['flashMap']) > 0 || count(
@@ -233,7 +236,7 @@ protected $fileSize;
                     $frame1f = $this->getRightPaletteGif($image1f);
                     $frame2f = $this->getRightPaletteGif($image2f);
 
-                    $delays = array();
+                    $delays = [];
                     for ($i = 0; $i < 32; $i++) {
                         if ($i < 16) {
                             if ($i & 1) {
@@ -268,7 +271,7 @@ protected $fileSize;
                     $gifImages[] = $this->getRightPaletteGif($image1);
                     $gifImages[] = $this->getRightPaletteGif($image2);
 
-                    $delays = array(2, 2);
+                    $delays = [2, 2];
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
                 }
@@ -285,7 +288,7 @@ protected $fileSize;
                     $image2 = $this->exportDataMerged($parsedData1, $parsedData2, true);
                     $gifImages[] = $this->getRightPaletteGif($image2);
 
-                    $delays = array(32, 32);
+                    $delays = [32, 32];
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
                 } else {

@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin')) {
     include_once('../ConverterPlugin.php');
 }
@@ -68,7 +70,7 @@ class ConverterPlugin_zxevo extends ConverterPlugin
     {
         $x = 0;
         $y = 0;
-        $attributesData = array('inkMap' => array(), 'paperMap' => array());
+        $attributesData = ['inkMap' => [], 'paperMap' => []];
         foreach ($attributesArray as &$bits) {
             $ink = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 5, 3));
             $paper = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 2, 3)) + 8;

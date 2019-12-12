@@ -1,4 +1,5 @@
 <?php
+
 namespace ZxImage;
 
 if (!class_exists('\ZxImage\ConverterPlugin')) {
@@ -15,7 +16,7 @@ class ConverterPlugin_standard extends ConverterPlugin
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
             if (!empty($parsedData['attributesData']) && $parsedData['attributesData']['flashMap']) {
-                $gifImages = array();
+                $gifImages = [];
 
                 $image = $this->exportData($parsedData, false);
                 $gifImages[] = $this->getRightPaletteGif($image);
@@ -23,7 +24,7 @@ class ConverterPlugin_standard extends ConverterPlugin
                 $image = $this->exportData($parsedData, true);
                 $gifImages[] = $this->getRightPaletteGif($image);
 
-                $delays = array(32, 32);
+                $delays = [32, 32];
                 $result = $this->buildAnimatedGif($gifImages, $delays);
             } else {
                 $image = $this->exportData($parsedData, false);
@@ -44,7 +45,7 @@ class ConverterPlugin_standard extends ConverterPlugin
 
     protected function parseScreen($data)
     {
-        $parsedData = array();
+        $parsedData = [];
         $parsedData['attributesData'] = $this->parseAttributes($data['attributesArray']);
         $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
         return $parsedData;
@@ -87,7 +88,7 @@ class ConverterPlugin_standard extends ConverterPlugin
         $x = 0;
         $y = 0;
         $zxY = 0;
-        $pixelsData = array();
+        $pixelsData = [];
         foreach ($pixelsArray as &$bits) {
             $offset = 0;
             while ($offset < 8) {
@@ -111,7 +112,7 @@ class ConverterPlugin_standard extends ConverterPlugin
     {
         $x = 0;
         $y = 0;
-        $attributesData = array('inkMap' => array(), 'paperMap' => array(), 'flashMap' => array());
+        $attributesData = ['inkMap' => [], 'paperMap' => [], 'flashMap' => []];
         foreach ($attributesArray as &$bits) {
             $ink = substr($bits, 1, 1) . substr($bits, 5);
             $paper = substr($bits, 1, 4);
@@ -136,8 +137,8 @@ class ConverterPlugin_standard extends ConverterPlugin
 
     protected function loadBits()
     {
-        $pixelsArray = array();
-        $attributesArray = array();
+        $pixelsArray = [];
+        $attributesArray = [];
         if ($this->makeHandle()) {
 
             $length = 0;
@@ -149,7 +150,7 @@ class ConverterPlugin_standard extends ConverterPlugin
                 }
                 $length++;
             }
-            $resultBits = array('pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray);
+            $resultBits = ['pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray];
             return $resultBits;
         }
         return false;

@@ -1,4 +1,5 @@
 <?php
+
 namespace ZxImage;
 
 if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
@@ -13,7 +14,7 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
     protected $borderHeightBottom = 48;
     protected $hasGigaData;
     protected $hasBorderData;
-    protected $borders = array();
+    protected $borders = [];
     protected $author;
     protected $title;
     protected $fileSize;
@@ -43,12 +44,12 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
                             $secondBorderDataOffset = $this->readWord();
 
                             $firstImage = [
-                                'pixelsArray'     => $this->read8BitStrings(6144),
-                                'attributesArray' => $this->read8BitStrings(768)
+                                'pixelsArray' => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768),
                             ];
                             $secondImage = [
-                                'pixelsArray'     => $this->read8BitStrings(6144),
-                                'attributesArray' => $this->read8BitStrings(768)
+                                'pixelsArray' => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768),
                             ];
                             $firstImageBorderDataLength = $secondBorderDataOffset - 6912 * 2 - 70 - 2;
                             $secondBorderDataLength = $this->fileSize - $secondBorderDataOffset;
@@ -58,8 +59,8 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
                             return [$firstImage, $secondImage];
                         } else {
                             $firstImage = [
-                                'pixelsArray'     => $this->read8BitStrings(6144),
-                                'attributesArray' => $this->read8BitStrings(768)
+                                'pixelsArray' => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768),
                             ];
                             $firstImageBorderDataLength = $this->fileSize - 6912 - 70;
                             $firstImage['borderArray'] = $this->readBytes($firstImageBorderDataLength);
@@ -68,18 +69,18 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
                     } else {
                         if ($this->hasGigaData) {
                             $firstImage = [
-                                'pixelsArray'     => $this->read8BitStrings(6144),
-                                'attributesArray' => $this->read8BitStrings(768)
+                                'pixelsArray' => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768),
                             ];
                             $secondImage = [
-                                'pixelsArray'     => $this->read8BitStrings(6144),
-                                'attributesArray' => $this->read8BitStrings(768)
+                                'pixelsArray' => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768),
                             ];
                             return [$firstImage, $secondImage];
                         } else {
                             $firstImage = [
-                                'pixelsArray'     => $this->read8BitStrings(6144),
-                                'attributesArray' => $this->read8BitStrings(768)
+                                'pixelsArray' => $this->read8BitStrings(6144),
+                                'attributesArray' => $this->read8BitStrings(768),
                             ];
                             return $firstImage;
                         }
@@ -92,7 +93,7 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
 
     protected function parseScreen($data)
     {
-        $parsedData = array();
+        $parsedData = [];
         $parsedData['attributesData'] = $this->parseAttributes($data['attributesArray']);
         $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
         if (isset($data['borderArray'])) {
@@ -105,7 +106,7 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
     {
         $maxWidth = $this->width + $this->borderWidth * 2;
         $maxHeight = $this->height + $this->borderHeightTop + $this->borderHeightBottom;
-        $borderData = array();
+        $borderData = [];
         $x = 0;
         $y = 0;
         $inCenter = false;
@@ -188,7 +189,7 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
                     $frame1f = $this->getRightPaletteGif($image1f);
                     $frame2f = $this->getRightPaletteGif($image2f);
 
-                    $delays = array();
+                    $delays = [];
                     for ($i = 0; $i < 32; $i++) {
                         if ($i < 16) {
                             if ($i & 1) {
@@ -222,7 +223,7 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
                     $gifImages[] = $this->getRightPaletteGif($image1);
                     $gifImages[] = $this->getRightPaletteGif($image2);
 
-                    $delays = array(2, 2);
+                    $delays = [2, 2];
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
                 }
@@ -237,7 +238,7 @@ class ConverterPlugin_bsp extends ConverterPlugin_standard
                     $image2 = $this->exportDataMerged($parsedData1, $parsedData2, true);
                     $gifImages[] = $this->getRightPaletteGif($image2);
 
-                    $delays = array(32, 32);
+                    $delays = [32, 32];
 
                     $result = $this->buildAnimatedGif($gifImages, $delays);
                 } else {

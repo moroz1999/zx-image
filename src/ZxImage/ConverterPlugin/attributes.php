@@ -1,4 +1,5 @@
 <?php
+
 namespace ZxImage;
 
 if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
@@ -11,13 +12,13 @@ class ConverterPlugin_attributes extends ConverterPlugin_standard
 
     protected function loadBits()
     {
-        $attributesArray = array();
+        $attributesArray = [];
 
         if ($this->makeHandle()) {
             while ($bin = $this->read8BitString()) {
                 $attributesArray[] = $bin;
             }
-            $resultBits = array('pixelsArray' => $this->generatePixelsArray(), 'attributesArray' => $attributesArray);
+            $resultBits = ['pixelsArray' => $this->generatePixelsArray(), 'attributesArray' => $attributesArray];
             return $resultBits;
         }
         return false;
@@ -25,7 +26,7 @@ class ConverterPlugin_attributes extends ConverterPlugin_standard
 
     protected function generatePixelsArray()
     {
-        $pixelsArray = array();
+        $pixelsArray = [];
         for ($third = 0; $third < 3; $third++) {
             for ($y = 0; $y < 4; $y++) {
                 for ($x = 0; $x < 32 * 8; $x++) {
@@ -45,7 +46,7 @@ class ConverterPlugin_attributes extends ConverterPlugin_standard
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
             if (count($parsedData['attributesData']['flashMap']) > 0) {
-                $gifImages = array();
+                $gifImages = [];
 
                 $image = $this->exportData($parsedData, false);
                 $gifImages[] = $this->getRightPaletteGif($image);
@@ -53,7 +54,7 @@ class ConverterPlugin_attributes extends ConverterPlugin_standard
                 $image = $this->exportData($parsedData, true);
                 $gifImages[] = $this->getRightPaletteGif($image);
 
-                $delays = array(32, 32);
+                $delays = [32, 32];
                 $result = $this->buildAnimatedGif($gifImages, $delays);
             } else {
                 $image = $this->exportData($parsedData, false);

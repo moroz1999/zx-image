@@ -57,7 +57,7 @@ class ConverterPlugin_timexhrg extends ConverterPlugin_gigascreen
 
     protected function loadBits()
     {
-        $pixelsArray = array();
+        $pixelsArray = [];
         if ($this->makeHandle()) {
             $image1 = $this->read8BitStrings(6144);
             $image2 = $this->read8BitStrings(6144);

@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
     include_once('standard.php');
 }
@@ -13,9 +15,9 @@ class ConverterPlugin_bsc extends ConverterPlugin_standard
 
     protected function loadBits()
     {
-        $pixelsArray = array();
-        $attributesArray = array();
-        $borderArray = array();
+        $pixelsArray = [];
+        $attributesArray = [];
+        $borderArray = [];
         if ($this->makeHandle()) {
             $length = 0;
             while ($bin = $this->read8BitString()) {
@@ -28,11 +30,11 @@ class ConverterPlugin_bsc extends ConverterPlugin_standard
                 }
                 $length++;
             }
-            $resultBits = array(
+            $resultBits = [
                 'pixelsArray' => $pixelsArray,
                 'attributesArray' => $attributesArray,
-                'borderArray' => $borderArray
-            );
+                'borderArray' => $borderArray,
+            ];
             return $resultBits;
         }
         return false;
@@ -40,7 +42,7 @@ class ConverterPlugin_bsc extends ConverterPlugin_standard
 
     protected function parseScreen($data)
     {
-        $parsedData = array();
+        $parsedData = [];
         $parsedData['attributesData'] = $this->parseAttributes($data['attributesArray']);
         $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
         $parsedData['borderData'] = $data['borderArray'];

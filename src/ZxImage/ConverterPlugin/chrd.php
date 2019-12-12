@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin_gigascreen')) {
     include_once('gigascreen.php');
 }
@@ -7,7 +9,7 @@ if (!class_exists('\ZxImage\ConverterPlugin_gigascreen')) {
 class ConverterPlugin_chrd extends ConverterPlugin_gigascreen
 {
     protected $colorType;
-protected $fileSize;
+    protected $fileSize;
 
     public function convert()
     {
@@ -17,7 +19,7 @@ protected $fileSize;
             if ($bits = $this->loadBits()) {
                 $parsedData = $this->parseScreen($bits);
                 if (count($parsedData['attributesData']['flashMap']) > 0) {
-                    $gifImages = array();
+                    $gifImages = [];
 
                     $image = $this->exportData($parsedData, false);
                     $gifImages[] = $this->getRightPaletteGif($image);
@@ -25,7 +27,7 @@ protected $fileSize;
                     $image = $this->exportData($parsedData, true);
                     $gifImages[] = $this->getRightPaletteGif($image);
 
-                    $delays = array(32, 32);
+                    $delays = [32, 32];
                     $result = $this->buildAnimatedGif($gifImages, $delays);
                 } else {
                     $image = $this->exportData($parsedData, false);
@@ -40,10 +42,10 @@ protected $fileSize;
 
     protected function loadBits()
     {
-        $pixelsArray = array();
-        $attributesArray = array();
-        $pixelsArray2 = array();
-        $attributesArray2 = array();
+        $pixelsArray = [];
+        $attributesArray = [];
+        $pixelsArray2 = [];
+        $attributesArray2 = [];
         if ($this->makeHandle()) {
 
             $length = 0;
@@ -91,21 +93,21 @@ protected $fileSize;
             }
 
             if ($this->colorType == '8') {
-                $resultBits = array(
-                    'pixelsArray' => $pixelsArray
-                );
-            } elseif ($this->colorType == '9') {
-                $resultBits = array(
+                $resultBits = [
                     'pixelsArray' => $pixelsArray,
-                    'attributesArray' => $attributesArray
-                );
+                ];
+            } elseif ($this->colorType == '9') {
+                $resultBits = [
+                    'pixelsArray' => $pixelsArray,
+                    'attributesArray' => $attributesArray,
+                ];
             } elseif ($this->colorType == '18') {
-                $resultBits = array(
-                    array('pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray),
-                    array('pixelsArray' => $pixelsArray2, 'attributesArray' => $attributesArray2),
-                );
+                $resultBits = [
+                    ['pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray],
+                    ['pixelsArray' => $pixelsArray2, 'attributesArray' => $attributesArray2],
+                ];
             } else {
-                $resultBits = array();
+                $resultBits = [];
             }
             return $resultBits;
         }
@@ -114,7 +116,7 @@ protected $fileSize;
 
     protected function parsePixels($pixelsArray)
     {
-        $pixelsData = array();
+        $pixelsData = [];
 
         $x = 0;
         $y = 0;

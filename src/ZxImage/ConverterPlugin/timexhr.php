@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
     include_once('standard.php');
 }
@@ -66,7 +68,7 @@ class ConverterPlugin_timexhr extends ConverterPlugin_standard
 
     protected function loadBits()
     {
-        $pixelsArray = array();
+        $pixelsArray = [];
         if ($this->makeHandle()) {
             $attribute = 0;
             $length = 0;
@@ -91,7 +93,7 @@ class ConverterPlugin_timexhr extends ConverterPlugin_standard
                 $x = $x + 2;
             }
 
-            $resultBits = array('pixelsArray' => $pixelsArray, 'attributesArray' => $attribute);
+            $resultBits = ['pixelsArray' => $pixelsArray, 'attributesArray' => $attribute];
 
             return $resultBits;
         }

@@ -1,5 +1,7 @@
 <?php
+
 namespace ZxImage;
+
 if (!class_exists('\ZxImage\ConverterPlugin')) {
     include_once('../ConverterPlugin.php');
 }
@@ -41,10 +43,10 @@ class ConverterPlugin_sxg extends ConverterPlugin
     protected function loadBits()
     {
         if ($this->makeHandle()) {
-            $resultBits = array(
+            $resultBits = [
                 'pixelsArray' => [],
                 'paletteArray' => [],
-            );
+            ];
             $firstByte = $this->readByte();
             $signature = $this->readString(3);
             if ($firstByte == 127 && $signature == 'SXG') {
@@ -58,14 +60,14 @@ class ConverterPlugin_sxg extends ConverterPlugin
                 $pixelsShift = $this->readWord();
 
                 $this->readBytes($paletteShift - 2);
-                $paletteArray = array();
+                $paletteArray = [];
                 $paletteLength = ($pixelsShift - $paletteShift + 2) / 2;
                 while ($paletteLength > 0) {
                     $paletteArray[] = $this->read16BitString();
                     $paletteLength--;
                 }
 
-                $pixelsArray = array();
+                $pixelsArray = [];
                 while (($word = $this->readByte()) !== false) {
                     $pixelsArray[] = $word;
                 }
@@ -80,7 +82,7 @@ class ConverterPlugin_sxg extends ConverterPlugin
 
     protected function parseScreen($data)
     {
-        $parsedData = array();
+        $parsedData = [];
         $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
         $parsedData['colorsData'] = $this->parseSxgPalette($data['paletteArray']);
         return $parsedData;
@@ -90,7 +92,7 @@ class ConverterPlugin_sxg extends ConverterPlugin
     {
         $x = 0;
         $y = 0;
-        $pixelsData = array();
+        $pixelsData = [];
         if ($this->sxgFormat === self::FORMAT_16) {
             foreach ($pixelsArray as &$bits) {
                 $bits = str_pad(decbin($bits), 8, '0', STR_PAD_LEFT);
@@ -120,7 +122,7 @@ class ConverterPlugin_sxg extends ConverterPlugin
 
     protected function parseSxgPalette($paletteArray)
     {
-        $paletteData = array();
+        $paletteData = [];
         foreach ($paletteArray as &$clutItem) {
             if (substr($clutItem, 0, 1) == '0') {
                 $r = $this->table[bindec(substr($clutItem, 1, 5))];
