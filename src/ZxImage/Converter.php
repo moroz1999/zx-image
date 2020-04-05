@@ -35,7 +35,7 @@ class Converter
 
     public function __construct()
     {
-        $this->palette = $this->palette1;
+        $this->palette = $this->palette5;
         $this->cacheExpirationLimit = 60 * 60 * 24 * 30 * 1; //delete files older than 2 months
         $this->basePath = pathinfo((__FILE__), PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR;
 
@@ -147,7 +147,7 @@ class Converter
         } elseif ($palette == 'srgb') {
             $this->palette = $this->palette5;
         } else {
-            $this->palette = $this->palette1;
+            $this->palette = $this->palette5;
         }
         return $this;
     }
@@ -300,7 +300,7 @@ class Converter
         }
         if (class_exists($className)) {
             /**
-             * @var \ZxImage\ConverterPlugin $converter
+             * @var ConverterPlugin $converter
              */
             $converter = new $className($this->sourceFilePath, $this->sourceFileContents);
             $converter->setBasePath($this->basePath);
