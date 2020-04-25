@@ -347,11 +347,7 @@ class Converter
                 ]
             )
             ) {
-                if (($this->gigascreenMode == 'interlace1' || $this->gigascreenMode == 'interlace2') && ($this->zoom == '0' || $this->zoom == '1')) {
-                    $text .= 'flicker';
-                } else {
-                    $text .= $this->gigascreenMode;
-                }
+                $text .= $this->gigascreenMode;
             }
             $text .= $this->border;
             $text .= $this->palette;
