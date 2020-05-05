@@ -6,7 +6,7 @@ if (!class_exists('\ZxImage\ConverterPlugin_standard')) {
     include_once('standard.php');
 }
 if (!class_exists('\ZxImage\SamPlugin')) {
-    include_once(__DIR__ . '\..\SamPlugin.php');
+    include_once(__DIR__ . '/../SamPlugin.php');
 }
 
 class ConverterPlugin_sam3 extends ConverterPlugin_standard

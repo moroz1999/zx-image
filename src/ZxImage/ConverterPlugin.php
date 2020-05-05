@@ -136,11 +136,29 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
         return $strings;
     }
 
-    protected function read16BitString()
+
+    protected function read16BitStrings($length = 1, $bigEndian = true)
+    {
+        $strings = [];
+        while ($length) {
+            if ($string = $this->read16BitString($bigEndian)) {
+                $strings[] = $string;
+            }
+            $length--;
+        }
+
+        return $strings;
+    }
+
+    protected function read16BitString($bigEndian = true)
     {
         if ($b1 = $this->read8BitString()) {
             if ($b2 = $this->read8BitString()) {
-                return $b2 . $b1;
+                if (!$bigEndian){
+                    return $b2 . $b1;
+                } else {
+                    return $b1 . $b2;
+                }
             }
         }
         return false;
@@ -425,6 +443,7 @@ abstract class ConverterPlugin implements ConverterPluginConfigurable
             }
         }
     }
+
     protected function applyPostFilters($srcImage, $dstImage = false)
     {
         if (!class_exists('\ZxImage\ConverterFilter')) {

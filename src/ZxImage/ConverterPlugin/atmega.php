@@ -26,7 +26,7 @@ class ConverterPlugin_atmega extends ConverterPlugin
             }
             //            $this->height = $this->readByte();
             //            $this->width = $this->readByte() * 8;
-            //            $paletteArray = $this->read8BitStrings(16);
+            $paletteArray = $this->read8BitStrings(21);
 
             $paletteArray = [
                 '00000000', //black
