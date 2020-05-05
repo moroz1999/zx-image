@@ -1,4 +1,4 @@
-# SXG
+# ZX-Image
 PHP-based ZX Spectrum images parsing into PNG/GIF. Supports animation, supports file caching.
 
 ## Basic usage example
