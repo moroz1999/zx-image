@@ -12,7 +12,7 @@ if (!class_exists('\ZxImage\SamPlugin')) {
 class ConverterPlugin_sam4 extends ConverterPlugin_standard
 {
     use SamPlugin;
-    protected $fileSize = 24617;
+    protected $fileSize = false;
     protected $paletteLength = 16;
     protected $bitPerPixel = 4;
     protected $pixelRatio = 1;
