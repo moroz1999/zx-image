@@ -38,13 +38,6 @@ class Converter
         $this->palette = $this->palette5;
         $this->cacheExpirationLimit = 60 * 60 * 24 * 30 * 1; //delete files older than 2 months
         $this->basePath = pathinfo((__FILE__), PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR;
-
-        if (!class_exists('\ZxImage\ConverterPlugin')) {
-            $path = $this->basePath . 'ConverterPlugin.php';
-            if (file_exists($path)) {
-                include_once($path);
-            }
-        }
     }
 
     /**
@@ -283,24 +276,16 @@ class Converter
     {
         $result = false;
         if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
-            $fileName = 'ConverterPlugin' . DIRECTORY_SEPARATOR . 'multiartist.php';
-            $className = '\ZxImage\\ConverterPlugin_multiartist';
+            $className = 'multiartist';
         } elseif ($this->type == 'chr$') {
-            $fileName = 'ConverterPlugin' . DIRECTORY_SEPARATOR . 'chrd.php';
-            $className = '\ZxImage\\ConverterPlugin_chrd';
+            $className = 'chrd';
         } else {
-            $fileName = 'ConverterPlugin' . DIRECTORY_SEPARATOR . $this->type . '.php';
-            $className = '\ZxImage\\ConverterPlugin_' . $this->type;
+            $className = '' . $this->type;
         }
-        if (!class_exists($className)) {
-            $path = $this->basePath . $fileName;
-            if (file_exists($path)) {
-                include_once($path);
-            }
-        }
+        $className = __NAMESPACE__ . '\\Plugin\\' . ucfirst($className);
         if (class_exists($className)) {
             /**
-             * @var ConverterPlugin $converter
+             * @var Plugin $converter
              */
             $converter = new $className($this->sourceFilePath, $this->sourceFileContents);
             $converter->setBasePath($this->basePath);
