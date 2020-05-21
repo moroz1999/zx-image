@@ -421,7 +421,7 @@ abstract class Plugin implements Configurable
 
             if (class_exists($className)) {
                 /**
-                 * @var Filter
+                 * @var Filter $filter
                  */
                 $filter = new $className;
                 $srcImage = $filter->apply($srcImage);
@@ -437,7 +437,7 @@ abstract class Plugin implements Configurable
 
             if (class_exists($className)) {
                 /**
-                 * @var Filter
+                 * @var Filter $filter
                  */
                 $filter = new $className;
                 $dstImage = $filter->apply($dstImage, $srcImage);
