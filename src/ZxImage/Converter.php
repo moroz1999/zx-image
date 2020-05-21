@@ -1,7 +1,7 @@
 <?php
 
 namespace ZxImage;
-
+use ZxImage\Plugin\Plugin;
 class Converter
 {
     protected $hash = false;

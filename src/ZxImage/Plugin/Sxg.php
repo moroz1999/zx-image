@@ -3,7 +3,7 @@
 namespace ZxImage\Plugin;
 
 
-class Sxg extends Basic
+class Sxg extends Plugin
 {
     const FORMAT_256 = 2;
     const FORMAT_16 = 1;

@@ -5,7 +5,7 @@ namespace ZxImage\Plugin;
 
 use GifCreator\GifCreator;
 
-class Standard extends Basic
+class Standard extends Plugin
 {
     protected $fileSize = 6912;
 

@@ -2,7 +2,9 @@
 
 namespace ZxImage\Plugin;
 
-abstract class Basic implements Configurable
+use ZxImage\Filter\Filter;
+
+abstract class Plugin implements Configurable
 {
     protected $handle;
     protected $fileSize;
@@ -66,7 +68,7 @@ abstract class Basic implements Configurable
     }
 
     /**
-     * @param array $filters
+     * @param Filter[] $filters
      */
     public function setPreFilters($filters)
     {
@@ -74,7 +76,7 @@ abstract class Basic implements Configurable
     }
 
     /**
-     * @param array $filters
+     * @param Filter[] $filters
      */
     public function setPostFilters($filters)
     {
@@ -150,7 +152,7 @@ abstract class Basic implements Configurable
     {
         if ($b1 = $this->read8BitString()) {
             if ($b2 = $this->read8BitString()) {
-                if (!$bigEndian){
+                if (!$bigEndian) {
                     return $b2 . $b1;
                 } else {
                     return $b1 . $b2;
@@ -415,12 +417,11 @@ abstract class Basic implements Configurable
     {
         foreach ($this->preFilters as $filterType) {
             $filterType = ucfirst($filterType);
-            $fileName = 'Filter' . DIRECTORY_SEPARATOR . $filterType . '.php';
-            $className = $filterType;
+            $className = '\\ZxImage\\Filter\\' . ucfirst($filterType);
 
             if (class_exists($className)) {
                 /**
-                 * @var ConverterFilter
+                 * @var Filter
                  */
                 $filter = new $className;
                 $srcImage = $filter->apply($srcImage);
@@ -432,11 +433,11 @@ abstract class Basic implements Configurable
     {
         foreach ($this->postFilters as $filterType) {
             $filterType = ucfirst($filterType);
-            $className = $filterType;
+            $className = '\\ZxImage\\Filter\\' . ucfirst($filterType);
 
             if (class_exists($className)) {
                 /**
-                 * @var ConverterFilter
+                 * @var Filter
                  */
                 $filter = new $className;
                 $dstImage = $filter->apply($dstImage, $srcImage);

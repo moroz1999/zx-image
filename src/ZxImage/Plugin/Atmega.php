@@ -2,7 +2,7 @@
 
 namespace ZxImage\Plugin;
 
-class Atmega extends Basic
+class Atmega extends Plugin
 {
     const PIXELPAGESIZE = 8000;
     protected $width = 320;

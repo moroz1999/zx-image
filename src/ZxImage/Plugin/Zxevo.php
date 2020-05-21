@@ -3,7 +3,7 @@
 namespace ZxImage\Plugin;
 
 
-class Zxevo extends Basic
+class Zxevo extends Plugin
 {
     protected $width = 320;
     protected $height = 200;

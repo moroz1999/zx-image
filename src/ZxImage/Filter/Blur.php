@@ -1,9 +1,14 @@
 <?php
 
-namespace ZxImage;
+namespace ZxImage\Filter;
 
-class Blur extends ConverterFilter
+class Blur extends Filter
 {
+    /**
+     * @param $image
+     * @param bool|resource $srcImage
+     * @return mixed
+     */
     public function apply($image, $srcImage = false)
     {
         if (!$srcImage) {

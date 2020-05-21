@@ -1,8 +1,8 @@
 <?php
 
-namespace ZxImage;
+namespace ZxImage\Filter;
 
-abstract class ConverterFilter
+abstract class Filter
 {
     abstract public function apply($image, $srcImage = false);
 }

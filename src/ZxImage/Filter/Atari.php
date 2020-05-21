@@ -1,8 +1,8 @@
 <?php
 
-namespace ZxImage;
+namespace ZxImage\Filter;
 
-class Atari extends ConverterFilter
+class Atari extends Filter
 {
     public function apply($image, $srcImage = false)
     {

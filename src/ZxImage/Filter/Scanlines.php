@@ -1,8 +1,8 @@
 <?php
 
-namespace ZxImage;
+namespace ZxImage\Filter;
 
-class Scanlines extends ConverterFilter
+class Scanlines extends Filter
 {
     protected $interlaceMultiplier = 0.75;
 
