@@ -3,11 +3,10 @@ if (is_file('../vendor/autoload.php')) {
     include_once('../vendor/autoload.php');
 }
 
-
 $converter = new \ZxImage\Converter();
-$converter->setType('standard')
-    ->setPath('example.scr')
-    ->setBorder(5);
+$converter->setType('ssx')
+    ->setPath('mode1.ssx')
+    ->setZoom(1);
 
 //convert and return image data
 if ($binary = $converter->getBinary()) {

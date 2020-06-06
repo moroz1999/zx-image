@@ -2,7 +2,7 @@
 if (is_file('../vendor/autoload.php')) {
     include_once('../vendor/autoload.php');
 }
-include_once('../src/ZxImage/Converter.php');
+
 
 $converter = new \ZxImage\Converter();
 $converter->setType('standard')

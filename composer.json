@@ -15,8 +15,8 @@
     "moroz1999/gif-creator": "*"
   },
   "autoload": {
-    "psr-0": {
-      "ZxImage": "src/"
+    "psr-4": {
+      "ZxImage\\": "ZxImage/"
     }
   }
 }
