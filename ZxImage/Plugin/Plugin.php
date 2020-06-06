@@ -2,10 +2,15 @@
 
 namespace ZxImage\Plugin;
 
+use ZxImage\Converter;
 use ZxImage\Filter\Filter;
 
 abstract class Plugin implements Configurable
 {
+    /**
+     * @var Converter
+     */
+    protected $converter;
     protected $handle;
     protected $fileSize;
     protected $colors = [];
@@ -31,10 +36,11 @@ abstract class Plugin implements Configurable
     protected $rotation;
     protected $basePath;
 
-    public function __construct($sourceFilePath = null, $sourceFileContents = null)
+    public function __construct($sourceFilePath = null, $sourceFileContents = null, $converter = null)
     {
         $this->sourceFilePath = $sourceFilePath;
         $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
     }
 
     /**
@@ -47,7 +53,7 @@ abstract class Plugin implements Configurable
 
     protected function makeHandle()
     {
-        if (file_exists($this->sourceFilePath)) {
+        if (is_file($this->sourceFilePath)) {
             if (!$this->fileSize) {
                 $this->fileSize = filesize($this->sourceFilePath);
             }

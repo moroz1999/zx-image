@@ -6,7 +6,7 @@ namespace ZxImage\Plugin;
 class Sam3 extends Standard
 {
     use Sam;
-    protected $fileSize = 24617;
+    protected $fileSize = false;
     protected $width = 512;
     protected $height = 384;
     protected $paletteLength = 4;

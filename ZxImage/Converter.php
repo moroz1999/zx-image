@@ -287,7 +287,7 @@ class Converter
             /**
              * @var Plugin $converter
              */
-            $converter = new $className($this->sourceFilePath, $this->sourceFileContents);
+            $converter = new $className($this->sourceFilePath, $this->sourceFileContents, $this);
             $converter->setBasePath($this->basePath);
             $converter->setBorder($this->border);
             $converter->setPalette($this->palette);
