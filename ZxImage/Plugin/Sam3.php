@@ -42,11 +42,6 @@ class Sam3 extends Standard
 
     protected function exportData($parsedData, $flashedImage = false)
     {
-        //workaround for bmp2scr
-        $temp = $parsedData['colorsData'][1];
-        $parsedData['colorsData'][1] = $parsedData['colorsData'][2];
-        $parsedData['colorsData'][2] = $temp;
-
         $image = imagecreatetruecolor($this->width, $this->height);
         foreach ($parsedData['pixelsData'] as $y => &$row) {
             foreach ($row as $x => $pixel) {

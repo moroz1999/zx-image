@@ -1,7 +1,9 @@
 <?php
 
 namespace ZxImage;
+
 use ZxImage\Plugin\Plugin;
+
 class Converter
 {
     protected $hash = false;
@@ -139,6 +141,8 @@ class Converter
             $this->palette = $this->palette4;
         } elseif ($palette == 'srgb') {
             $this->palette = $this->palette5;
+        } elseif ($palette == 'pulsar') {
+            $this->palette = $this->palette1;
         } else {
             $this->palette = $this->palette5;
         }

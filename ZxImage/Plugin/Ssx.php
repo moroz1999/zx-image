@@ -13,7 +13,7 @@ class Ssx extends Standard
                 $this->converter->setType('sam1');
                 return $this->converter->getBinary();
             } elseif ($this->fileSize === 12304) {
-                $this->converter->setType('mlt');
+                $this->converter->setType('mc');
                 return $this->converter->getBinary();
             } elseif ($this->fileSize === 24580) {
                 $this->converter->setType('sam3');
