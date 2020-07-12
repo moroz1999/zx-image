@@ -47,9 +47,9 @@ class Sxg extends Plugin
             $firstByte = $this->readByte();
             $signature = $this->readString(3);
             if ($firstByte == 127 && $signature == 'SXG') {
-                $this->readByte(); //version
-                $this->readByte(); //background
-                $this->readByte(); //packed
+                $version = $this->readByte(); //version
+                $background = $this->readByte(); //background
+                $packed = $this->readByte(); //packed
                 $this->sxgFormat = $this->readByte();
                 $this->width = $this->readWord();
                 $this->height = $this->readWord();
@@ -57,12 +57,9 @@ class Sxg extends Plugin
                 $pixelsShift = $this->readWord();
 
                 $this->readBytes($paletteShift - 2);
-                $paletteArray = [];
+
                 $paletteLength = ($pixelsShift - $paletteShift + 2) / 2;
-                while ($paletteLength > 0) {
-                    $paletteArray[] = $this->read16BitString();
-                    $paletteLength--;
-                }
+                $paletteArray = $this->read16BitStrings($paletteLength);
 
                 $pixelsArray = [];
                 while (($word = $this->readByte()) !== false) {
@@ -91,7 +88,7 @@ class Sxg extends Plugin
         $y = 0;
         $pixelsData = [];
         if ($this->sxgFormat === self::FORMAT_16) {
-            foreach ($pixelsArray as &$bits) {
+            foreach ($pixelsArray as $bits) {
                 $bits = str_pad(decbin($bits), 8, '0', STR_PAD_LEFT);
                 $pixelsData[$y][$x] = bindec(substr($bits, 0, 4));
                 $x++;
@@ -104,7 +101,7 @@ class Sxg extends Plugin
                 }
             }
         } elseif ($this->sxgFormat === self::FORMAT_256) {
-            foreach ($pixelsArray as &$pixel) {
+            foreach ($pixelsArray as $pixel) {
                 $pixelsData[$y][$x] = $pixel;
                 $x++;
                 if ($x >= $this->width) {
@@ -120,25 +117,23 @@ class Sxg extends Plugin
     protected function parseSxgPalette($paletteArray)
     {
         $paletteData = [];
-        foreach ($paletteArray as &$clutItem) {
+        foreach ($paletteArray as $clutItem) {
             if (substr($clutItem, 0, 1) == '0') {
-                $r = $this->table[bindec(substr($clutItem, 1, 5))];
-                $g = $this->table[bindec(substr($clutItem, 6, 5))];
-                $b = $this->table[bindec(substr($clutItem, 11, 5))];
+                $color = bindec(substr($clutItem, 1, 5));
+                $r = isset($this->table[$color]) ? $this->table[$color] : reset($this->table);
+                $color = bindec(substr($clutItem, 6, 5));
+                $g = isset($this->table[$color]) ? $this->table[$color] : reset($this->table);
+                $color = bindec(substr($clutItem, 11, 5));
+                $b = isset($this->table[$color]) ? $this->table[$color] : reset($this->table);
             } else {
                 $r = bindec(substr($clutItem, 1, 5)) << 3;
                 $g = bindec(substr($clutItem, 6, 5)) << 3;
                 $b = bindec(substr($clutItem, 11, 5)) << 3;
             }
-            $redChannel = round(
-                ($r * $this->palette['R11'] + $g * $this->palette['R12'] + $b * $this->palette['R13']) / 0xFF
-            );
-            $greenChannel = round(
-                ($r * $this->palette['R21'] + $g * $this->palette['R22'] + $b * $this->palette['R23']) / 0xFF
-            );
-            $blueChannel = round(
-                ($r * $this->palette['R31'] + $g * $this->palette['R32'] + $b * $this->palette['R33']) / 0xFF
-            );
+
+            $redChannel = $r;
+            $greenChannel = $g;
+            $blueChannel = $b;
 
             $RGB = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
 
@@ -150,9 +145,11 @@ class Sxg extends Plugin
     protected function exportData($parsedData, $flashedImage = false)
     {
         $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($parsedData['pixelsData'] as $y => &$row) {
-            foreach ($row as $x => &$pixel) {
-                imagesetpixel($image, $x, $y, $parsedData['colorsData'][$pixel]);
+        foreach ($parsedData['pixelsData'] as $y => $row) {
+            foreach ($row as $x => $pixel) {
+                if (isset($parsedData['colorsData'][$pixel])) {
+                    imagesetpixel($image, $x, $y, $parsedData['colorsData'][$pixel]);
+                }
             }
         }
 
