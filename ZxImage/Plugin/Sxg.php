@@ -46,7 +46,7 @@ class Sxg extends Plugin
             ];
             $firstByte = $this->readByte();
             $signature = $this->readString(3);
-            if ($firstByte == 127 && $signature == 'SXG') {
+            if ($firstByte === 127 && $signature === 'SXG') {
                 $version = $this->readByte(); //version
                 $background = $this->readByte(); //background
                 $packed = $this->readByte(); //packed
@@ -59,7 +59,7 @@ class Sxg extends Plugin
                 $this->readBytes($paletteShift - 2);
 
                 $paletteLength = ($pixelsShift - $paletteShift + 2) / 2;
-                $paletteArray = $this->read16BitStrings($paletteLength);
+                $paletteArray = $this->read16BitStrings($paletteLength, false);
 
                 $pixelsArray = [];
                 while (($word = $this->readByte()) !== false) {

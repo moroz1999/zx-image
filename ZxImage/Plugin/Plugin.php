@@ -130,7 +130,6 @@ abstract class Plugin implements Configurable
     {
         $strings = [];
         while ($length) {
-
             if (($byte = $this->readByte()) !== false) {
                 $strings[] = str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
             }
@@ -145,7 +144,7 @@ abstract class Plugin implements Configurable
     {
         $strings = [];
         while ($length) {
-            if ($string = $this->read16BitString($bigEndian)) {
+            if (($string = $this->read16BitString($bigEndian)) !== false) {
                 $strings[] = $string;
             }
             $length--;
@@ -201,9 +200,8 @@ abstract class Plugin implements Configurable
     protected function readBytes($length)
     {
         $result = [];
-        while ($length > 0) {
+        while ($length--) {
             $result[] = $this->readByte();
-            $length--;
         }
         return $result;
     }
