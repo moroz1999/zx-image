@@ -5,7 +5,7 @@ namespace ZxImage\Plugin;
 
 class Hidden extends Standard
 {
-    protected function exportData($parsedData, $flashedImage = false)
+    protected function exportData(array $parsedData, bool $flashedImage = false)
     {
         $image = imagecreatetruecolor($this->width, $this->height);
         foreach ($parsedData['pixelsData'] as $y => &$row) {

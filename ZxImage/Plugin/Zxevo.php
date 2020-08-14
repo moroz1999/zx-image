@@ -8,9 +8,9 @@ class Zxevo extends Plugin
     protected $width = 320;
     protected $height = 200;
 
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         if ($gdObject = $this->loadBits()) {
             $image = $this->adjustImage($gdObject);
             $result = $this->makePngFromGd($image);
@@ -19,7 +19,7 @@ class Zxevo extends Plugin
         return $result;
     }
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         if (file_exists($this->sourceFilePath)) {
             if ($sizes = getimagesize($this->sourceFilePath)) {
@@ -30,7 +30,7 @@ class Zxevo extends Plugin
             $gdObject = imagecreatefrombmp($this->sourceFilePath);
             return $gdObject;
         }
-        return false;
+        return null;
     }
 
     protected function adjustImage($image)
@@ -89,7 +89,7 @@ class Zxevo extends Plugin
     {
     }
 
-    protected function exportData($parsedData, $flashedImage = false)
+    protected function exportData(array $parsedData, bool $flashedImage = false)
     {
     }
 }

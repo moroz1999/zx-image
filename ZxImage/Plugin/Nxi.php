@@ -20,7 +20,7 @@ class Nxi extends Standard
 
 //    protected $pixelRatio = 1;
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $pixelsArray = [];
         $paletteArray = [];
@@ -43,7 +43,7 @@ class Nxi extends Standard
         return $parsedData;
     }
 
-    protected function parsePixels($pixelsArray)
+    protected function parsePixels(array $pixelsArray): array
     {
         $x = 0;
         $y = 0;
@@ -84,7 +84,7 @@ class Nxi extends Standard
         return $paletteData;
     }
 
-    protected function exportData($parsedData, $flashedImage = false)
+    protected function exportData(array $parsedData, bool $flashedImage = false)
     {
         $image = imagecreatetruecolor($this->width, $this->height);
         foreach ($parsedData['pixelsData'] as $y => $row) {

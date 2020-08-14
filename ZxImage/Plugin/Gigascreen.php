@@ -7,9 +7,9 @@ class Gigascreen extends Standard
 {
     protected $fileSize = 13824;
 
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         if ($bits = $this->loadBits()) {
             $parsedData1 = $this->parseScreen($bits[0]);
             $parsedData2 = $this->parseScreen($bits[1]);
@@ -98,7 +98,7 @@ class Gigascreen extends Standard
         return $result;
     }
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $pixelsArray = [];
         $attributesArray = [];
@@ -129,7 +129,7 @@ class Gigascreen extends Standard
             $resultBits = [$firstImage, $secondImage];
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
     protected function exportDataMerged($parsedData1, $parsedData2, $flashedImage = false)

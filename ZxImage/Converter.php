@@ -6,34 +6,34 @@ use ZxImage\Plugin\Plugin;
 
 class Converter
 {
-    protected $hash = false;
-    protected $colors = [];
-    protected $gigascreenMode = 'mix';
-    protected $cachePath;
-    protected $sourceFileContents;
-    protected $sourceFilePath;
-    protected $resultFilePath;
-    protected $cacheDirMarkerPath;
-    protected $cacheDeletionPeriod = 300; //start cache clearing every 5 minutes
-    protected $cacheDeletionAmount = 1000; //delete not more than 1000 images at once
-    protected $cacheExpirationLimit = false;
-    protected $type = 'standard';
-    protected $border = false;
-    protected $zoom = 1;
-    protected $rotation = '0';
-    protected $cacheFileName;
-    protected $cacheEnabled = false;
-    protected $resultMime;
-    protected $basePath;
-    protected $preFilters = [];
-    protected $postFilters = [];
+    protected ?string $hash = null;
+    protected array $colors = [];
+    protected string $gigascreenMode = 'mix';
+    protected string $cachePath;
+    protected ?string $sourceFileContents = null;
+    protected string $sourceFilePath;
+    protected string $resultFilePath;
+    protected string $cacheDirMarkerPath;
+    protected int $cacheDeletionPeriod = 300; //start cache clearing every 5 minutes
+    protected int $cacheDeletionAmount = 1000; //delete not more than 1000 images at once
+    protected int $cacheExpirationLimit;
+    protected string $type = 'standard';
+    protected ?int $border = null;
+    protected int $zoom = 1;
+    protected int $rotation = 0;
+    protected string $cacheFileName;
+    protected bool $cacheEnabled = false;
+    protected ?string $resultMime = null;
+    protected string $basePath;
+    protected array $preFilters = [];
+    protected array $postFilters = [];
 
-    protected $palette = '';
-    protected $palette1 = '00,76,CD,E9,FF,9F:FF,00,00;00,FF,00;00,00,FF'; //pulsar
-    protected $palette2 = '00,76,CD,E9,FF,9F:D0,00,00;00,E4,00;00,00,FF'; //orthodox
-    protected $palette3 = '00,60,A0,E0,FF,A0:FF,00,00;00,FF,00;00,00,FF'; //alone
-    protected $palette4 = '4F,A1,DD,F0,FF,BD:39,73,1D;3C,77,1E;46,8C,23'; //electroscale
-    protected $palette5 = '00,96,CD,E8,FF,BC:FF,00,00;00,FF,00;00,00,FF'; //srgb
+    protected string $palette = '';
+    protected string $palette1 = '00,76,CD,E9,FF,9F:FF,00,00;00,FF,00;00,00,FF'; //pulsar
+    protected string $palette2 = '00,76,CD,E9,FF,9F:D0,00,00;00,E4,00;00,00,FF'; //orthodox
+    protected string $palette3 = '00,60,A0,E0,FF,A0:FF,00,00;00,FF,00;00,00,FF'; //alone
+    protected string $palette4 = '4F,A1,DD,F0,FF,BD:39,73,1D;3C,77,1E;46,8C,23'; //electroscale
+    protected string $palette5 = '00,96,CD,E8,FF,BC:FF,00,00;00,FF,00;00,00,FF'; //srgb
 
     public function __construct()
     {
@@ -42,76 +42,52 @@ class Converter
         $this->basePath = pathinfo((__FILE__), PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR;
     }
 
-    /**
-     * @param mixed $sourceFileContents
-     * @return Converter
-     */
-    public function setSourceFileContents($sourceFileContents)
+    public function setSourceFileContents(string $sourceFileContents): Converter
     {
         $this->sourceFileContents = $sourceFileContents;
         return $this;
     }
 
-    /**
-     * @param boolean $cacheEnabled
-     * @return Converter
-     */
-    public function setCacheEnabled($cacheEnabled)
+    public function setCacheEnabled(bool $cacheEnabled): Converter
     {
         $this->cacheEnabled = $cacheEnabled;
         return $this;
     }
 
-    /**
-     * @param mixed $cachePath
-     * @return Converter
-     */
-    public function setCachePath($cachePath)
+    public function setCachePath(string $cachePath): Converter
     {
         $this->cachePath = $cachePath . DIRECTORY_SEPARATOR;
         $this->cacheDirMarkerPath = $this->cachePath . DIRECTORY_SEPARATOR . '_marker';
         return $this;
     }
 
-    /**
-     * @param bool|int $cacheExpirationLimit
-     * @return Converter
-     */
-    public function setCacheExpirationLimit($cacheExpirationLimit)
+    public function setCacheExpirationLimit(int $cacheExpirationLimit): Converter
     {
         $this->cacheExpirationLimit = $cacheExpirationLimit;
         return $this;
     }
 
-    /**
-     * @param int $cacheDeletionAmount
-     * @return Converter
-     */
-    public function setCacheDeletionAmount($cacheDeletionAmount)
+    public function setCacheDeletionAmount(int $cacheDeletionAmount): Converter
     {
         $this->cacheDeletionAmount = $cacheDeletionAmount;
         return $this;
     }
 
-    /**
-     * @param int $cacheDeletionPeriod
-     * @return Converter
-     */
-    public function setCacheDeletionPeriod($cacheDeletionPeriod)
+    public function setCacheDeletionPeriod(int $cacheDeletionPeriod): Converter
     {
         $this->cacheDeletionPeriod = $cacheDeletionPeriod;
         return $this;
     }
 
-    public function setGigascreenMode($mode)
+    public function setGigascreenMode(string $mode): Converter
     {
-        if ($mode == 'flicker' || $mode == 'interlace2' || $mode == 'interlace1' || $mode == 'mix') {
+        if ($mode === 'flicker' || $mode === 'interlace2' || $mode === 'interlace1' || $mode === 'mix') {
             $this->gigascreenMode = $mode;
         }
         return $this;
     }
 
-    public function setRotation($rotation)
+    public function setRotation(int $rotation): Converter
     {
         if (in_array($rotation, [0, 90, 180, 270])) {
             $this->rotation = $rotation;
@@ -119,19 +95,19 @@ class Converter
         return $this;
     }
 
-    public function addPreFilter($type)
+    public function addPreFilter(string $type): Converter
     {
         $this->preFilters[] = $type;
         return $this;
     }
 
-    public function addPostFilter($type)
+    public function addPostFilter(string $type): Converter
     {
         $this->postFilters[] = $type;
         return $this;
     }
 
-    public function setPalette($palette)
+    public function setPalette(string $palette): Converter
     {
         if ($palette == 'orthodox') {
             $this->palette = $this->palette2;
@@ -149,53 +125,10 @@ class Converter
         return $this;
     }
 
-    public function setBorder($border)
+    public function setBorder(int $border = null): Converter
     {
-        if ($border >= 0 && $border < 8 || $border === false) {
+        if ($border >= 0 && $border < 8 || $border === null) {
             $this->border = $border;
-        }
-        return $this;
-    }
-
-    /**
-     * @param $size
-     * @return $this
-     *
-     * @deprecated
-     */
-    public function setSize($size)
-    {
-        if (is_numeric($size)) {
-            $size = intval($size);
-            if ($size >= 0 && $size <= 7) {
-                switch ($size) {
-                    case 0:
-                    case 1:
-                        $this->setZoom(0.25);
-                        break;
-                    case 2:
-                        $this->setZoom(1);
-                        break;
-                    case 3:
-                        $this->setZoom(2);
-                        $this->addPostFilter('scanlines');
-                        break;
-                    case 4:
-                        $this->setZoom(2);
-                        break;
-                    case 5:
-                        $this->setZoom(2);
-                        $this->addPostFilter('blur');
-                        break;
-                    case 6:
-                        $this->setZoom(1);
-                        $this->addPreFilter('atari');
-                        break;
-                    case 7:
-                        $this->setZoom(3);
-                        break;
-                }
-            }
         }
         return $this;
     }
@@ -204,7 +137,7 @@ class Converter
      * @param $zoom
      * @return $this
      */
-    public function setZoom($zoom)
+    public function setZoom(int $zoom): Converter
     {
         if (is_numeric($zoom)) {
             $zoom = floatval($zoom);
@@ -215,21 +148,21 @@ class Converter
         return $this;
     }
 
-    public function setType($type)
+    public function setType(string $type): Converter
     {
         $this->type = $type;
         return $this;
     }
 
-    public function setPath($path)
+    public function setPath(string $path): Converter
     {
         $this->sourceFilePath = $path;
         return $this;
     }
 
-    public function getResultMime()
+    public function getResultMime(): ?string
     {
-        $resultMime = false;
+        $resultMime = null;
         if ($this->resultMime) {
             $resultMime = $this->resultMime;
         } elseif ($this->cacheEnabled) {
@@ -242,7 +175,7 @@ class Converter
         return $resultMime;
     }
 
-    public function getCacheFileName()
+    public function getCacheFileName(): string
     {
         $parametersHash = $this->getHash();
 
@@ -250,7 +183,7 @@ class Converter
         return $this->cacheFileName;
     }
 
-    public function getBinary()
+    public function getBinary(): ?string
     {
         if (!$this->cacheEnabled) {
             return $this->generateBinary();
@@ -259,9 +192,9 @@ class Converter
         }
     }
 
-    public function generateCacheFile()
+    public function generateCacheFile(): ?string
     {
-        $result = false;
+        $result = null;
         if ($resultFilePath = $this->getCacheFileName()) {
             if (!file_exists($resultFilePath)) {
                 if ($result = $this->generateBinary()) {
@@ -276,9 +209,9 @@ class Converter
         return $result;
     }
 
-    public function generateBinary()
+    public function generateBinary(): ?string
     {
-        $result = false;
+        $result = null;
         if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
             $className = 'multiartist';
         } elseif ($this->type == 'chr$') {
@@ -307,7 +240,7 @@ class Converter
         return $result;
     }
 
-    public function getHash()
+    public function getHash(): ?string
     {
         if (!$this->hash && ($this->sourceFileContents || is_file($this->sourceFilePath))) {
             $text = '';
@@ -352,7 +285,7 @@ class Converter
         return $this->hash;
     }
 
-    protected function checkCacheClearing()
+    protected function checkCacheClearing(): void
     {
         if ($date = $this->getCacheLastClearedDate()) {
             $now = time();
@@ -363,7 +296,7 @@ class Converter
         }
     }
 
-    protected function clearOutdatedCache()
+    protected function clearOutdatedCache(): void
     {
         $c = 0;
         $now = time();
@@ -383,12 +316,11 @@ class Converter
             }
             closedir($handler);
         }
-        return $c;
     }
 
-    protected function getCacheLastClearedDate()
+    protected function getCacheLastClearedDate(): ?int
     {
-        $date = false;
+        $date = null;
 
         if (!is_file($this->cacheDirMarkerPath)) {
             file_put_contents($this->cacheDirMarkerPath, ' ');

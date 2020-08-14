@@ -10,7 +10,7 @@ class Bsc extends Standard
     protected $borderHeight = 56;
     protected $fileSize = 11136;
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $pixelsArray = [];
         $attributesArray = [];
@@ -34,7 +34,7 @@ class Bsc extends Standard
             ];
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
     protected function parseScreen($data)

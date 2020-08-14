@@ -9,9 +9,9 @@ class Standard extends Plugin
 {
     protected $fileSize = 6912;
 
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
             if (!empty($parsedData['attributesData']) && $parsedData['attributesData']['flashMap']) {
@@ -50,7 +50,7 @@ class Standard extends Plugin
         return $parsedData;
     }
 
-    protected function exportData($parsedData, $flashedImage = false)
+    protected function exportData(array $parsedData, bool $flashedImage = false)
     {
         $image = imagecreatetruecolor($this->width, $this->height);
         foreach ($parsedData['pixelsData'] as $y => &$row) {
@@ -82,7 +82,7 @@ class Standard extends Plugin
         return $resultImage;
     }
 
-    protected function parsePixels($pixelsArray)
+    protected function parsePixels(array $pixelsArray): array
     {
         $x = 0;
         $y = 0;
@@ -134,7 +134,7 @@ class Standard extends Plugin
         return $attributesData;
     }
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $attributesArray = [];
         if ($this->makeHandle()) {
@@ -146,7 +146,7 @@ class Standard extends Plugin
             $resultBits = ['pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray];
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
     protected function calculateZXY($y)

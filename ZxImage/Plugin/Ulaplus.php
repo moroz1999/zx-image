@@ -7,7 +7,7 @@ class Ulaplus extends Standard
 {
     protected $fileSize = 6976;
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $pixelsArray = [];
         $attributesArray = [];
@@ -32,7 +32,7 @@ class Ulaplus extends Standard
             ];
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
     protected function parseScreen($data)
@@ -69,7 +69,7 @@ class Ulaplus extends Standard
         return $paletteData;
     }
 
-    protected function exportData($parsedData, $flashedImage = false)
+    protected function exportData(array $parsedData, bool $flashedImage = false)
     {
         $image = imagecreatetruecolor($this->width, $this->height);
         foreach ($parsedData['pixelsData'] as $y => &$row) {

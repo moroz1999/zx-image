@@ -52,7 +52,7 @@ class Timexhrg extends Gigascreen
         return $attributesData;
     }
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $pixelsArray = [];
         if ($this->makeHandle()) {
@@ -80,10 +80,10 @@ class Timexhrg extends Gigascreen
 
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
-    protected function exportData($parsedData, $flashedImage = false)
+    protected function exportData(array $parsedData, bool $flashedImage = false)
     {
         $image = imagecreatetruecolor($this->width, $this->height);
         foreach ($parsedData['pixelsData'] as $rowY => &$row) {

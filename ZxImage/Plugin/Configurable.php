@@ -4,9 +4,9 @@ namespace ZxImage\Plugin;
 
 interface Configurable
 {
-    public function __construct($sourceFilePath);
+    public function __construct(string $sourceFilePath);
 
-    public function convert();
+    public function convert(): ?string;
 
     public function setBorder($border);
 

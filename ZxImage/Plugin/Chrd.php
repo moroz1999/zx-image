@@ -8,9 +8,9 @@ class Chrd extends Gigascreen
     protected $colorType;
     protected $fileSize;
 
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         $this->loadBits();
         if ($this->colorType == '9') {
             if ($bits = $this->loadBits()) {
@@ -37,7 +37,7 @@ class Chrd extends Gigascreen
         return $result;
     }
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $pixelsArray = [];
         $attributesArray = [];
@@ -108,10 +108,10 @@ class Chrd extends Gigascreen
             }
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
-    protected function parsePixels($pixelsArray)
+    protected function parsePixels(array $pixelsArray): array
     {
         $pixelsData = [];
 

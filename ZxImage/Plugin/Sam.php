@@ -4,7 +4,7 @@ namespace ZxImage\Plugin;
 
 trait Sam
 {
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $pixelsArray = [];
         $paletteArray = [];
@@ -25,7 +25,7 @@ trait Sam
             ];
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
     protected function parseScreen($data)

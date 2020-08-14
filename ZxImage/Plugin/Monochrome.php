@@ -10,9 +10,9 @@ class Monochrome extends Standard
     protected $brightnessZX = '1';
     protected $fileSize = 6144;
 
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
 
@@ -22,7 +22,7 @@ class Monochrome extends Standard
         return $result;
     }
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $pixelsArray = [];
         if ($this->makeHandle()) {
@@ -36,7 +36,7 @@ class Monochrome extends Standard
             $resultBits = ['pixelsArray' => $pixelsArray];
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
     protected function parseScreen($data)

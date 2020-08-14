@@ -6,7 +6,7 @@ class Attributes extends Standard
 {
     protected $fileSize = 768;
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $attributesArray = [];
 
@@ -17,7 +17,7 @@ class Attributes extends Standard
             $resultBits = ['pixelsArray' => $this->generatePixelsArray(), 'attributesArray' => $attributesArray];
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
     protected function generatePixelsArray()
@@ -36,9 +36,9 @@ class Attributes extends Standard
         return $pixelsArray;
     }
 
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
             if (count($parsedData['attributesData']['flashMap']) > 0) {

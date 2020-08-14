@@ -8,7 +8,7 @@ class Multicolor extends Standard
     protected $attributeHeight = 2;
     protected $fileSize = 9216;
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $pixelsArray = [];
         $attributesArray = [];
@@ -25,6 +25,6 @@ class Multicolor extends Standard
             $resultBits = ['pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray];
             return $resultBits;
         }
-        return false;
+        return null;
     }
 }

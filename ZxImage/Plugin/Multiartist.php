@@ -79,7 +79,7 @@ class Multiartist extends Gigascreen
         return $attributesData;
     }
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         if ($this->makeHandle()) {
 
@@ -191,12 +191,12 @@ class Multiartist extends Gigascreen
                 return $resultBits;
             }
         }
-        return false;
+        return null;
     }
 
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         if ($bits = $this->loadBits()) {
             $parsedData1 = $this->parseScreen($bits[0]);
             $parsedData2 = $this->parseScreen($bits[1]);

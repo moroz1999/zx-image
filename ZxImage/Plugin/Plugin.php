@@ -36,7 +36,7 @@ abstract class Plugin implements Configurable
     protected $rotation;
     protected $basePath;
 
-    public function __construct($sourceFilePath = null, $sourceFileContents = null, $converter = null)
+    public function __construct(string $sourceFilePath = null, string $sourceFileContents = null, Converter $converter = null)
     {
         $this->sourceFilePath = $sourceFilePath;
         $this->sourceFileContents = $sourceFileContents;
@@ -524,9 +524,9 @@ abstract class Plugin implements Configurable
         return $result;
     }
 
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
             $image = $this->exportData($parsedData, false);
@@ -535,7 +535,7 @@ abstract class Plugin implements Configurable
         return $result;
     }
 
-    protected function makePngFromGd($image)
+    protected function makePngFromGd($image): string
     {
         $this->resultMime = 'image/png';
         ob_start();
@@ -545,7 +545,7 @@ abstract class Plugin implements Configurable
         return $binary;
     }
 
-    protected function makeGifFromGd($image)
+    protected function makeGifFromGd($image): string
     {
         $this->resultMime = 'image/gif';
         ob_start();
@@ -563,9 +563,9 @@ abstract class Plugin implements Configurable
         return $this->resultMime;
     }
 
-    abstract protected function loadBits();
+    abstract protected function loadBits(): ?array;
 
     abstract protected function parseScreen($data);
 
-    abstract protected function exportData($parsedData, $flashedImage = false);
+    abstract protected function exportData(array $parsedData, bool $flashedImage = false);
 }

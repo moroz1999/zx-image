@@ -10,7 +10,7 @@ class Stellar extends Gigascreen
     protected $atrHeight = 48;
     protected $attributeHeight = 4;
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $texture = [];
         $attributesArray = [[], []];
@@ -34,7 +34,7 @@ class Stellar extends Gigascreen
             ];
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
     protected function generatePixelsArray()

@@ -6,7 +6,7 @@ class Ssx extends Standard
 {
 //    use Sam;
     protected $fileSize = false;
-    public function convert()
+    public function convert(): ?string
     {
         if ($this->makeHandle()) {
             if ($this->fileSize === 6928) {

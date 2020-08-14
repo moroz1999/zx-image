@@ -9,9 +9,9 @@ class Timexhr extends Standard
     protected $width = 512;
     protected $height = 384;
 
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
             $image = $this->exportData($parsedData, false);
@@ -63,7 +63,7 @@ class Timexhr extends Standard
         return $attributesData;
     }
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $pixelsArray = [];
         if ($this->makeHandle()) {
@@ -94,10 +94,10 @@ class Timexhr extends Standard
 
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
-    protected function exportData($parsedData, $flashedImage = false)
+    protected function exportData(array $parsedData, bool $flashedImage = false)
     {
         $image = imagecreatetruecolor($this->width, $this->height);
         foreach ($parsedData['pixelsData'] as $rowY => &$row) {

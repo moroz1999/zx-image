@@ -18,5 +18,8 @@
     "psr-4": {
       "ZxImage\\": "ZxImage/"
     }
+  },
+  "require-dev": {
+    "vimeo/psalm": "^3.13"
   }
 }

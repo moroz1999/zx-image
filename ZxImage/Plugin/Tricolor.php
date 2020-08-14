@@ -7,9 +7,9 @@ class Tricolor extends Standard
 {
     protected $fileSize = 18432;
 
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
 
@@ -39,7 +39,7 @@ class Tricolor extends Standard
         return $result;
     }
 
-    protected function buildMixedPng($resources)
+    protected function buildMixedPng($resources): string
     {
         $first = reset($resources);
         $width = imagesx($first);
@@ -60,7 +60,7 @@ class Tricolor extends Standard
         return $result;
     }
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $pixelsArray = [];
         if ($this->makeHandle()) {
@@ -79,7 +79,7 @@ class Tricolor extends Standard
             $resultBits = ['pixelsArray' => $pixelsArray];
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
     protected function parseScreen($data)

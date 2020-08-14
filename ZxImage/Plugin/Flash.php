@@ -5,9 +5,9 @@ namespace ZxImage\Plugin;
 
 class Flash extends Standard
 {
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
 
@@ -17,7 +17,7 @@ class Flash extends Standard
         return $result;
     }
 
-    protected function exportData($parsedData, $flashedImage = false)
+    protected function exportData(array $parsedData, bool $flashedImage = false)
     {
         $image = imagecreatetruecolor($this->width, $this->height);
         foreach ($parsedData['pixelsData'] as $y => &$row) {

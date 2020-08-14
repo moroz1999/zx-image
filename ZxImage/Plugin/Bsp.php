@@ -16,7 +16,7 @@ class Bsp extends Standard
     protected $title;
     protected $fileSize;
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         if ($this->makeHandle()) {
             if ($this->readString(3) == 'bsp') {
@@ -85,7 +85,7 @@ class Bsp extends Standard
                 }
             }
         }
-        return false;
+        return null;
     }
 
     protected function parseScreen($data)
@@ -147,9 +147,9 @@ class Bsp extends Standard
         return $borderData;
     }
 
-    public function convert()
+    public function convert(): ?string
     {
-        $result = false;
+        $result = null;
         if ($bits = $this->loadBits()) {
             if ($this->hasGigaData) {
                 $parsedData1 = $this->parseScreen($bits[0]);

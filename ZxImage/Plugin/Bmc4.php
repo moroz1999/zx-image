@@ -8,7 +8,7 @@ class Bmc4 extends Bsc
     protected $attributeHeight = 4;
     protected $fileSize = 11904;
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         if ($resultBits = parent::loadBits()) {
             $attributesArray = [];

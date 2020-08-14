@@ -7,7 +7,7 @@ class Lowresgs extends Gigascreen
 {
     protected $fileSize = 1628;
 
-    protected function loadBits()
+    protected function loadBits(): ?array
     {
         $texture = [];
         $attributesArray = [[], []];
@@ -36,7 +36,7 @@ class Lowresgs extends Gigascreen
             ];
             return $resultBits;
         }
-        return false;
+        return null;
     }
 
     protected function generatePixelsArray($texture)
