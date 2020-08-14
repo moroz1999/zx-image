@@ -11,7 +11,7 @@
   "license": "CC0-1.0",
   "type": "package",
   "require": {
-    "php": ">=7.0",
+    "php": ">=7.4",
     "moroz1999/gif-creator": "*"
   },
   "autoload": {
