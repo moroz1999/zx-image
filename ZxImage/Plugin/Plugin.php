@@ -45,7 +45,7 @@ abstract class Plugin implements Configurable
         $this->basePath = $basePath;
     }
 
-    protected function makeHandle()
+    protected function makeHandle(): bool
     {
         if (is_file($this->sourceFilePath)) {
             if (!$this->fileSize) {
@@ -70,7 +70,7 @@ abstract class Plugin implements Configurable
     /**
      * @param Filter[] $filters
      */
-    public function setPreFilters($filters)
+    public function setPreFilters(array $filters): void
     {
         $this->preFilters = $filters;
     }
@@ -78,34 +78,34 @@ abstract class Plugin implements Configurable
     /**
      * @param Filter[] $filters
      */
-    public function setPostFilters($filters)
+    public function setPostFilters(array $filters): void
     {
         $this->postFilters = $filters;
     }
 
-    public function setBorder($border)
+    public function setBorder(int $border = null): void
     {
         $this->border = $border;
     }
 
-    public function setZoom($zoom)
+    public function setZoom(int $zoom): void
     {
         $this->zoom = $zoom;
     }
 
-    public function setRotation($rotation)
+    public function setRotation(int $rotation): void
     {
         $this->rotation = $rotation;
     }
 
-    public function setGigascreenMode($mode)
+    public function setGigascreenMode(string $mode): void
     {
         if ($mode == 'flicker' || $mode == 'interlace2' || $mode == 'interlace1') {
             $this->gigascreenMode = $mode;
         }
     }
 
-    public function setPalette($palette)
+    public function setPalette(string $palette): void
     {
         $this->parsePalette($palette);
         $this->generateColors();
