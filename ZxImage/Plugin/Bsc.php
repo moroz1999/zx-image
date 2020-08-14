@@ -8,7 +8,7 @@ class Bsc extends Standard
     protected $attributesLength = 768;
     protected $borderWidth = 64;
     protected $borderHeight = 56;
-    protected $fileSize = 11136;
+    protected ?int $fileSize = 11136;
 
     protected function loadBits(): ?array
     {

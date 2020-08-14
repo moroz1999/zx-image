@@ -6,7 +6,7 @@ namespace ZxImage\Plugin;
 class Chrd extends Gigascreen
 {
     protected $colorType;
-    protected $fileSize;
+    protected ?int $fileSize;
 
     public function convert(): ?string
     {

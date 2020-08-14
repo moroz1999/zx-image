@@ -5,8 +5,8 @@ namespace ZxImage\Plugin;
 
 class Zxevo extends Plugin
 {
-    protected $width = 320;
-    protected $height = 200;
+    protected int $width = 320;
+    protected int $height = 200;
 
     public function convert(): ?string
     {

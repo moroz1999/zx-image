@@ -5,8 +5,8 @@ namespace ZxImage\Plugin;
 class Bmc4 extends Bsc
 {
     protected $attributesLength = 1536;
-    protected $attributeHeight = 4;
-    protected $fileSize = 11904;
+    protected int $attributeHeight = 4;
+    protected ?int $fileSize = 11904;
 
     protected function loadBits(): ?array
     {

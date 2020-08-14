@@ -5,8 +5,8 @@ namespace ZxImage\Plugin;
 
 class Timex81 extends Standard
 {
-    protected $attributeHeight = 1;
-    protected $fileSize = 12288;
+    protected int $attributeHeight = 1;
+    protected ?int $fileSize = 12288;
 
     protected function parseAttributes($attributesArray)
     {

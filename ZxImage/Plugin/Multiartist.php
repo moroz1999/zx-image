@@ -8,7 +8,7 @@ class Multiartist extends Gigascreen
     protected $mghMode = false;
     protected $borders = [];
     protected $mghMixedBorder = false;
-    protected $fileSize;
+    protected ?int $fileSize;
 
     protected function parseScreen($data)
     {

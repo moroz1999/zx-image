@@ -7,7 +7,7 @@ use GifCreator\GifCreator;
 
 class Standard extends Plugin
 {
-    protected $fileSize = 6912;
+    protected ?int $fileSize = 6912;
 
     public function convert(): ?string
     {

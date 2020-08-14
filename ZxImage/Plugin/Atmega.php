@@ -5,8 +5,8 @@ namespace ZxImage\Plugin;
 class Atmega extends Plugin
 {
     const PIXELPAGESIZE = 8000;
-    protected $width = 320;
-    protected $height = 200;
+    protected int $width = 320;
+    protected int $height = 200;
 
     protected function loadBits(): ?array
     {

@@ -5,7 +5,7 @@ namespace ZxImage\Plugin;
 class Sam4 extends Standard
 {
     use Sam;
-    protected $fileSize = false;
+    protected ?int $fileSize = null;
     protected $paletteLength = 16;
     protected $bitPerPixel = 4;
     protected $pixelRatio = 1;

@@ -5,9 +5,9 @@ namespace ZxImage\Plugin;
 
 class Timexhr extends Standard
 {
-    protected $fileSize = 12289;
-    protected $width = 512;
-    protected $height = 384;
+    protected ?int $fileSize = 12289;
+    protected int $width = 512;
+    protected int $height = 384;
 
     public function convert(): ?string
     {

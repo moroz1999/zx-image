@@ -5,7 +5,7 @@ namespace ZxImage\Plugin;
 class Ssx extends Standard
 {
 //    use Sam;
-    protected $fileSize = false;
+    protected ?int $fileSize = null;
     public function convert(): ?string
     {
         if ($this->makeHandle()) {

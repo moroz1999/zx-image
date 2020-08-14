@@ -5,9 +5,9 @@ namespace ZxImage\Plugin;
 
 class Timexhrg extends Gigascreen
 {
-    protected $fileSize = 12289 * 2;
-    protected $width = 512;
-    protected $height = 384;
+    protected ?int $fileSize = 12289 * 2;
+    protected int $width = 512;
+    protected int $height = 384;
 
     protected function parseAttributes($attributesArray)
     {

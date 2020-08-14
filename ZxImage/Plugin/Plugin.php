@@ -7,34 +7,31 @@ use ZxImage\Filter\Filter;
 
 abstract class Plugin implements Configurable
 {
-    /**
-     * @var Converter
-     */
-    protected $converter;
+    protected Converter $converter;
     protected $handle;
-    protected $fileSize;
-    protected $colors = [];
-    protected $gigaColors = [];
-    protected $sourceFilePath;
-    protected $sourceFileContents;
-    protected $gigascreenMode = 'mix';
-    protected $palette = false;
-    protected $border = false;
-    protected $zoom = 1;
-    protected $resultMime;
+    protected ?int $fileSize = null;
+    protected array $colors = [];
+    protected array $gigaColors = [];
+    protected string $sourceFilePath;
+    protected ?string $sourceFileContents;
+    protected string $gigascreenMode = 'mix';
+    protected array $palette;
+    protected ?int $border = null;
+    protected int $zoom = 1;
+    protected ?string $resultMime = null;
 
-    protected $preFilters = [];
-    protected $postFilters = [];
+    protected array $preFilters = [];
+    protected array $postFilters = [];
 
-    protected $width = 256;
-    protected $height = 192;
+    protected int $width = 256;
+    protected int $height = 192;
 
-    protected $attributeWidth = 8;
-    protected $attributeHeight = 8;
-    protected $borderWidth = 32;
-    protected $borderHeight = 24;
-    protected $rotation;
-    protected $basePath;
+    protected int $attributeWidth = 8;
+    protected int $attributeHeight = 8;
+    protected int $borderWidth = 32;
+    protected int $borderHeight = 24;
+    protected int $rotation;
+    protected string $basePath;
 
     public function __construct(string $sourceFilePath = null, string $sourceFileContents = null, Converter $converter = null)
     {
@@ -43,10 +40,7 @@ abstract class Plugin implements Configurable
         $this->converter = $converter;
     }
 
-    /**
-     * @param mixed $basePath
-     */
-    public function setBasePath($basePath)
+    public function setBasePath(string $basePath): void
     {
         $this->basePath = $basePath;
     }

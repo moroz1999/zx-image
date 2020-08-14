@@ -4,7 +4,7 @@ namespace ZxImage\Plugin;
 
 class Attributes extends Standard
 {
-    protected $fileSize = 768;
+    protected ?int $fileSize = 768;
 
     protected function loadBits(): ?array
     {

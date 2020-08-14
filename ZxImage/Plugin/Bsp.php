@@ -14,7 +14,7 @@ class Bsp extends Standard
     protected $borders = [];
     protected $author;
     protected $title;
-    protected $fileSize;
+    protected ?int $fileSize;
 
     protected function loadBits(): ?array
     {

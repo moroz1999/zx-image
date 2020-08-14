@@ -8,7 +8,7 @@ class Monochrome extends Standard
     protected $inkColorZX = '000';
     protected $paperColorZX = '111';
     protected $brightnessZX = '1';
-    protected $fileSize = 6144;
+    protected ?int $fileSize = 6144;
 
     public function convert(): ?string
     {
