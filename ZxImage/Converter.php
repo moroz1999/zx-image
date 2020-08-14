@@ -183,63 +183,6 @@ class Converter
         return $this->cacheFileName;
     }
 
-    public function getBinary(): ?string
-    {
-        if (!$this->cacheEnabled) {
-            return $this->generateBinary();
-        } else {
-            return $this->generateCacheFile();
-        }
-    }
-
-    public function generateCacheFile(): ?string
-    {
-        $result = null;
-        if ($resultFilePath = $this->getCacheFileName()) {
-            if (!file_exists($resultFilePath)) {
-                if ($result = $this->generateBinary()) {
-                    file_put_contents($resultFilePath, $result);
-                }
-            } else {
-                $result = file_get_contents($resultFilePath);
-            }
-
-            $this->checkCacheClearing();
-        }
-        return $result;
-    }
-
-    public function generateBinary(): ?string
-    {
-        $result = null;
-        if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
-            $className = 'multiartist';
-        } elseif ($this->type == 'chr$') {
-            $className = 'chrd';
-        } else {
-            $className = '' . $this->type;
-        }
-        $className = __NAMESPACE__ . '\\Plugin\\' . ucfirst($className);
-        if (class_exists($className)) {
-            /**
-             * @var Plugin $converter
-             */
-            $converter = new $className($this->sourceFilePath, $this->sourceFileContents, $this);
-            $converter->setBasePath($this->basePath);
-            $converter->setBorder($this->border);
-            $converter->setPalette($this->palette);
-            $converter->setZoom($this->zoom);
-            $converter->setRotation($this->rotation);
-            $converter->setGigascreenMode($this->gigascreenMode);
-            $converter->setPreFilters($this->preFilters);
-            $converter->setPostFilters($this->postFilters);
-            if ($result = $converter->convert()) {
-                $this->resultMime = $converter->getResultMime();
-            }
-        }
-        return $result;
-    }
-
     public function getHash(): ?string
     {
         if (!$this->hash && ($this->sourceFileContents || is_file($this->sourceFilePath))) {
@@ -285,6 +228,63 @@ class Converter
         return $this->hash;
     }
 
+    public function getBinary(): ?string
+    {
+        if (!$this->cacheEnabled) {
+            return $this->generateBinary();
+        } else {
+            return $this->generateCacheFile();
+        }
+    }
+
+    public function generateBinary(): ?string
+    {
+        $result = null;
+        if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
+            $className = 'multiartist';
+        } elseif ($this->type == 'chr$') {
+            $className = 'chrd';
+        } else {
+            $className = '' . $this->type;
+        }
+        $className = __NAMESPACE__ . '\\Plugin\\' . ucfirst($className);
+        if (class_exists($className)) {
+            /**
+             * @var Plugin $converter
+             */
+            $converter = new $className($this->sourceFilePath, $this->sourceFileContents, $this);
+            $converter->setBasePath($this->basePath);
+            $converter->setBorder($this->border);
+            $converter->setPalette($this->palette);
+            $converter->setZoom($this->zoom);
+            $converter->setRotation($this->rotation);
+            $converter->setGigascreenMode($this->gigascreenMode);
+            $converter->setPreFilters($this->preFilters);
+            $converter->setPostFilters($this->postFilters);
+            if ($result = $converter->convert()) {
+                $this->resultMime = $converter->getResultMime();
+            }
+        }
+        return $result;
+    }
+
+    public function generateCacheFile(): ?string
+    {
+        $result = null;
+        if ($resultFilePath = $this->getCacheFileName()) {
+            if (!file_exists($resultFilePath)) {
+                if ($result = $this->generateBinary()) {
+                    file_put_contents($resultFilePath, $result);
+                }
+            } else {
+                $result = file_get_contents($resultFilePath);
+            }
+
+            $this->checkCacheClearing();
+        }
+        return $result;
+    }
+
     protected function checkCacheClearing(): void
     {
         if ($date = $this->getCacheLastClearedDate()) {
@@ -294,6 +294,20 @@ class Converter
                 $this->clearOutdatedCache();
             }
         }
+    }
+
+    protected function getCacheLastClearedDate(): ?int
+    {
+        $date = null;
+
+        if (!is_file($this->cacheDirMarkerPath)) {
+            file_put_contents($this->cacheDirMarkerPath, ' ');
+            return 1;
+        }
+        if (is_file($this->cacheDirMarkerPath)) {
+            $date = filemtime($this->cacheDirMarkerPath);
+        }
+        return $date;
     }
 
     protected function clearOutdatedCache(): void
@@ -316,19 +330,5 @@ class Converter
             }
             closedir($handler);
         }
-    }
-
-    protected function getCacheLastClearedDate(): ?int
-    {
-        $date = null;
-
-        if (!is_file($this->cacheDirMarkerPath)) {
-            file_put_contents($this->cacheDirMarkerPath, ' ');
-            return 1;
-        }
-        if (is_file($this->cacheDirMarkerPath)) {
-            $date = filemtime($this->cacheDirMarkerPath);
-        }
-        return $date;
     }
 }

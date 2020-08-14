@@ -8,13 +8,13 @@ interface Configurable
 
     public function convert(): ?string;
 
-    public function setBorder(int $border = null):void;
+    public function setBorder(int $border = null): void;
 
-    public function setPalette(string $palette):void;
+    public function setPalette(string $palette): void;
 
-    public function setZoom(int $zoom):void;
+    public function setZoom(int $zoom): void;
 
-    public function setRotation(int $rotation):void;
+    public function setRotation(int $rotation): void;
 
-    public function setGigascreenMode(string $mode):void;
+    public function setGigascreenMode(string $mode): void;
 }

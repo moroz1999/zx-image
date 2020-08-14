@@ -10,73 +10,108 @@ class Multiartist extends Gigascreen
     protected $mghMixedBorder = false;
     protected ?int $fileSize;
 
-    protected function parseScreen($data)
+    public function convert(): ?string
     {
-        if ($this->mghMode == 1) {
-            $parsedData = [];
-            $parsedData['attributesData'] = $this->parseMGH1Attributes(
-                $data['attributesArray'],
-                $data['outerAttributesArray']
-            );
-            $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
-        } else {
-            $parsedData = [];
-            $parsedData['attributesData'] = $this->parseAttributes($data['attributesArray']);
-            $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
-        }
+        $result = null;
+        if ($bits = $this->loadBits()) {
+            $parsedData1 = $this->parseScreen($bits[0]);
+            $parsedData2 = $this->parseScreen($bits[1]);
 
-        return $parsedData;
-    }
+            $gifImages = [];
 
-    protected function parseMGH1Attributes($attributesArray, $outerArray)
-    {
-        $x = 8;
-        $y = 0;
-        $attributesData = ['inkMap' => [], 'paperMap' => [], 'flashMap' => []];
-        foreach ($attributesArray as &$bits) {
-            $ink = substr($bits, 1, 1) . substr($bits, 5);
-            $paper = substr($bits, 1, 4);
+            if ($this->gigascreenMode == 'flicker' || $this->gigascreenMode == 'interlace1' || $this->gigascreenMode == 'interlace2') {
+                if (count($parsedData1['attributesData']['flashMap']) > 0 || count(
+                        $parsedData2['attributesData']['flashMap']
+                    ) > 0
+                ) {
+                    $this->border = $this->borders[0];
+                    $image1 = $this->exportData($parsedData1, false);
 
-            $attributesData['inkMap'][$y][$x] = $ink;
-            $attributesData['paperMap'][$y][$x] = $paper;
+                    $this->border = $this->borders[1];
+                    $image2 = $this->exportData($parsedData2, false);
 
-            $flashStatus = substr($bits, 0, 1);
-            if ($flashStatus == '1') {
-                $attributesData['flashMap'][$y][$x] = $flashStatus;
-            }
+                    $this->border = $this->borders[0];
+                    $image1f = $this->exportData($parsedData1, true);
 
-            if ($x == 23) {
-                $x = 8;
-                $y++;
+                    $this->border = $this->borders[1];
+                    $image2f = $this->exportData($parsedData2, true);
+
+                    if ($this->gigascreenMode == 'interlace1') {
+                        $this->interlaceMix($image1, $image2, 1);
+                        $this->interlaceMix($image1f, $image2f, 1);
+                    } elseif ($this->gigascreenMode == 'interlace2') {
+                        $this->interlaceMix($image1, $image2, 2);
+                        $this->interlaceMix($image1f, $image2f, 2);
+                    }
+
+                    $frame1 = $this->getRightPaletteGif($image1);
+                    $frame2 = $this->getRightPaletteGif($image2);
+                    $frame1f = $this->getRightPaletteGif($image1f);
+                    $frame2f = $this->getRightPaletteGif($image2f);
+
+                    $delays = [];
+                    for ($i = 0; $i < 32; $i++) {
+                        if ($i < 16) {
+                            if ($i & 1) {
+                                $gifImages[] = $frame1;
+                            } else {
+                                $gifImages[] = $frame2;
+                            }
+                        } else {
+                            if ($i & 1) {
+                                $gifImages[] = $frame1f;
+                            } else {
+                                $gifImages[] = $frame2f;
+                            }
+                        }
+                        $delays[] = 2;
+                    }
+
+                    $result = $this->buildAnimatedGif($gifImages, $delays);
+                } else {
+                    $this->border = $this->borders[0];
+                    $image1 = $this->exportData($parsedData1, false);
+
+                    $this->border = $this->borders[1];
+                    $image2 = $this->exportData($parsedData2, false);
+
+                    if ($this->gigascreenMode == 'interlace1') {
+                        $this->interlaceMix($image1, $image2, 1);
+                    } elseif ($this->gigascreenMode == 'interlace2') {
+                        $this->interlaceMix($image1, $image2, 2);
+                    }
+
+                    $gifImages[] = $this->getRightPaletteGif($image1);
+                    $gifImages[] = $this->getRightPaletteGif($image2);
+
+                    $delays = [2, 2];
+
+                    $result = $this->buildAnimatedGif($gifImages, $delays);
+                }
             } else {
-                $x++;
-            }
-        }
+                if (count($parsedData1['attributesData']['flashMap']) > 0 || count(
+                        $parsedData2['attributesData']['flashMap']
+                    ) > 0
+                ) {
+                    $this->mghMixedBorder = true;
+                    $image1 = $this->exportDataMerged($parsedData1, $parsedData2, false);
+                    $gifImages[] = $this->getRightPaletteGif($image1);
 
-        $x = 0;
-        $y = 0;
-        foreach ($outerArray as &$bits) {
-            $ink = substr($bits, 1, 1) . substr($bits, 5);
-            $paper = substr($bits, 1, 4);
-            $flashStatus = substr($bits, 0, 1);
+                    $this->mghMixedBorder = true;
+                    $image2 = $this->exportDataMerged($parsedData1, $parsedData2, true);
+                    $gifImages[] = $this->getRightPaletteGif($image2);
 
-            for ($i = 0; $i < 8; $i++) {
-                $attributesData['inkMap'][$y + $i][$x] = $ink;
-                $attributesData['paperMap'][$y + $i][$x] = $paper;
-                if ($flashStatus == '1') {
-                    $attributesData['flashMap'][$y + $i][$x] = $flashStatus;
+                    $delays = [32, 32];
+
+                    $result = $this->buildAnimatedGif($gifImages, $delays);
+                } else {
+                    $this->mghMixedBorder = true;
+                    $image = $this->exportDataMerged($parsedData1, $parsedData2, false);
+                    $result = $this->makePngFromGd($image);
                 }
             }
-            if ($x == 7) {
-                $x = 24;
-            } elseif ($x == 31) {
-                $x = 0;
-                $y += 8;
-            } else {
-                $x++;
-            }
         }
-        return $attributesData;
+        return $result;
     }
 
     protected function loadBits(): ?array
@@ -194,108 +229,73 @@ class Multiartist extends Gigascreen
         return null;
     }
 
-    public function convert(): ?string
+    protected function parseScreen($data)
     {
-        $result = null;
-        if ($bits = $this->loadBits()) {
-            $parsedData1 = $this->parseScreen($bits[0]);
-            $parsedData2 = $this->parseScreen($bits[1]);
+        if ($this->mghMode == 1) {
+            $parsedData = [];
+            $parsedData['attributesData'] = $this->parseMGH1Attributes(
+                $data['attributesArray'],
+                $data['outerAttributesArray']
+            );
+            $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
+        } else {
+            $parsedData = [];
+            $parsedData['attributesData'] = $this->parseAttributes($data['attributesArray']);
+            $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
+        }
 
-            $gifImages = [];
+        return $parsedData;
+    }
 
-            if ($this->gigascreenMode == 'flicker' || $this->gigascreenMode == 'interlace1' || $this->gigascreenMode == 'interlace2') {
-                if (count($parsedData1['attributesData']['flashMap']) > 0 || count(
-                        $parsedData2['attributesData']['flashMap']
-                    ) > 0
-                ) {
-                    $this->border = $this->borders[0];
-                    $image1 = $this->exportData($parsedData1, false);
+    protected function parseMGH1Attributes($attributesArray, $outerArray)
+    {
+        $x = 8;
+        $y = 0;
+        $attributesData = ['inkMap' => [], 'paperMap' => [], 'flashMap' => []];
+        foreach ($attributesArray as &$bits) {
+            $ink = substr($bits, 1, 1) . substr($bits, 5);
+            $paper = substr($bits, 1, 4);
 
-                    $this->border = $this->borders[1];
-                    $image2 = $this->exportData($parsedData2, false);
+            $attributesData['inkMap'][$y][$x] = $ink;
+            $attributesData['paperMap'][$y][$x] = $paper;
 
-                    $this->border = $this->borders[0];
-                    $image1f = $this->exportData($parsedData1, true);
+            $flashStatus = substr($bits, 0, 1);
+            if ($flashStatus == '1') {
+                $attributesData['flashMap'][$y][$x] = $flashStatus;
+            }
 
-                    $this->border = $this->borders[1];
-                    $image2f = $this->exportData($parsedData2, true);
-
-                    if ($this->gigascreenMode == 'interlace1') {
-                        $this->interlaceMix($image1, $image2, 1);
-                        $this->interlaceMix($image1f, $image2f, 1);
-                    } elseif ($this->gigascreenMode == 'interlace2') {
-                        $this->interlaceMix($image1, $image2, 2);
-                        $this->interlaceMix($image1f, $image2f, 2);
-                    }
-
-                    $frame1 = $this->getRightPaletteGif($image1);
-                    $frame2 = $this->getRightPaletteGif($image2);
-                    $frame1f = $this->getRightPaletteGif($image1f);
-                    $frame2f = $this->getRightPaletteGif($image2f);
-
-                    $delays = [];
-                    for ($i = 0; $i < 32; $i++) {
-                        if ($i < 16) {
-                            if ($i & 1) {
-                                $gifImages[] = $frame1;
-                            } else {
-                                $gifImages[] = $frame2;
-                            }
-                        } else {
-                            if ($i & 1) {
-                                $gifImages[] = $frame1f;
-                            } else {
-                                $gifImages[] = $frame2f;
-                            }
-                        }
-                        $delays[] = 2;
-                    }
-
-                    $result = $this->buildAnimatedGif($gifImages, $delays);
-                } else {
-                    $this->border = $this->borders[0];
-                    $image1 = $this->exportData($parsedData1, false);
-
-                    $this->border = $this->borders[1];
-                    $image2 = $this->exportData($parsedData2, false);
-
-                    if ($this->gigascreenMode == 'interlace1') {
-                        $this->interlaceMix($image1, $image2, 1);
-                    } elseif ($this->gigascreenMode == 'interlace2') {
-                        $this->interlaceMix($image1, $image2, 2);
-                    }
-
-                    $gifImages[] = $this->getRightPaletteGif($image1);
-                    $gifImages[] = $this->getRightPaletteGif($image2);
-
-                    $delays = [2, 2];
-
-                    $result = $this->buildAnimatedGif($gifImages, $delays);
-                }
+            if ($x == 23) {
+                $x = 8;
+                $y++;
             } else {
-                if (count($parsedData1['attributesData']['flashMap']) > 0 || count(
-                        $parsedData2['attributesData']['flashMap']
-                    ) > 0
-                ) {
-                    $this->mghMixedBorder = true;
-                    $image1 = $this->exportDataMerged($parsedData1, $parsedData2, false);
-                    $gifImages[] = $this->getRightPaletteGif($image1);
-
-                    $this->mghMixedBorder = true;
-                    $image2 = $this->exportDataMerged($parsedData1, $parsedData2, true);
-                    $gifImages[] = $this->getRightPaletteGif($image2);
-
-                    $delays = [32, 32];
-
-                    $result = $this->buildAnimatedGif($gifImages, $delays);
-                } else {
-                    $this->mghMixedBorder = true;
-                    $image = $this->exportDataMerged($parsedData1, $parsedData2, false);
-                    $result = $this->makePngFromGd($image);
-                }
+                $x++;
             }
         }
-        return $result;
+
+        $x = 0;
+        $y = 0;
+        foreach ($outerArray as &$bits) {
+            $ink = substr($bits, 1, 1) . substr($bits, 5);
+            $paper = substr($bits, 1, 4);
+            $flashStatus = substr($bits, 0, 1);
+
+            for ($i = 0; $i < 8; $i++) {
+                $attributesData['inkMap'][$y + $i][$x] = $ink;
+                $attributesData['paperMap'][$y + $i][$x] = $paper;
+                if ($flashStatus == '1') {
+                    $attributesData['flashMap'][$y + $i][$x] = $flashStatus;
+                }
+            }
+            if ($x == 7) {
+                $x = 24;
+            } elseif ($x == 31) {
+                $x = 0;
+                $y += 8;
+            } else {
+                $x++;
+            }
+        }
+        return $attributesData;
     }
 
     protected function drawBorder($centerImage, $parsedData1 = false, $parsedData2 = false, $merged = false)

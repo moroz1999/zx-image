@@ -20,49 +20,6 @@ class Timexhr extends Standard
         return $result;
     }
 
-    protected function parseAttributes($attributesArray)
-    {
-        $attributesData = [];
-        //Bits 3-5: Sets the screen colour in hi-res mode.
-        //000 - Black on White     100 - Green on Magenta
-        //001 - Blue on Yellow     101 - Cyan on Red
-        //010 - Red on Cyan        110 - Yellow on Blue
-        //011 - Magenta on Green   111 - White on Black
-        $color = substr($attributesArray, 2, 3);
-        switch ($color) {
-            case '000':
-                $attributesData['inkMap'] = '1000';
-                $attributesData['paperMap'] = '1111';
-                break;
-            case '001':
-                $attributesData['inkMap'] = '1001';
-                $attributesData['paperMap'] = '1110';
-                break;
-            case '010':
-                $attributesData['inkMap'] = '1010';
-                $attributesData['paperMap'] = '1101';
-                break;
-            case '011':
-                $attributesData['inkMap'] = '1011';
-                $attributesData['paperMap'] = '1100';
-                break;
-            case '100':
-                $attributesData['inkMap'] = '1100';
-                $attributesData['paperMap'] = '1011';
-                break;
-            case '101':
-                $attributesData['inkMap'] = '1101';
-                $attributesData['paperMap'] = '1010';
-                break;
-            case '111':
-                $attributesData['inkMap'] = '1111';
-                $attributesData['paperMap'] = '1000';
-                break;
-        }
-
-        return $attributesData;
-    }
-
     protected function loadBits(): ?array
     {
         $pixelsArray = [];
@@ -119,6 +76,49 @@ class Timexhr extends Standard
         $resultImage = $this->resizeImage($resultImage);
         $resultImage = $this->checkRotation($resultImage);
         return $resultImage;
+    }
+
+    protected function parseAttributes($attributesArray)
+    {
+        $attributesData = [];
+        //Bits 3-5: Sets the screen colour in hi-res mode.
+        //000 - Black on White     100 - Green on Magenta
+        //001 - Blue on Yellow     101 - Cyan on Red
+        //010 - Red on Cyan        110 - Yellow on Blue
+        //011 - Magenta on Green   111 - White on Black
+        $color = substr($attributesArray, 2, 3);
+        switch ($color) {
+            case '000':
+                $attributesData['inkMap'] = '1000';
+                $attributesData['paperMap'] = '1111';
+                break;
+            case '001':
+                $attributesData['inkMap'] = '1001';
+                $attributesData['paperMap'] = '1110';
+                break;
+            case '010':
+                $attributesData['inkMap'] = '1010';
+                $attributesData['paperMap'] = '1101';
+                break;
+            case '011':
+                $attributesData['inkMap'] = '1011';
+                $attributesData['paperMap'] = '1100';
+                break;
+            case '100':
+                $attributesData['inkMap'] = '1100';
+                $attributesData['paperMap'] = '1011';
+                break;
+            case '101':
+                $attributesData['inkMap'] = '1101';
+                $attributesData['paperMap'] = '1010';
+                break;
+            case '111':
+                $attributesData['inkMap'] = '1111';
+                $attributesData['paperMap'] = '1000';
+                break;
+        }
+
+        return $attributesData;
     }
 
 

@@ -44,6 +44,28 @@ class Ulaplus extends Standard
         return $parsedData;
     }
 
+    protected function parseAttributes($attributesArray)
+    {
+        $x = 0;
+        $y = 0;
+        $attributesData = ['inkMap' => [], 'paperMap' => []];
+        foreach ($attributesArray as &$bits) {
+            $ink = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 5, 3));
+            $paper = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 2, 3)) + 8;
+
+            $attributesData['inkMap'][$y][$x] = $ink;
+            $attributesData['paperMap'][$y][$x] = $paper;
+
+            if ($x == ($this->width / 8) - 1) {
+                $x = 0;
+                $y++;
+            } else {
+                $x++;
+            }
+        }
+        return $attributesData;
+    }
+
     protected function parseUlaPlusPalette($paletteArray)
     {
         $paletteData = [];
@@ -92,27 +114,5 @@ class Ulaplus extends Standard
         $resultImage = $this->resizeImage($resultImage);
         $resultImage = $this->checkRotation($resultImage);
         return $resultImage;
-    }
-
-    protected function parseAttributes($attributesArray)
-    {
-        $x = 0;
-        $y = 0;
-        $attributesData = ['inkMap' => [], 'paperMap' => []];
-        foreach ($attributesArray as &$bits) {
-            $ink = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 5, 3));
-            $paper = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 2, 3)) + 8;
-
-            $attributesData['inkMap'][$y][$x] = $ink;
-            $attributesData['paperMap'][$y][$x] = $paper;
-
-            if ($x == ($this->width / 8) - 1) {
-                $x = 0;
-                $y++;
-            } else {
-                $x++;
-            }
-        }
-        return $attributesData;
     }
 }

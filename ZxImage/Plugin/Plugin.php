@@ -45,28 +45,6 @@ abstract class Plugin implements Configurable
         $this->basePath = $basePath;
     }
 
-    protected function makeHandle(): bool
-    {
-        if (is_file($this->sourceFilePath)) {
-            if (!$this->fileSize) {
-                $this->fileSize = filesize($this->sourceFilePath);
-            }
-            if ($this->fileSize == filesize($this->sourceFilePath)) {
-                $this->handle = fopen($this->sourceFilePath, "rb");
-                return true;
-            }
-        } elseif ($this->sourceFileContents) {
-            if (!$this->fileSize) {
-                $this->fileSize = strlen($this->sourceFileContents);
-            }
-            $this->handle = fopen('php://memory', 'w+');
-            fwrite($this->handle, $this->sourceFileContents);
-            rewind($this->handle);
-            return true;
-        }
-        return false;
-    }
-
     /**
      * @param Filter[] $filters
      */
@@ -112,120 +90,6 @@ abstract class Plugin implements Configurable
         $this->generateGigaColors();
     }
 
-    protected function read8BitString()
-    {
-        if (($byte = $this->readByte()) !== false) {
-            return str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
-        }
-        return false;
-    }
-
-    protected function read8BitStrings($length = 1)
-    {
-        $strings = [];
-        while ($length) {
-            if (($byte = $this->readByte()) !== false) {
-                $strings[] = str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
-            }
-            $length--;
-        }
-
-        return $strings;
-    }
-
-
-    protected function read16BitStrings($length = 1, $bigEndian = true)
-    {
-        $strings = [];
-        while ($length) {
-            if (($string = $this->read16BitString($bigEndian)) !== false) {
-                $strings[] = $string;
-            }
-            $length--;
-        }
-
-        return $strings;
-    }
-
-    protected function read16BitString($bigEndian = true)
-    {
-        if ($b1 = $this->read8BitString()) {
-            if ($b2 = $this->read8BitString()) {
-                if (!$bigEndian) {
-                    return $b2 . $b1;
-                } else {
-                    return $b1 . $b2;
-                }
-            }
-        }
-        return false;
-    }
-
-    protected function readChar()
-    {
-        $result = false;
-        if (($bits = $this->readByte()) || $bits === 0) {
-            $result = chr($bits);
-        }
-        return $result;
-    }
-
-    protected function readByte()
-    {
-        $read = fread($this->handle, 1);
-        if (feof($this->handle)) {
-            fclose($this->handle);
-            return false;
-        } else {
-            return ord($read);
-        }
-    }
-
-    protected function readString($length)
-    {
-        $result = fread($this->handle, $length);
-        if (feof($this->handle)) {
-            fclose($this->handle);
-            return false;
-        }
-        return $result;
-    }
-
-    protected function readBytes($length)
-    {
-        $result = [];
-        while ($length--) {
-            $result[] = $this->readByte();
-        }
-        return $result;
-    }
-
-    protected function readWords($length)
-    {
-        $result = [];
-        while ($length > 0) {
-            $result[] = $this->readWord();
-            $length--;
-        }
-        return $result;
-    }
-
-    protected function readWord()
-    {
-        $b1 = fread($this->handle, 1);
-        if (feof($this->handle)) {
-            fclose($this->handle);
-            return false;
-        }
-        $b2 = fread($this->handle, 1);
-        if (feof($this->handle)) {
-            fclose($this->handle);
-            return false;
-        }
-        return ord($b2) * 256 + ord($b1);
-
-    }
-
     protected function parsePalette($palette)
     {
         $paletteData = explode(':', $palette);
@@ -257,6 +121,51 @@ abstract class Plugin implements Configurable
         $result['R33'] = intval($blueData[2], 16);
 
         $this->palette = $result;
+    }
+
+    protected function generateColors()
+    {
+        $colors = [];
+        $colors['0000'] = 0;
+        $colors['0001'] = 0;
+        $colors['0010'] = 0;
+        $colors['0011'] = 0;
+        $colors['0100'] = 0;
+        $colors['0101'] = 0;
+        $colors['0110'] = 0;
+        $colors['0111'] = 0;
+        $colors['1000'] = 0;
+        $colors['1001'] = 0;
+        $colors['1010'] = 0;
+        $colors['1011'] = 0;
+        $colors['1100'] = 0;
+        $colors['1101'] = 0;
+        $colors['1110'] = 0;
+        $colors['1111'] = 0;
+
+        $palette = $this->palette;
+
+        foreach ($colors as $zxColor => &$RGB) {
+            $brightness = substr($zxColor, 0, 1);
+
+            $zero = $palette['ZZ'];
+            $one = $palette['NN'];
+            if ($brightness == '1') {
+                $one = $palette['BB'];
+            }
+
+            $r = (1 - substr($zxColor, 2, 1)) * $zero + intval(substr($zxColor, 2, 1)) * $one;
+            $g = (1 - substr($zxColor, 1, 1)) * $zero + intval(substr($zxColor, 1, 1)) * $one;
+            $b = (1 - substr($zxColor, 3, 1)) * $zero + intval(substr($zxColor, 3, 1)) * $one;
+
+            $redChannel = round(($r * $palette['R11'] + $g * $palette['R12'] + $b * $palette['R13']) / 0xFF);
+            $greenChannel = round(($r * $palette['R21'] + $g * $palette['R22'] + $b * $palette['R23']) / 0xFF);
+            $blueChannel = round(($r * $palette['R31'] + $g * $palette['R32'] + $b * $palette['R33']) / 0xFF);
+
+            $RGB = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
+        }
+
+        $this->colors = $colors;
     }
 
     protected function generateGigaColors()
@@ -327,49 +236,174 @@ abstract class Plugin implements Configurable
         $this->gigaColors = $gigaColors;
     }
 
-    protected function generateColors()
+    public function convert(): ?string
     {
-        $colors = [];
-        $colors['0000'] = 0;
-        $colors['0001'] = 0;
-        $colors['0010'] = 0;
-        $colors['0011'] = 0;
-        $colors['0100'] = 0;
-        $colors['0101'] = 0;
-        $colors['0110'] = 0;
-        $colors['0111'] = 0;
-        $colors['1000'] = 0;
-        $colors['1001'] = 0;
-        $colors['1010'] = 0;
-        $colors['1011'] = 0;
-        $colors['1100'] = 0;
-        $colors['1101'] = 0;
-        $colors['1110'] = 0;
-        $colors['1111'] = 0;
+        $result = null;
+        if ($bits = $this->loadBits()) {
+            $parsedData = $this->parseScreen($bits);
+            $image = $this->exportData($parsedData, false);
+            $result = $this->makePngFromGd($image);
+        }
+        return $result;
+    }
 
-        $palette = $this->palette;
+    abstract protected function loadBits(): ?array;
 
-        foreach ($colors as $zxColor => &$RGB) {
-            $brightness = substr($zxColor, 0, 1);
+    abstract protected function parseScreen($data);
 
-            $zero = $palette['ZZ'];
-            $one = $palette['NN'];
-            if ($brightness == '1') {
-                $one = $palette['BB'];
+    abstract protected function exportData(array $parsedData, bool $flashedImage = false);
+
+    protected function makePngFromGd($image): string
+    {
+        $this->resultMime = 'image/png';
+        ob_start();
+        imagepng($image);
+        $binary = ob_get_contents();
+        ob_end_clean();
+        return $binary;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getResultMime()
+    {
+        return $this->resultMime;
+    }
+
+    protected function makeHandle(): bool
+    {
+        if (is_file($this->sourceFilePath)) {
+            if (!$this->fileSize) {
+                $this->fileSize = filesize($this->sourceFilePath);
             }
+            if ($this->fileSize == filesize($this->sourceFilePath)) {
+                $this->handle = fopen($this->sourceFilePath, "rb");
+                return true;
+            }
+        } elseif ($this->sourceFileContents) {
+            if (!$this->fileSize) {
+                $this->fileSize = strlen($this->sourceFileContents);
+            }
+            $this->handle = fopen('php://memory', 'w+');
+            fwrite($this->handle, $this->sourceFileContents);
+            rewind($this->handle);
+            return true;
+        }
+        return false;
+    }
 
-            $r = (1 - substr($zxColor, 2, 1)) * $zero + intval(substr($zxColor, 2, 1)) * $one;
-            $g = (1 - substr($zxColor, 1, 1)) * $zero + intval(substr($zxColor, 1, 1)) * $one;
-            $b = (1 - substr($zxColor, 3, 1)) * $zero + intval(substr($zxColor, 3, 1)) * $one;
-
-            $redChannel = round(($r * $palette['R11'] + $g * $palette['R12'] + $b * $palette['R13']) / 0xFF);
-            $greenChannel = round(($r * $palette['R21'] + $g * $palette['R22'] + $b * $palette['R23']) / 0xFF);
-            $blueChannel = round(($r * $palette['R31'] + $g * $palette['R32'] + $b * $palette['R33']) / 0xFF);
-
-            $RGB = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
+    protected function read8BitStrings($length = 1)
+    {
+        $strings = [];
+        while ($length) {
+            if (($byte = $this->readByte()) !== false) {
+                $strings[] = str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
+            }
+            $length--;
         }
 
-        $this->colors = $colors;
+        return $strings;
+    }
+
+    protected function read16BitStrings($length = 1, $bigEndian = true)
+    {
+        $strings = [];
+        while ($length) {
+            if (($string = $this->read16BitString($bigEndian)) !== false) {
+                $strings[] = $string;
+            }
+            $length--;
+        }
+
+        return $strings;
+    }
+
+    protected function read16BitString($bigEndian = true)
+    {
+        if ($b1 = $this->read8BitString()) {
+            if ($b2 = $this->read8BitString()) {
+                if (!$bigEndian) {
+                    return $b2 . $b1;
+                } else {
+                    return $b1 . $b2;
+                }
+            }
+        }
+        return false;
+    }
+
+    protected function read8BitString()
+    {
+        if (($byte = $this->readByte()) !== false) {
+            return str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
+        }
+        return false;
+    }
+
+    protected function readByte()
+    {
+        $read = fread($this->handle, 1);
+        if (feof($this->handle)) {
+            fclose($this->handle);
+            return false;
+        } else {
+            return ord($read);
+        }
+    }
+
+    protected function readChar()
+    {
+        $result = false;
+        if (($bits = $this->readByte()) || $bits === 0) {
+            $result = chr($bits);
+        }
+        return $result;
+    }
+
+    protected function readString($length)
+    {
+        $result = fread($this->handle, $length);
+        if (feof($this->handle)) {
+            fclose($this->handle);
+            return false;
+        }
+        return $result;
+    }
+
+    protected function readBytes($length)
+    {
+        $result = [];
+        while ($length--) {
+            $result[] = $this->readByte();
+        }
+        return $result;
+    }
+
+    protected function readWords($length)
+    {
+        $result = [];
+        while ($length > 0) {
+            $result[] = $this->readWord();
+            $length--;
+        }
+        return $result;
+    }
+
+    protected function readWord()
+    {
+        $b1 = fread($this->handle, 1);
+        if (feof($this->handle)) {
+            fclose($this->handle);
+            return false;
+        }
+        $b2 = fread($this->handle, 1);
+        if (feof($this->handle)) {
+            fclose($this->handle);
+            return false;
+        }
+        return ord($b2) * 256 + ord($b1);
+
     }
 
     protected function resizeImage($srcImage)
@@ -518,27 +552,6 @@ abstract class Plugin implements Configurable
         return $result;
     }
 
-    public function convert(): ?string
-    {
-        $result = null;
-        if ($bits = $this->loadBits()) {
-            $parsedData = $this->parseScreen($bits);
-            $image = $this->exportData($parsedData, false);
-            $result = $this->makePngFromGd($image);
-        }
-        return $result;
-    }
-
-    protected function makePngFromGd($image): string
-    {
-        $this->resultMime = 'image/png';
-        ob_start();
-        imagepng($image);
-        $binary = ob_get_contents();
-        ob_end_clean();
-        return $binary;
-    }
-
     protected function makeGifFromGd($image): string
     {
         $this->resultMime = 'image/gif';
@@ -548,18 +561,4 @@ abstract class Plugin implements Configurable
         ob_end_clean();
         return $binary;
     }
-
-    /**
-     * @return mixed
-     */
-    public function getResultMime()
-    {
-        return $this->resultMime;
-    }
-
-    abstract protected function loadBits(): ?array;
-
-    abstract protected function parseScreen($data);
-
-    abstract protected function exportData(array $parsedData, bool $flashedImage = false);
 }

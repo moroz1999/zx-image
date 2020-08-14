@@ -34,12 +34,19 @@ class Standard extends Plugin
         return $result;
     }
 
-    protected function buildAnimatedGif($frames, $durations)
+    protected function loadBits(): ?array
     {
-        $gc = new GifCreator();
-        $gc->create($frames, $durations, 0);
+        $attributesArray = [];
+        if ($this->makeHandle()) {
 
-        return $gc->getGif();
+            $pixelsArray = $this->read8BitStrings(6144);
+            while ($bin = $this->read8BitString()) {
+                $attributesArray[] = $bin;
+            }
+            $resultBits = ['pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray];
+            return $resultBits;
+        }
+        return null;
     }
 
     protected function parseScreen($data)
@@ -48,6 +55,78 @@ class Standard extends Plugin
         $parsedData['attributesData'] = $this->parseAttributes($data['attributesArray']);
         $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
         return $parsedData;
+    }
+
+    protected function parseAttributes($attributesArray)
+    {
+        $x = 0;
+        $y = 0;
+        $attributesData = ['inkMap' => [], 'paperMap' => [], 'flashMap' => []];
+        foreach ($attributesArray as &$bits) {
+            $ink = substr($bits, 1, 1) . substr($bits, 5);
+            $paper = substr($bits, 1, 4);
+
+            $attributesData['inkMap'][$y][$x] = $ink;
+            $attributesData['paperMap'][$y][$x] = $paper;
+
+            $flashStatus = substr($bits, 0, 1);
+            if ($flashStatus == '1') {
+                $attributesData['flashMap'][$y][$x] = $flashStatus;
+            }
+
+            if ($x == ($this->width / 8) - 1) {
+                $x = 0;
+                $y++;
+            } else {
+                $x++;
+            }
+        }
+        return $attributesData;
+    }
+
+    protected function parsePixels(array $pixelsArray): array
+    {
+        $x = 0;
+        $y = 0;
+        $zxY = 0;
+        $pixelsData = [];
+        foreach ($pixelsArray as &$bits) {
+            $offset = 0;
+            while ($offset < 8) {
+                $bit = substr($bits, $offset, 1);
+
+                $pixelsData[$zxY][$x] = $bit;
+
+                $offset++;
+                $x++;
+                if ($x >= $this->width) {
+                    $x = 0;
+                    $y++;
+                    $zxY = $this->calculateZXY($y);
+                }
+            }
+        }
+        return $pixelsData;
+    }
+
+    protected function calculateZXY($y)
+    {
+        $offset = 0;
+        if ($y > 127) {
+            $offset = 128;
+            $y = $y - 128;
+        } elseif ($y > 63) {
+            $offset = 64;
+            $y = $y - 64;
+        }
+
+        $rows = (int)($y / 8);
+
+        $rests = $y - $rows * 8;
+
+        $result = $offset + $rests * 8 + $rows;
+
+        return $result;
     }
 
     protected function exportData(array $parsedData, bool $flashedImage = false)
@@ -82,99 +161,20 @@ class Standard extends Plugin
         return $resultImage;
     }
 
-    protected function parsePixels(array $pixelsArray): array
-    {
-        $x = 0;
-        $y = 0;
-        $zxY = 0;
-        $pixelsData = [];
-        foreach ($pixelsArray as &$bits) {
-            $offset = 0;
-            while ($offset < 8) {
-                $bit = substr($bits, $offset, 1);
-
-                $pixelsData[$zxY][$x] = $bit;
-
-                $offset++;
-                $x++;
-                if ($x >= $this->width) {
-                    $x = 0;
-                    $y++;
-                    $zxY = $this->calculateZXY($y);
-                }
-            }
-        }
-        return $pixelsData;
-    }
-
-    protected function parseAttributes($attributesArray)
-    {
-        $x = 0;
-        $y = 0;
-        $attributesData = ['inkMap' => [], 'paperMap' => [], 'flashMap' => []];
-        foreach ($attributesArray as &$bits) {
-            $ink = substr($bits, 1, 1) . substr($bits, 5);
-            $paper = substr($bits, 1, 4);
-
-            $attributesData['inkMap'][$y][$x] = $ink;
-            $attributesData['paperMap'][$y][$x] = $paper;
-
-            $flashStatus = substr($bits, 0, 1);
-            if ($flashStatus == '1') {
-                $attributesData['flashMap'][$y][$x] = $flashStatus;
-            }
-
-            if ($x == ($this->width / 8) - 1) {
-                $x = 0;
-                $y++;
-            } else {
-                $x++;
-            }
-        }
-        return $attributesData;
-    }
-
-    protected function loadBits(): ?array
-    {
-        $attributesArray = [];
-        if ($this->makeHandle()) {
-
-            $pixelsArray = $this->read8BitStrings(6144);
-            while ($bin = $this->read8BitString()) {
-                $attributesArray[] = $bin;
-            }
-            $resultBits = ['pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray];
-            return $resultBits;
-        }
-        return null;
-    }
-
-    protected function calculateZXY($y)
-    {
-        $offset = 0;
-        if ($y > 127) {
-            $offset = 128;
-            $y = $y - 128;
-        } elseif ($y > 63) {
-            $offset = 64;
-            $y = $y - 64;
-        }
-
-        $rows = (int)($y / 8);
-
-        $rests = $y - $rows * 8;
-
-        $result = $offset + $rests * 8 + $rows;
-
-        return $result;
-    }
-
     protected function getRightPaletteGif($srcImage)
     {
         $palettedImage = imagecreate(imagesx($srcImage), imagesy($srcImage));
         imagecopy($palettedImage, $srcImage, 0, 0, 0, 0, imagesx($srcImage), imagesy($srcImage));
         imagecolormatch($srcImage, $palettedImage);
         return $this->makeGifFromGd($palettedImage);
+    }
+
+    protected function buildAnimatedGif($frames, $durations)
+    {
+        $gc = new GifCreator();
+        $gc->create($frames, $durations, 0);
+
+        return $gc->getGif();
     }
 
     protected function interlaceMix(&$image1, &$image2, $lineHeight)

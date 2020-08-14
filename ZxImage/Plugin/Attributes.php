@@ -6,6 +6,30 @@ class Attributes extends Standard
 {
     protected ?int $fileSize = 768;
 
+    public function convert(): ?string
+    {
+        $result = null;
+        if ($bits = $this->loadBits()) {
+            $parsedData = $this->parseScreen($bits);
+            if (count($parsedData['attributesData']['flashMap']) > 0) {
+                $gifImages = [];
+
+                $image = $this->exportData($parsedData, false);
+                $gifImages[] = $this->getRightPaletteGif($image);
+
+                $image = $this->exportData($parsedData, true);
+                $gifImages[] = $this->getRightPaletteGif($image);
+
+                $delays = [32, 32];
+                $result = $this->buildAnimatedGif($gifImages, $delays);
+            } else {
+                $image = $this->exportData($parsedData, false);
+                $result = $this->makePngFromGd($image);
+            }
+        }
+        return $result;
+    }
+
     protected function loadBits(): ?array
     {
         $attributesArray = [];
@@ -34,29 +58,5 @@ class Attributes extends Standard
             }
         }
         return $pixelsArray;
-    }
-
-    public function convert(): ?string
-    {
-        $result = null;
-        if ($bits = $this->loadBits()) {
-            $parsedData = $this->parseScreen($bits);
-            if (count($parsedData['attributesData']['flashMap']) > 0) {
-                $gifImages = [];
-
-                $image = $this->exportData($parsedData, false);
-                $gifImages[] = $this->getRightPaletteGif($image);
-
-                $image = $this->exportData($parsedData, true);
-                $gifImages[] = $this->getRightPaletteGif($image);
-
-                $delays = [32, 32];
-                $result = $this->buildAnimatedGif($gifImages, $delays);
-            } else {
-                $image = $this->exportData($parsedData, false);
-                $result = $this->makePngFromGd($image);
-            }
-        }
-        return $result;
     }
 }

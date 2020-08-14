@@ -39,27 +39,6 @@ class Tricolor extends Standard
         return $result;
     }
 
-    protected function buildMixedPng($resources): string
-    {
-        $first = reset($resources);
-        $width = imagesx($first);
-        $height = imagesy($first);
-        $image = imagecreatetruecolor($width, $height);
-
-        for ($y = 0; $y < $height; $y++) {
-            for ($x = 0; $x < $width; $x++) {
-                $overall = 0;
-                foreach ($resources as &$resource) {
-                    $color = imagecolorat($resource, $x, $y);
-                    $overall = $overall + $color;
-                }
-                imagesetpixel($image, $x, $y, $overall);
-            }
-        }
-        $result = $this->makePngFromGd($image);
-        return $result;
-    }
-
     protected function loadBits(): ?array
     {
         $pixelsArray = [];
@@ -105,5 +84,26 @@ class Tricolor extends Standard
         }
         $attributesData['flashMap'] = [];
         return $attributesData;
+    }
+
+    protected function buildMixedPng($resources): string
+    {
+        $first = reset($resources);
+        $width = imagesx($first);
+        $height = imagesy($first);
+        $image = imagecreatetruecolor($width, $height);
+
+        for ($y = 0; $y < $height; $y++) {
+            for ($x = 0; $x < $width; $x++) {
+                $overall = 0;
+                foreach ($resources as &$resource) {
+                    $color = imagecolorat($resource, $x, $y);
+                    $overall = $overall + $color;
+                }
+                imagesetpixel($image, $x, $y, $overall);
+            }
+        }
+        $result = $this->makePngFromGd($image);
+        return $result;
     }
 }
