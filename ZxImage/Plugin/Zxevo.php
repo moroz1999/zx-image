@@ -63,7 +63,7 @@ class Zxevo extends Plugin
         return $resultImage;
     }
 
-    protected function parseAttributes($attributesArray)
+    protected function parseAttributes(array $attributesArray): array
     {
         $x = 0;
         $y = 0;

@@ -8,7 +8,7 @@ class Timex81 extends Standard
     protected int $attributeHeight = 1;
     protected ?int $fileSize = 12288;
 
-    protected function parseAttributes($attributesArray)
+    protected function parseAttributes(array $attributesArray): array
     {
         $x = 0;
         $y = 0;

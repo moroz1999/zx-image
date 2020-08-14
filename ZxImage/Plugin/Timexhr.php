@@ -78,7 +78,7 @@ class Timexhr extends Standard
         return $resultImage;
     }
 
-    protected function parseAttributes($attributesArray)
+    protected function parseAttributes(array $attributesArray): array
     {
         $attributesData = [];
         //Bits 3-5: Sets the screen colour in hi-res mode.

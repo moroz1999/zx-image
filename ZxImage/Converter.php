@@ -19,7 +19,7 @@ class Converter
     protected int $cacheExpirationLimit;
     protected string $type = 'standard';
     protected ?int $border = null;
-    protected int $zoom = 1;
+    protected float $zoom = 1;
     protected int $rotation = 0;
     protected string $cacheFileName;
     protected bool $cacheEnabled = false;
@@ -137,7 +137,7 @@ class Converter
      * @param $zoom
      * @return $this
      */
-    public function setZoom(int $zoom): Converter
+    public function setZoom(float $zoom): Converter
     {
         if (is_numeric($zoom)) {
             $zoom = floatval($zoom);

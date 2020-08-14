@@ -12,7 +12,7 @@ interface Configurable
 
     public function setPalette(string $palette): void;
 
-    public function setZoom(int $zoom): void;
+    public function setZoom(float $zoom): void;
 
     public function setRotation(int $rotation): void;
 

@@ -44,7 +44,7 @@ class Ulaplus extends Standard
         return $parsedData;
     }
 
-    protected function parseAttributes($attributesArray)
+    protected function parseAttributes(array $attributesArray): array
     {
         $x = 0;
         $y = 0;

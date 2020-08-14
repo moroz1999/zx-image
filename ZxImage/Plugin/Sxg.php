@@ -62,7 +62,7 @@ class Sxg extends Plugin
                 $paletteArray = $this->read16BitStrings($paletteLength, false);
 
                 $pixelsArray = [];
-                while (($word = $this->readByte()) !== false) {
+                while (($word = $this->readByte()) !== null) {
                     $pixelsArray[] = $word;
                 }
 

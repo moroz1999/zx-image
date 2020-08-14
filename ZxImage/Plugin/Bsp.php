@@ -120,8 +120,8 @@ class Bsp extends Standard
     protected function loadBits(): ?array
     {
         if ($this->makeHandle()) {
-            if ($this->readString(3) == 'bsp') {
-                if (($configByte = $this->readByte()) !== false) {
+            if ($this->readString(3) === 'bsp') {
+                if (($configByte = $this->readByte()) !== null) {
 
                     $this->hasGigaData = (boolean)($configByte & 0b10000000);
                     $this->hasBorderData = (boolean)($configByte & 0b01000000);
@@ -297,7 +297,7 @@ class Bsp extends Standard
 
     protected function drawBorder($centerImage, $parsedData1 = false, $parsedData2 = false, $merged = false)
     {
-        if ($this->border !== false) {
+        if ($this->border !== null) {
             $totalWidth = $this->width + $this->borderWidth * 2;
             $totalHeight = $this->height + $this->borderHeightTop + $this->borderHeightBottom;
             $resultImage = imagecreatetruecolor(

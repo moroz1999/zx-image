@@ -17,7 +17,7 @@ abstract class Plugin implements Configurable
     protected string $gigascreenMode = 'mix';
     protected array $palette;
     protected ?int $border = null;
-    protected int $zoom = 1;
+    protected float $zoom = 1;
     protected ?string $resultMime = null;
 
     protected array $preFilters = [];
@@ -66,7 +66,7 @@ abstract class Plugin implements Configurable
         $this->border = $border;
     }
 
-    public function setZoom(int $zoom): void
+    public function setZoom(float $zoom): void
     {
         $this->zoom = $zoom;
     }
@@ -297,7 +297,7 @@ abstract class Plugin implements Configurable
     {
         $strings = [];
         while ($length) {
-            if (($byte = $this->readByte()) !== false) {
+            if (($byte = $this->readByte()) !== null) {
                 $strings[] = str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
             }
             $length--;
@@ -310,7 +310,7 @@ abstract class Plugin implements Configurable
     {
         $strings = [];
         while ($length) {
-            if (($string = $this->read16BitString($bigEndian)) !== false) {
+            if (($string = $this->read16BitString($bigEndian)) !== null) {
                 $strings[] = $string;
             }
             $length--;
@@ -319,7 +319,7 @@ abstract class Plugin implements Configurable
         return $strings;
     }
 
-    protected function read16BitString($bigEndian = true)
+    protected function read16BitString(bool $bigEndian = true): ?string
     {
         if ($b1 = $this->read8BitString()) {
             if ($b2 = $this->read8BitString()) {
@@ -330,43 +330,43 @@ abstract class Plugin implements Configurable
                 }
             }
         }
-        return false;
+        return null;
     }
 
-    protected function read8BitString()
+    protected function read8BitString(): ?string
     {
-        if (($byte = $this->readByte()) !== false) {
+        if (($byte = $this->readByte()) !== null) {
             return str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
         }
-        return false;
+        return null;
     }
 
-    protected function readByte()
+    protected function readByte(): ?string
     {
         $read = fread($this->handle, 1);
         if (feof($this->handle)) {
             fclose($this->handle);
-            return false;
+            return null;
         } else {
             return ord($read);
         }
     }
 
-    protected function readChar()
+    protected function readChar(): ?string
     {
-        $result = false;
+        $result = null;
         if (($bits = $this->readByte()) || $bits === 0) {
             $result = chr($bits);
         }
         return $result;
     }
 
-    protected function readString($length)
+    protected function readString($length): ?string
     {
         $result = fread($this->handle, $length);
         if (feof($this->handle)) {
             fclose($this->handle);
-            return false;
+            return null;
         }
         return $result;
     }

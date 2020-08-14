@@ -9,7 +9,7 @@ class Timexhrg extends Gigascreen
     protected int $width = 512;
     protected int $height = 384;
 
-    protected function parseAttributes($attributesArray)
+    protected function parseAttributes(array $attributesArray): array
     {
         $attributesData = [];
         //Bits 3-5: Sets the screen colour in hi-res mode.

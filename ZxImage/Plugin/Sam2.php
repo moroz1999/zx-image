@@ -8,7 +8,7 @@ class Sam2 extends Standard
     protected int $attributeHeight = 1;
     protected ?int $fileSize = null;
 
-    protected function parseAttributes($attributesArray)
+    protected function parseAttributes(array $attributesArray): array
     {
         $x = 0;
         $y = 0;
