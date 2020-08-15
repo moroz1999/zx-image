@@ -7,9 +7,9 @@ class Sxg extends Plugin
 {
     const FORMAT_256 = 2;
     const FORMAT_16 = 1;
-    protected $sxgFormat = 2;
+    protected int $sxgFormat = 2;
 
-    protected $table = [
+    protected array $table = [
         0 => 0,
         1 => 10,
         2 => 21,

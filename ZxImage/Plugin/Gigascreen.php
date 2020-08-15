@@ -132,7 +132,13 @@ class Gigascreen extends Standard
         return null;
     }
 
-    protected function exportDataMerged($parsedData1, $parsedData2, $flashedImage = false)
+    /**
+     * @param array $parsedData1
+     * @param array $parsedData2
+     * @param bool $flashedImage
+     * @return resource
+     */
+    protected function exportDataMerged(array $parsedData1, array $parsedData2, bool $flashedImage = false)
     {
         $image = imagecreatetruecolor($this->width, $this->height);
         foreach ($parsedData1['pixelsData'] as $y => &$row) {
