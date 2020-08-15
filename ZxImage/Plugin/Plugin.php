@@ -253,6 +253,10 @@ abstract class Plugin implements Configurable
 
     abstract protected function exportData(array $parsedData, bool $flashedImage = false);
 
+    /**
+     * @param resource $image
+     * @return string
+     */
     protected function makePngFromGd($image): string
     {
         $this->resultMime = 'image/png';
@@ -380,7 +384,7 @@ abstract class Plugin implements Configurable
         return $result;
     }
 
-    protected function readWords($length)
+    protected function readWords($length): array
     {
         $result = [];
         while ($length > 0) {
@@ -390,22 +394,25 @@ abstract class Plugin implements Configurable
         return $result;
     }
 
-    protected function readWord()
+    protected function readWord(): ?int
     {
         $b1 = fread($this->handle, 1);
         if (feof($this->handle)) {
             fclose($this->handle);
-            return false;
+            return null;
         }
         $b2 = fread($this->handle, 1);
         if (feof($this->handle)) {
             fclose($this->handle);
-            return false;
+            return null;
         }
         return ord($b2) * 256 + ord($b1);
-
     }
 
+    /**
+     * @param resource $srcImage
+     * @return resource
+     */
     protected function resizeImage($srcImage)
     {
         $srcWidth = imagesx($srcImage);
@@ -445,7 +452,10 @@ abstract class Plugin implements Configurable
         return $dstImage;
     }
 
-    protected function applyPreFilters($srcImage)
+    /**
+     * @param resource $srcImage
+     */
+    protected function applyPreFilters($srcImage): void
     {
         foreach ($this->preFilters as $filterType) {
             $filterType = ucfirst($filterType);
@@ -461,7 +471,11 @@ abstract class Plugin implements Configurable
         }
     }
 
-    protected function applyPostFilters($srcImage, $dstImage = false)
+    /**
+     * @param resource $srcImage
+     * @param resource $dstImage
+     */
+    protected function applyPostFilters($srcImage, $dstImage = null): void
     {
         foreach ($this->postFilters as $filterType) {
             $filterType = ucfirst($filterType);
@@ -477,7 +491,14 @@ abstract class Plugin implements Configurable
         }
     }
 
-    protected function drawBorder($centerImage, $parsedData1 = false, $parsedData2 = false, $merged = false)
+    /**
+     * @param $centerImage
+     * @param array|null $parsedData1
+     * @param array|null $parsedData2
+     * @param bool $merged
+     * @return resource
+     */
+    protected function drawBorder($centerImage, array $parsedData1 = null, array $parsedData2 = null, bool $merged = false)
     {
         if (is_numeric($this->border)) {
             $resultImage = imagecreatetruecolor(
@@ -503,6 +524,10 @@ abstract class Plugin implements Configurable
         return $resultImage;
     }
 
+    /**
+     * @param resource $image
+     * @return resource
+     */
     protected function checkRotation($image)
     {
         $result = false;
@@ -527,17 +552,17 @@ abstract class Plugin implements Configurable
                         switch ($this->rotation) {
                             case 90:
                                 if (!imagesetpixel($result, ($height - 1) - $j, $i, $reference)) {
-                                    return false;
+                                    return null;
                                 }
                                 break;
                             case 180:
                                 if (!imagesetpixel($result, $width - $i, ($height - 1) - $j, $reference)) {
-                                    return false;
+                                    return null;
                                 }
                                 break;
                             case 270:
                                 if (!imagesetpixel($result, $j, $width - $i, $reference)) {
-                                    return false;
+                                    return null;
                                 }
                                 break;
                         }
@@ -552,6 +577,10 @@ abstract class Plugin implements Configurable
         return $result;
     }
 
+    /**
+     * @param resource $image
+     * @return string
+     */
     protected function makeGifFromGd($image): string
     {
         $this->resultMime = 'image/gif';

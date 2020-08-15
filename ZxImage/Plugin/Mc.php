@@ -7,9 +7,8 @@ class Mc extends Standard
     protected int $attributeHeight = 1;
     protected ?int $fileSize = null;
 
-    protected function calculateZXY($y)
+    protected function calculateZXY(int $y): int
     {
-        $result = $y;
-        return $result;
+        return $y;
     }
 }

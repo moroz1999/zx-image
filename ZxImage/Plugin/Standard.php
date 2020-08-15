@@ -109,7 +109,7 @@ class Standard extends Plugin
         return $pixelsData;
     }
 
-    protected function calculateZXY($y)
+    protected function calculateZXY(int $y): int
     {
         $offset = 0;
         if ($y > 127) {
@@ -119,14 +119,9 @@ class Standard extends Plugin
             $offset = 64;
             $y = $y - 64;
         }
-
         $rows = (int)($y / 8);
-
         $rests = $y - $rows * 8;
-
-        $result = $offset + $rests * 8 + $rows;
-
-        return $result;
+        return $offset + $rests * 8 + $rows;
     }
 
     protected function exportData(array $parsedData, bool $flashedImage = false)

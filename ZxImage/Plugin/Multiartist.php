@@ -298,7 +298,7 @@ class Multiartist extends Gigascreen
         return $attributesData;
     }
 
-    protected function drawBorder($centerImage, $parsedData1 = false, $parsedData2 = false, $merged = false)
+    protected function drawBorder($centerImage, array $parsedData1 = null, array $parsedData2 = null, bool $merged = false)
     {
         if (is_numeric($this->borders[0]) && is_numeric($this->borders[1]) && $this->mghMixedBorder == true) {
             $resultImage = imagecreatetruecolor(320, 240);

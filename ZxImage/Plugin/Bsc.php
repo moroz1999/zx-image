@@ -46,7 +46,7 @@ class Bsc extends Standard
         return $parsedData;
     }
 
-    protected function drawBorder($centerImage, $parsedData1 = false, $parsedData2 = false, $merged = false)
+    protected function drawBorder($centerImage, array $parsedData1 = null, array $parsedData2 = null, bool $merged = false)
     {
         if (is_numeric($this->border)) {
             $resultImage = imagecreatetruecolor(

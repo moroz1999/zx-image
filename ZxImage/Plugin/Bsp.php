@@ -295,7 +295,7 @@ class Bsp extends Standard
         return $resultImage;
     }
 
-    protected function drawBorder($centerImage, $parsedData1 = false, $parsedData2 = false, $merged = false)
+    protected function drawBorder($centerImage, array $parsedData1 = null, array $parsedData2 = null, bool $merged = false)
     {
         if ($this->border !== null) {
             $totalWidth = $this->width + $this->borderWidth * 2;
