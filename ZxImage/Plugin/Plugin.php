@@ -495,9 +495,9 @@ abstract class Plugin implements Configurable
     }
 
     /**
-     * @param $centerImage
-     * @param array|null $parsedData1
-     * @param array|null $parsedData2
+     * @param resource $centerImage
+     * @param array $parsedData1
+     * @param array $parsedData2
      * @param bool $merged
      * @return resource
      */
