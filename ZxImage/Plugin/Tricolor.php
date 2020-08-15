@@ -61,7 +61,7 @@ class Tricolor extends Standard
         return null;
     }
 
-    protected function parseScreen($data)
+    protected function parseScreen($data): array
     {
         $parsedData = [];
         $parsedData[0]['pixelsData'] = $this->parsePixels($data['pixelsArray'][0]);

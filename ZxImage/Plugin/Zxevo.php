@@ -85,7 +85,7 @@ class Zxevo extends Plugin
         return $attributesData;
     }
 
-    protected function parseScreen($data)
+    protected function parseScreen($data): array
     {
     }
 

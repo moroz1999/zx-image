@@ -54,7 +54,7 @@ class Atmega extends Plugin
         return null;
     }
 
-    protected function parseScreen($data)
+    protected function parseScreen($data): array
     {
         $parsedData = [];
         $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);

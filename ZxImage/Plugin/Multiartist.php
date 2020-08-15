@@ -229,7 +229,7 @@ class Multiartist extends Gigascreen
         return null;
     }
 
-    protected function parseScreen($data)
+    protected function parseScreen($data): array
     {
         if ($this->mghMode == 1) {
             $parsedData = [];

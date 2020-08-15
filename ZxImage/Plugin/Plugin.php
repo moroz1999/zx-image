@@ -8,6 +8,9 @@ use ZxImage\Filter\Filter;
 abstract class Plugin implements Configurable
 {
     protected Converter $converter;
+    /*
+     * @var resource $handle
+     */
     protected $handle;
     protected ?int $fileSize = null;
     protected array $colors = [];
@@ -249,7 +252,7 @@ abstract class Plugin implements Configurable
 
     abstract protected function loadBits(): ?array;
 
-    abstract protected function parseScreen($data);
+    abstract protected function parseScreen($data): array;
 
     abstract protected function exportData(array $parsedData, bool $flashedImage = false);
 
@@ -297,7 +300,7 @@ abstract class Plugin implements Configurable
         return false;
     }
 
-    protected function read8BitStrings($length = 1)
+    protected function read8BitStrings(int $length = 1): array
     {
         $strings = [];
         while ($length) {
@@ -310,7 +313,18 @@ abstract class Plugin implements Configurable
         return $strings;
     }
 
-    protected function read16BitStrings($length = 1, $bigEndian = true)
+    protected function readByte(): ?string
+    {
+        $read = fread($this->handle, 1);
+        if (feof($this->handle)) {
+            fclose($this->handle);
+            return null;
+        } else {
+            return ord($read);
+        }
+    }
+
+    protected function read16BitStrings(int $length = 1, $bigEndian = true): array
     {
         $strings = [];
         while ($length) {
@@ -345,17 +359,6 @@ abstract class Plugin implements Configurable
         return null;
     }
 
-    protected function readByte(): ?string
-    {
-        $read = fread($this->handle, 1);
-        if (feof($this->handle)) {
-            fclose($this->handle);
-            return null;
-        } else {
-            return ord($read);
-        }
-    }
-
     protected function readChar(): ?string
     {
         $result = null;
@@ -365,7 +368,7 @@ abstract class Plugin implements Configurable
         return $result;
     }
 
-    protected function readString($length): ?string
+    protected function readString(int $length): ?string
     {
         $result = fread($this->handle, $length);
         if (feof($this->handle)) {
@@ -375,7 +378,7 @@ abstract class Plugin implements Configurable
         return $result;
     }
 
-    protected function readBytes($length)
+    protected function readBytes(int $length): array
     {
         $result = [];
         while ($length--) {

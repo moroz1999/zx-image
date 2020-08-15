@@ -37,7 +37,7 @@ class Bsc extends Standard
         return null;
     }
 
-    protected function parseScreen($data)
+    protected function parseScreen($data): array
     {
         $parsedData = [];
         $parsedData['attributesData'] = $this->parseAttributes($data['attributesArray']);
