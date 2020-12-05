@@ -13,7 +13,7 @@ class Zxevo extends Plugin
     public function convert(): ?string
     {
         $result = null;
-        if ($gdObject = $this->loadBits()) {
+        if ($gdObject = $this->loadResource()) {
             $image = $this->adjustImage($gdObject);
             $result = $this->makePngFromGd($image);
         }
@@ -21,6 +21,11 @@ class Zxevo extends Plugin
     }
 
     protected function loadBits(): ?array
+    {
+        return null;
+    }
+
+    protected function loadResource()
     {
         if (file_exists($this->sourceFilePath)) {
             if ($sizes = getimagesize($this->sourceFilePath)) {

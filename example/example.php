@@ -80,9 +80,9 @@ if ($border !== null) {
 //convert and return image data
 if ($binary = $converter->getBinary()) {
     //after conversion we can ask for a mime type of last operation and send it to browser
-//    if ($imageType = $converter->getResultMime()) {
-//        header('Content-Type: ' . $imageType);
-//    }
+    if ($imageType = $converter->getResultMime()) {
+        header('Content-Type: ' . $imageType);
+    }
 
     //send image contents to browser
     echo $binary;

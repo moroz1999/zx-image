@@ -70,9 +70,12 @@ class Timexhr extends Standard
                 imagesetpixel($image, $x, $y + 1, $color);
             }
         }
-        $this->border = bindec($parsedData['attributesData']['paperMap']);
-
-        $resultImage = $this->drawBorder($image, $parsedData);
+        if ($this->border) {
+            $this->border = bindec($parsedData['attributesData']['paperMap']);
+            $resultImage = $this->drawBorder($image, $parsedData);
+        } else {
+            $resultImage = $image;
+        }
         $resultImage = $this->resizeImage($resultImage);
         $resultImage = $this->checkRotation($resultImage);
         return $resultImage;
