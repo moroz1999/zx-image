@@ -34,7 +34,7 @@ class Timexhr extends Standard
                 } elseif ($length < 6144 * 2) {
                     $pixelsArray2[] = $bin;
                 } else {
-                    $attribute = $bin;
+                    $attribute = [$bin];
                 }
                 $length++;
             }
@@ -47,9 +47,7 @@ class Timexhr extends Standard
                 $x = $x + 2;
             }
 
-            $resultBits = ['pixelsArray' => $pixelsArray, 'attributesArray' => $attribute];
-
-            return $resultBits;
+            return ['pixelsArray' => $pixelsArray, 'attributesArray' => $attribute];
         }
         return null;
     }
@@ -86,7 +84,7 @@ class Timexhr extends Standard
         //001 - Blue on Yellow     101 - Cyan on Red
         //010 - Red on Cyan        110 - Yellow on Blue
         //011 - Magenta on Green   111 - White on Black
-        $color = substr($attributesArray, 2, 3);
+        $color = substr(reset($attributesArray), 2, 3);
         switch ($color) {
             case '000':
                 $attributesData['inkMap'] = '1000';

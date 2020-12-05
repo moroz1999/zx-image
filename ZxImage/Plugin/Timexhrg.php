@@ -17,7 +17,7 @@ class Timexhrg extends Gigascreen
         //001 - Blue on Yellow     101 - Cyan on Red
         //010 - Red on Cyan        110 - Yellow on Blue
         //011 - Magenta on Green   111 - White on Black
-        $color = substr($attributesArray, 2, 3);
+        $color = substr(reset($attributesArray), 2, 3);
         switch ($color) {
             case '000':
                 $attributesData['inkMap'] = '1000';
@@ -58,10 +58,10 @@ class Timexhrg extends Gigascreen
         if ($this->makeHandle()) {
             $image1 = $this->read8BitStrings(6144);
             $image2 = $this->read8BitStrings(6144);
-            $attribute1 = $this->read8BitString();
+            $attribute1 = [$this->read8BitString()];
             $image3 = $this->read8BitStrings(6144);
             $image4 = $this->read8BitStrings(6144);
-            $attribute2 = $this->read8BitString();
+            $attribute2 = [$this->read8BitString()];
 
             $x = 0;
             $length = $this->width * ($this->height / 2) / 8;
