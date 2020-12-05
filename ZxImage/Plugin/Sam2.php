@@ -6,7 +6,7 @@ namespace ZxImage\Plugin;
 class Sam2 extends Standard
 {
     protected int $attributeHeight = 1;
-    protected ?int $strictFileSize = null;
+    protected ?int $strictFileSize;
 
     protected function parseAttributes(array $attributesArray): array
     {

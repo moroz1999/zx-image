@@ -7,7 +7,7 @@ class Sam3 extends Standard
 {
     use Sam;
 
-    protected ?int $strictFileSize = null;
+    protected ?int $strictFileSize;
     protected int $width = 512;
     protected int $height = 384;
     protected $paletteLength = 4;

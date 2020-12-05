@@ -6,8 +6,8 @@ namespace ZxImage\Plugin;
 class Bsc extends Standard
 {
     protected $attributesLength = 768;
-    protected $borderWidth = 64;
-    protected $borderHeight = 56;
+    protected int $borderWidth = 64;
+    protected int $borderHeight = 56;
     protected ?int $strictFileSize = 11136;
 
     protected function loadBits(): ?array

@@ -5,10 +5,9 @@ namespace ZxImage\Plugin;
 
 class Bsp extends Standard
 {
-    protected $attributesLength = 768;
-    protected $borderWidth = 64;
-    protected $borderHeightTop = 64;
-    protected $borderHeightBottom = 48;
+    protected int $borderWidth = 64;
+    protected int $borderHeightTop = 64;
+    protected int $borderHeightBottom = 48;
     protected $hasGigaData;
     protected $hasBorderData;
     protected $borders = [];
@@ -119,6 +118,8 @@ class Bsp extends Standard
     protected function loadBits(): ?array
     {
         if ($this->makeHandle()) {
+
+
             if ($this->readString(3) === 'bsp') {
                 if (($configByte = $this->readByte()) !== null) {
                     $this->hasGigaData = (boolean)($configByte & 0b10000000);
