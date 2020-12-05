@@ -103,7 +103,6 @@ class Gigascreen extends Standard
         $pixelsArray = [];
         $attributesArray = [];
         if ($this->makeHandle()) {
-
             $length = 0;
             $firstImage = false;
             while ($bin = $this->read8BitString()) {

@@ -36,8 +36,11 @@ abstract class Plugin implements Configurable
     protected int $rotation;
     protected string $basePath;
 
-    public function __construct(string $sourceFilePath = null, string $sourceFileContents = null, Converter $converter = null)
-    {
+    public function __construct(
+        string $sourceFilePath = null,
+        string $sourceFileContents = null,
+        Converter $converter = null
+    ) {
         $this->sourceFilePath = $sourceFilePath;
         $this->sourceFileContents = $sourceFileContents;
         $this->converter = $converter;
@@ -501,8 +504,12 @@ abstract class Plugin implements Configurable
      * @param bool $merged
      * @return resource
      */
-    protected function drawBorder($centerImage, array $parsedData1 = null, array $parsedData2 = null, bool $merged = false)
-    {
+    protected function drawBorder(
+        $centerImage,
+        array $parsedData1 = null,
+        array $parsedData2 = null,
+        bool $merged = false
+    ) {
         if (is_numeric($this->border)) {
             $resultImage = imagecreatetruecolor(
                 $this->width + $this->borderWidth * 2,

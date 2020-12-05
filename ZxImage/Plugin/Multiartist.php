@@ -117,7 +117,6 @@ class Multiartist extends Gigascreen
     protected function loadBits(): ?array
     {
         if ($this->makeHandle()) {
-
             $length = 0;
             $header = '';
             while ($string = fgetc($this->handle)) {
@@ -298,8 +297,12 @@ class Multiartist extends Gigascreen
         return $attributesData;
     }
 
-    protected function drawBorder($centerImage, array $parsedData1 = null, array $parsedData2 = null, bool $merged = false)
-    {
+    protected function drawBorder(
+        $centerImage,
+        array $parsedData1 = null,
+        array $parsedData2 = null,
+        bool $merged = false
+    ) {
         if (is_numeric($this->borders[0]) && is_numeric($this->borders[1]) && $this->mghMixedBorder == true) {
             $resultImage = imagecreatetruecolor(320, 240);
             $code1 = sprintf('%04.0f', decbin($this->borders[0]));

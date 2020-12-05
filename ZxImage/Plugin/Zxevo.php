@@ -14,7 +14,6 @@ class Zxevo extends Plugin
         if ($gdObject = $this->loadBits()) {
             $image = $this->adjustImage($gdObject);
             $result = $this->makePngFromGd($image);
-
         }
         return $result;
     }

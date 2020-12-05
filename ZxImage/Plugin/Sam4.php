@@ -5,6 +5,7 @@ namespace ZxImage\Plugin;
 class Sam4 extends Standard
 {
     use Sam;
+
     protected ?int $fileSize = null;
     protected $paletteLength = 16;
     protected $bitPerPixel = 4;
@@ -29,7 +30,6 @@ class Sam4 extends Standard
             }
         }
         return $pixelsData;
-
     }
 
     protected function exportData(array $parsedData, bool $flashedImage = false)

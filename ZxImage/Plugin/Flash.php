@@ -34,7 +34,6 @@ class Flash extends Standard
                         $colorZX = '0000';
                         $color = $this->colors[$colorZX];
                     }
-
                 } else {
                     if ($pixel === '1') {
                         $colorZX = $parsedData['attributesData']['inkMap'][$mapPositionY][$mapPositionX];

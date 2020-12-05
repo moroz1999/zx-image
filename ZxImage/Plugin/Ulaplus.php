@@ -13,7 +13,6 @@ class Ulaplus extends Standard
         $attributesArray = [];
         $paletteArray = [];
         if ($this->makeHandle()) {
-
             $length = 0;
             while ($bin = $this->read8BitString()) {
                 if ($length < 6144) {

@@ -87,7 +87,6 @@ class Atmega extends Plugin
                     $y++;
                 }
             }
-
         }
         return $pixelsData;
     }

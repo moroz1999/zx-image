@@ -12,7 +12,6 @@ class Scanlines extends Filter
         $dstHeight = imagesy($image);
 
         for ($y = 0; $y < $dstHeight; $y = $y + 2) {
-
             for ($x = 0; $x < $dstWidth; $x++) {
                 $rgb = imagecolorat($image, $x, $y);
                 $r = ($rgb >> 16) & 0xFF;

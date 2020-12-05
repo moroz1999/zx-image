@@ -111,7 +111,6 @@ class Sxg extends Plugin
             }
         }
         return $pixelsData;
-
     }
 
     protected function parseSxgPalette($paletteArray)

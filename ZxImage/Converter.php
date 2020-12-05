@@ -322,7 +322,6 @@ class Converter
                         $c++;
                         unlink($filePath);
                     }
-
                 }
                 if ($c >= $this->cacheDeletionAmount) {
                     break;

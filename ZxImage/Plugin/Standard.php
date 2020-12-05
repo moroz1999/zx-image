@@ -14,7 +14,7 @@ class Standard extends Plugin
         $result = null;
         if ($bits = $this->loadBits()) {
             $parsedData = $this->parseScreen($bits);
-            if (!empty($parsedData['attributesData']) && $parsedData['attributesData']['flashMap']) {
+            if (!empty($parsedData['attributesData']) && !empty($parsedData['attributesData']['flashMap'])) {
                 $gifImages = [];
 
                 $image = $this->exportData($parsedData, false);
@@ -28,7 +28,6 @@ class Standard extends Plugin
             } else {
                 $image = $this->exportData($parsedData, false);
                 $result = $this->makePngFromGd($image);
-
             }
         }
         return $result;
@@ -38,7 +37,6 @@ class Standard extends Plugin
     {
         $attributesArray = [];
         if ($this->makeHandle()) {
-
             $pixelsArray = $this->read8BitStrings(6144);
             while ($bin = $this->read8BitString()) {
                 $attributesArray[] = $bin;

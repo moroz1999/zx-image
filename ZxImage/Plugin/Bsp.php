@@ -112,7 +112,6 @@ class Bsp extends Standard
                     $result = $this->makePngFromGd($image);
                 }
             }
-
         }
         return $result;
     }
@@ -122,7 +121,6 @@ class Bsp extends Standard
         if ($this->makeHandle()) {
             if ($this->readString(3) === 'bsp') {
                 if (($configByte = $this->readByte()) !== null) {
-
                     $this->hasGigaData = (boolean)($configByte & 0b10000000);
                     $this->hasBorderData = (boolean)($configByte & 0b01000000);
 
@@ -131,8 +129,18 @@ class Bsp extends Standard
 
                     $borderColor = $this->readByte();
                     if (!$this->hasBorderData) {
-                        $this->borders[0] = $colorCode = str_pad(decbin($borderColor & 0b100000111), 4, '0', STR_PAD_LEFT);
-                        $this->borders[1] = $colorCode = str_pad(decbin($borderColor & 0b100111000 >> 3), 4, '0', STR_PAD_LEFT);
+                        $this->borders[0] = $colorCode = str_pad(
+                            decbin($borderColor & 0b100000111),
+                            4,
+                            '0',
+                            STR_PAD_LEFT
+                        );
+                        $this->borders[1] = $colorCode = str_pad(
+                            decbin($borderColor & 0b100111000 >> 3),
+                            4,
+                            '0',
+                            STR_PAD_LEFT
+                        );
                     }
                     $this->title = trim($this->readString(32));
                     $this->author = trim($this->readString(32));
@@ -241,7 +249,6 @@ class Bsp extends Standard
                         $inCenter = true;
                     }
                 }
-
             }
         }
 
@@ -295,8 +302,12 @@ class Bsp extends Standard
         return $resultImage;
     }
 
-    protected function drawBorder($centerImage, array $parsedData1 = null, array $parsedData2 = null, bool $merged = false)
-    {
+    protected function drawBorder(
+        $centerImage,
+        array $parsedData1 = null,
+        array $parsedData2 = null,
+        bool $merged = false
+    ) {
         if ($this->border !== null) {
             $totalWidth = $this->width + $this->borderWidth * 2;
             $totalHeight = $this->height + $this->borderHeightTop + $this->borderHeightBottom;
@@ -313,11 +324,15 @@ class Bsp extends Standard
                                 imagesetpixel($resultImage, $x, $y, $this->gigaColors[$colorCode]);
                             }
                         } else {
-                            imagesetpixel($resultImage, $x, $y, $this->gigaColors[$this->borders[0] . $this->borders[1]]);
+                            imagesetpixel(
+                                $resultImage,
+                                $x,
+                                $y,
+                                $this->gigaColors[$this->borders[0] . $this->borders[1]]
+                            );
                         }
                     }
                 }
-
             } else {
                 for ($y = 0; $y < $totalHeight; $y++) {
                     for ($x = 0; $x < $totalWidth; $x++) {

@@ -15,7 +15,8 @@ class Stellar extends Gigascreen
         $texture = [];
         $attributesArray = [[], []];
         if ($this->makeHandle()) {
-            while (($bin = $this->read8BitString()) && ($bin2 = $this->read8BitString()) && ($bin3 = $this->read8BitString()) && ($bin4 = $this->read8BitString())) {
+            while (($bin = $this->read8BitString()) && ($bin2 = $this->read8BitString(
+                )) && ($bin3 = $this->read8BitString()) && ($bin4 = $this->read8BitString())) {
                 $attributesArray[0][] = $bin;
                 $attributesArray[0][] = $bin2;
                 $attributesArray[1][] = $bin3;
@@ -42,7 +43,6 @@ class Stellar extends Gigascreen
         $pixelsArray = [];
         for ($x = 0; $x < $this->width * $this->height / 8; $x++) {
             $pixelsArray[] = '00001111';
-
         }
         return $pixelsArray;
     }

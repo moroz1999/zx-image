@@ -44,7 +44,6 @@ class Chrd extends Gigascreen
         $pixelsArray2 = [];
         $attributesArray2 = [];
         if ($this->makeHandle()) {
-
             $length = 0;
             $signature = '';
 

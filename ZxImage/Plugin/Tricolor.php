@@ -43,7 +43,6 @@ class Tricolor extends Standard
     {
         $pixelsArray = [];
         if ($this->makeHandle()) {
-
             $length = 0;
             $image = 0;
             while ($bin = $this->read8BitString()) {
