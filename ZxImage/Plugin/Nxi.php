@@ -5,7 +5,7 @@ namespace ZxImage\Plugin;
 
 class Nxi extends Standard
 {
-    protected ?int $fileSize = 49664;
+    protected ?int $strictFileSize = 49664;
     protected $paletteLength = 256;
     protected $rgb3torgb8 = [
         0 => 0,

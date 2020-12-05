@@ -5,7 +5,7 @@ namespace ZxImage\Plugin;
 
 class Stellar extends Gigascreen
 {
-    protected ?int $fileSize = 3072;
+    protected ?int $strictFileSize = 3072;
     protected $atrWidth = 64;
     protected $atrHeight = 48;
     protected int $attributeHeight = 4;

@@ -8,7 +8,7 @@ class Multiartist extends Gigascreen
     protected $mghMode = false;
     protected $borders = [];
     protected $mghMixedBorder = false;
-    protected ?int $fileSize;
+    protected ?int $strictFileSize;
 
     public function convert(): ?string
     {

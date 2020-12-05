@@ -14,7 +14,7 @@ class Bsp extends Standard
     protected $borders = [];
     protected $author;
     protected $title;
-    protected ?int $fileSize;
+    protected ?int $strictFileSize;
 
     public function convert(): ?string
     {
@@ -158,7 +158,7 @@ class Bsp extends Standard
                                 'attributesArray' => $this->read8BitStrings(768),
                             ];
                             $firstImageBorderDataLength = $secondBorderDataOffset - 6912 * 2 - 70 - 2;
-                            $secondBorderDataLength = $this->fileSize - $secondBorderDataOffset;
+                            $secondBorderDataLength = $this->strictFileSize - $secondBorderDataOffset;
                             $firstImage['borderArray'] = $this->readBytes($firstImageBorderDataLength);
                             $secondImage['borderArray'] = $this->readBytes($secondBorderDataLength);
 
@@ -168,7 +168,7 @@ class Bsp extends Standard
                                 'pixelsArray' => $this->read8BitStrings(6144),
                                 'attributesArray' => $this->read8BitStrings(768),
                             ];
-                            $firstImageBorderDataLength = $this->fileSize - 6912 - 70;
+                            $firstImageBorderDataLength = $this->strictFileSize - 6912 - 70;
                             $firstImage['borderArray'] = $this->readBytes($firstImageBorderDataLength);
                             return $firstImage;
                         }

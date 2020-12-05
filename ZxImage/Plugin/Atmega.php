@@ -12,7 +12,7 @@ class Atmega extends Plugin
     {
         if ($this->makeHandle()) {
             $pixelsArray = [];
-            if ($this->fileSize == 32896) {
+            if ($this->strictFileSize == 32896) {
                 $pixelsArray = array_merge($pixelsArray, $this->read8BitStrings(self::PIXELPAGESIZE));
                 $this->readBytes(192);
                 $pixelsArray = array_merge($pixelsArray, $this->read8BitStrings(self::PIXELPAGESIZE));

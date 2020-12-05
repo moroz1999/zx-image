@@ -5,7 +5,7 @@ namespace ZxImage\Plugin;
 
 class Ulaplus extends Standard
 {
-    protected ?int $fileSize = 6976;
+    protected ?int $strictFileSize = 6976;
 
     protected function loadBits(): ?array
     {

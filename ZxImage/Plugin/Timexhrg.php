@@ -5,7 +5,7 @@ namespace ZxImage\Plugin;
 
 class Timexhrg extends Gigascreen
 {
-    protected ?int $fileSize = 12289 * 2;
+    protected ?int $strictFileSize = 12289 * 2;
     protected int $width = 512;
     protected int $height = 384;
 

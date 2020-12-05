@@ -5,7 +5,7 @@ namespace ZxImage\Plugin;
 
 class Timexhr extends Standard
 {
-    protected ?int $fileSize = 12289;
+    protected ?int $strictFileSize = 12289;
     protected int $width = 512;
     protected int $height = 384;
 

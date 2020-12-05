@@ -5,7 +5,7 @@ namespace ZxImage\Plugin;
 
 class Tricolor extends Standard
 {
-    protected ?int $fileSize = 18432;
+    protected ?int $strictFileSize = 18432;
 
     public function convert(): ?string
     {

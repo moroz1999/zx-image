@@ -5,7 +5,7 @@ namespace ZxImage\Plugin;
 
 class Gigascreen extends Standard
 {
-    protected ?int $fileSize = 13824;
+    protected ?int $strictFileSize = 13824;
 
     public function convert(): ?string
     {

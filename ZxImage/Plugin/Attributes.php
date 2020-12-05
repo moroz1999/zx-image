@@ -4,7 +4,7 @@ namespace ZxImage\Plugin;
 
 class Attributes extends Standard
 {
-    protected ?int $fileSize = 768;
+    protected ?int $strictFileSize = 768;
 
     public function convert(): ?string
     {

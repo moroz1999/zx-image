@@ -12,7 +12,7 @@ abstract class Plugin implements Configurable
      * @var resource $handle
      */
     protected $handle;
-    protected ?int $fileSize = null;
+    protected ?int $strictFileSize = null;
     protected array $colors = [];
     protected array $gigaColors = [];
     protected string $sourceFilePath;
@@ -284,16 +284,16 @@ abstract class Plugin implements Configurable
     protected function makeHandle(): bool
     {
         if (is_file($this->sourceFilePath)) {
-            if (!$this->fileSize) {
-                $this->fileSize = filesize($this->sourceFilePath);
+            if (!$this->strictFileSize) {
+                $this->strictFileSize = filesize($this->sourceFilePath);
             }
-            if ($this->fileSize == filesize($this->sourceFilePath)) {
+            if ($this->strictFileSize == filesize($this->sourceFilePath)) {
                 $this->handle = fopen($this->sourceFilePath, "rb");
                 return true;
             }
         } elseif ($this->sourceFileContents) {
-            if (!$this->fileSize) {
-                $this->fileSize = strlen($this->sourceFileContents);
+            if (!$this->strictFileSize) {
+                $this->strictFileSize = strlen($this->sourceFileContents);
             }
             $this->handle = fopen('php://memory', 'w+');
             fwrite($this->handle, $this->sourceFileContents);
