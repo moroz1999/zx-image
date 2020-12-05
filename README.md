@@ -22,7 +22,6 @@ if ($binary = $converter->getBinary()) {
     //send image contents to browser
     echo $binary;
 }
-
 ```
 
 ## File cache setup example
