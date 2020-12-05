@@ -20,6 +20,8 @@ class Ssx extends Standard
                 $this->converter->setType('sam3');
             } elseif ($this->strictFileSize === 24592) {
                 $this->converter->setType('sam4');
+            }elseif ($this->strictFileSize === 98304) {
+                $this->converter->setType('ssxRaw');
             }
             if ($binary = $this->converter->getBinary()) {
                 $this->resultMime = $this->converter->getResultMime();

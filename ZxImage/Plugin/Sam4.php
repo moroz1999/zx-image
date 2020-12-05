@@ -9,9 +9,9 @@ class Sam4 extends Standard
     use Sam;
 
     protected ?int $strictFileSize;
-    protected $paletteLength = 16;
-    protected $bitPerPixel = 4;
-    protected $pixelRatio = 1;
+    protected int $paletteLength = 16;
+    protected int $bitPerPixel = 4;
+    protected float $pixelRatio = 1;
 
     protected function parsePixels(array $pixelsArray): array
     {
