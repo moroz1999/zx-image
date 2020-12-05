@@ -133,24 +133,24 @@ abstract class Plugin implements Configurable
 
     protected function generateColors()
     {
-        $colors = [];
-        $colors['0000'] = 0;
-        $colors['0001'] = 0;
-        $colors['0010'] = 0;
-        $colors['0011'] = 0;
-        $colors['0100'] = 0;
-        $colors['0101'] = 0;
-        $colors['0110'] = 0;
-        $colors['0111'] = 0;
-        $colors['1000'] = 0;
-        $colors['1001'] = 0;
-        $colors['1010'] = 0;
-        $colors['1011'] = 0;
-        $colors['1100'] = 0;
-        $colors['1101'] = 0;
-        $colors['1110'] = 0;
-        $colors['1111'] = 0;
-
+        $colors = [
+            '0000' => 0,
+            '0001' => 0,
+            '0010' => 0,
+            '0011' => 0,
+            '0100' => 0,
+            '0101' => 0,
+            '0110' => 0,
+            '0111' => 0,
+            '1000' => 0,
+            '1001' => 0,
+            '1010' => 0,
+            '1011' => 0,
+            '1100' => 0,
+            '1101' => 0,
+            '1110' => 0,
+            '1111' => 0,
+        ];
         $palette = $this->palette;
 
         foreach ($colors as $zxColor => &$RGB) {

@@ -11,21 +11,22 @@ class Ssx extends Standard
     public function convert(): ?string
     {
         if ($this->makeHandle()) {
+            $binary = null;
             if ($this->strictFileSize === 6928) {
                 $this->converter->setType('standard');
-                return $this->converter->getBinary();
             } elseif ($this->strictFileSize === 12304) {
                 $this->converter->setType('mc');
-                return $this->converter->getBinary();
             } elseif ($this->strictFileSize === 24580) {
                 $this->converter->setType('sam3');
-                return $this->converter->getBinary();
             } elseif ($this->strictFileSize === 24592) {
                 $this->converter->setType('sam4');
-                return $this->converter->getBinary();
             }
+            if ($binary = $this->converter->getBinary()) {
+                $this->resultMime = $this->converter->getResultMime();
+            }
+            return $binary;
         }
-        return false;
+        return null;
     }
 
 }

@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /*
  * Simple example of usage. Put this into some controller of your app.
  */
@@ -43,7 +46,7 @@ if (!empty($_GET['zoom'])) {
     $zoom = (float)$_GET['zoom'];
 }
 if (!isset($zoom) || $zoom > 4) {
-    $zoom = 1;
+    $zoom = 1.0;
 }
 if (isset($_GET['cacheEnabled'])) {
     $cacheEnabled = (bool)$_GET['cacheEnabled'];
@@ -83,7 +86,6 @@ if ($binary = $converter->getBinary()) {
     if ($imageType = $converter->getResultMime()) {
         header('Content-Type: ' . $imageType);
     }
-
     //send image contents to browser
     echo $binary;
 }
