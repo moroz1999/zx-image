@@ -48,7 +48,7 @@ class Blur extends Filter
         imagesavealpha($blurImage, true);
         imagecopyresampled($image, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
 
-        $gaussian = [[1.0, 2.0, 1.0], [2.0, 4.0, 2.0], [1.0, 2.0, 1.0]];
+        $gaussian = [[1, 2, 1], [2, 4, 2], [1, 2, 1]];
         imageconvolution($image, $gaussian, 16, 0);
         imagecopyresampled($blurImage, $haloImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
 

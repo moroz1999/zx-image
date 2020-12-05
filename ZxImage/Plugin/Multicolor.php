@@ -7,10 +7,19 @@ namespace ZxImage\Plugin;
 
 class Multicolor extends Standard
 {
-    protected int $attributeHeight = 2;
-    protected ?int $strictFileSize = 9216;
+    /**
+     * @var int
+     */
+    protected $attributeHeight = 2;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 9216;
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $pixelsArray = [];
         $attributesArray = [];

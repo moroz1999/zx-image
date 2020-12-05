@@ -7,6 +7,12 @@ namespace ZxImage\Plugin;
 
 class Multicolor4 extends Multicolor
 {
-    protected int $attributeHeight = 4;
-    protected ?int $strictFileSize = 7680;
+    /**
+     * @var int
+     */
+    protected $attributeHeight = 4;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 7680;
 }

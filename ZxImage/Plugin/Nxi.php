@@ -7,8 +7,14 @@ namespace ZxImage\Plugin;
 
 class Nxi extends Standard
 {
-    protected ?int $strictFileSize = 49664;
-    protected int $paletteLength = 256;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 49664;
+    /**
+     * @var int
+     */
+    protected $paletteLength = 256;
     protected $rgb3torgb8 = [
         0 => 0,
         1 => 36,
@@ -20,7 +26,10 @@ class Nxi extends Standard
         7 => 255,
     ];
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $pixelsArray = [];
         $paletteArray = [];

@@ -7,8 +7,14 @@ namespace ZxImage\Plugin;
 
 class Mlt extends Standard
 {
-    protected int $attributeHeight = 1;
-    protected ?int $strictFileSize = 12288;
+    /**
+     * @var int
+     */
+    protected $attributeHeight = 1;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 12288;
 
     protected function parseAttributes(array $attributesArray): array
     {

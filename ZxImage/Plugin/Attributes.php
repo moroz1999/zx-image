@@ -6,9 +6,15 @@ namespace ZxImage\Plugin;
 
 class Attributes extends Standard
 {
-    protected ?int $strictFileSize = 768;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 768;
 
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         if ($bits = $this->loadBits()) {
@@ -32,7 +38,10 @@ class Attributes extends Standard
         return $result;
     }
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $attributesArray = [];
 

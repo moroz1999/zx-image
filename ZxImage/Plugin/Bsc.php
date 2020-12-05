@@ -8,11 +8,23 @@ namespace ZxImage\Plugin;
 class Bsc extends Standard
 {
     protected $attributesLength = 768;
-    protected int $borderWidth = 64;
-    protected int $borderHeight = 56;
-    protected ?int $strictFileSize = 11136;
+    /**
+     * @var int
+     */
+    protected $borderWidth = 64;
+    /**
+     * @var int
+     */
+    protected $borderHeight = 56;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 11136;
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $pixelsArray = [];
         $attributesArray = [];

@@ -9,34 +9,97 @@ use ZxImage\Filter\Filter;
 
 abstract class Plugin implements Configurable
 {
-    protected ?Converter $converter;
+    /**
+     * @var \ZxImage\Converter|null
+     */
+    protected $converter;
     /*
      * @var resource $handle
      */
     protected $handle;
-    protected ?int $strictFileSize;
-    protected array $colors = [];
-    protected array $gigaColors = [];
-    protected ?string $sourceFilePath;
-    protected ?string $sourceFileContents;
-    protected string $gigascreenMode = 'mix';
-    protected array $palette;
-    protected ?int $border = null;
-    protected float $zoom = 1;
-    protected ?string $resultMime = null;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize;
+    /**
+     * @var mixed[]
+     */
+    protected $colors = [];
+    /**
+     * @var mixed[]
+     */
+    protected $gigaColors = [];
+    /**
+     * @var string|null
+     */
+    protected $sourceFilePath;
+    /**
+     * @var string|null
+     */
+    protected $sourceFileContents;
+    /**
+     * @var string
+     */
+    protected $gigascreenMode = 'mix';
+    /**
+     * @var mixed[]
+     */
+    protected $palette;
+    /**
+     * @var int|null
+     */
+    protected $border = null;
+    /**
+     * @var float
+     */
+    protected $zoom = 1;
+    /**
+     * @var string|null
+     */
+    protected $resultMime = null;
 
-    protected array $preFilters = [];
-    protected array $postFilters = [];
+    /**
+     * @var mixed[]
+     */
+    protected $preFilters = [];
+    /**
+     * @var mixed[]
+     */
+    protected $postFilters = [];
 
-    protected int $width = 256;
-    protected int $height = 192;
+    /**
+     * @var int
+     */
+    protected $width = 256;
+    /**
+     * @var int
+     */
+    protected $height = 192;
 
-    protected int $attributeWidth = 8;
-    protected int $attributeHeight = 8;
-    protected int $borderWidth = 32;
-    protected int $borderHeight = 24;
-    protected int $rotation;
-    protected string $basePath;
+    /**
+     * @var int
+     */
+    protected $attributeWidth = 8;
+    /**
+     * @var int
+     */
+    protected $attributeHeight = 8;
+    /**
+     * @var int
+     */
+    protected $borderWidth = 32;
+    /**
+     * @var int
+     */
+    protected $borderHeight = 24;
+    /**
+     * @var int
+     */
+    protected $rotation;
+    /**
+     * @var string
+     */
+    protected $basePath;
 
     public function __construct(
         string $sourceFilePath = null,
@@ -48,50 +111,70 @@ abstract class Plugin implements Configurable
         $this->converter = $converter;
     }
 
-    public function setBasePath(string $basePath): void
+    /**
+     * @return void
+     */
+    public function setBasePath(string $basePath)
     {
         $this->basePath = $basePath;
     }
 
     /**
      * @param Filter[] $filters
+     * @return void
      */
-    public function setPreFilters(array $filters): void
+    public function setPreFilters(array $filters)
     {
         $this->preFilters = $filters;
     }
 
     /**
      * @param Filter[] $filters
+     * @return void
      */
-    public function setPostFilters(array $filters): void
+    public function setPostFilters(array $filters)
     {
         $this->postFilters = $filters;
     }
 
-    public function setBorder(int $border = null): void
+    /**
+     * @return void
+     */
+    public function setBorder(int $border = null)
     {
         $this->border = $border;
     }
 
-    public function setZoom(float $zoom): void
+    /**
+     * @return void
+     */
+    public function setZoom(float $zoom)
     {
         $this->zoom = $zoom;
     }
 
-    public function setRotation(int $rotation): void
+    /**
+     * @return void
+     */
+    public function setRotation(int $rotation)
     {
         $this->rotation = $rotation;
     }
 
-    public function setGigascreenMode(string $mode): void
+    /**
+     * @return void
+     */
+    public function setGigascreenMode(string $mode)
     {
         if ($mode == 'flicker' || $mode == 'interlace2' || $mode == 'interlace1') {
             $this->gigascreenMode = $mode;
         }
     }
 
-    public function setPalette(string $palette): void
+    /**
+     * @return void
+     */
+    public function setPalette(string $palette)
     {
         $this->parsePalette($palette);
         $this->generateColors();
@@ -246,7 +329,10 @@ abstract class Plugin implements Configurable
         $this->gigaColors = $gigaColors;
     }
 
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         if ($bits = $this->loadBits()) {
@@ -257,7 +343,10 @@ abstract class Plugin implements Configurable
         return $result;
     }
 
-    abstract protected function loadBits(): ?array;
+    /**
+     * @return mixed[]|null
+     */
+    abstract protected function loadBits();
 
     abstract protected function parseScreen($data): array;
 
@@ -320,7 +409,10 @@ abstract class Plugin implements Configurable
         return $strings;
     }
 
-    protected function readByte(): ?int
+    /**
+     * @return int|null
+     */
+    protected function readByte()
     {
         $read = fread($this->handle, 1);
         if (feof($this->handle)) {
@@ -344,7 +436,10 @@ abstract class Plugin implements Configurable
         return $strings;
     }
 
-    protected function read16BitString(bool $bigEndian = true): ?string
+    /**
+     * @return string|null
+     */
+    protected function read16BitString(bool $bigEndian = true)
     {
         if ($b1 = $this->read8BitString()) {
             if ($b2 = $this->read8BitString()) {
@@ -358,7 +453,10 @@ abstract class Plugin implements Configurable
         return null;
     }
 
-    protected function read8BitString(): ?string
+    /**
+     * @return string|null
+     */
+    protected function read8BitString()
     {
         if (($byte = $this->readByte()) !== null) {
             return str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
@@ -366,7 +464,10 @@ abstract class Plugin implements Configurable
         return null;
     }
 
-    protected function readChar(): ?string
+    /**
+     * @return string|null
+     */
+    protected function readChar()
     {
         $result = null;
         if (($bits = $this->readByte()) || $bits === 0) {
@@ -375,7 +476,10 @@ abstract class Plugin implements Configurable
         return $result;
     }
 
-    protected function readString(int $length): ?string
+    /**
+     * @return string|null
+     */
+    protected function readString(int $length)
     {
         $result = fread($this->handle, $length);
         if (feof($this->handle)) {
@@ -404,7 +508,10 @@ abstract class Plugin implements Configurable
         return $result;
     }
 
-    protected function readWord(): ?int
+    /**
+     * @return int|null
+     */
+    protected function readWord()
     {
         $b1 = fread($this->handle, 1);
         if (feof($this->handle)) {
@@ -427,7 +534,7 @@ abstract class Plugin implements Configurable
     {
         $srcWidth = imagesx($srcImage);
         $srcHeight = imagesy($srcImage);
-        imagegammacorrect($srcImage, 2.2, 1.0);
+        imagegammacorrect($srcImage, 2.2, 1);
 
         $dstWidth = $srcWidth;
         $dstHeight = $srcHeight;
@@ -457,15 +564,16 @@ abstract class Plugin implements Configurable
         }
         $this->applyPostFilters($srcImage, $dstImage);
 
-        imagegammacorrect($dstImage, 1.0, 2.2);
+        imagegammacorrect($dstImage, 1, 2.2);
 
         return $dstImage;
     }
 
     /**
      * @param resource $srcImage
+     * @return void
      */
-    protected function applyPreFilters($srcImage): void
+    protected function applyPreFilters($srcImage)
     {
         foreach ($this->preFilters as $filterType) {
             $filterType = ucfirst($filterType);
@@ -484,8 +592,9 @@ abstract class Plugin implements Configurable
     /**
      * @param resource $srcImage
      * @param resource $dstImage
+     * @return void
      */
-    protected function applyPostFilters($srcImage, $dstImage = null): void
+    protected function applyPostFilters($srcImage, $dstImage = null)
     {
         foreach ($this->postFilters as $filterType) {
             $filterType = ucfirst($filterType);
@@ -510,8 +619,8 @@ abstract class Plugin implements Configurable
      */
     protected function drawBorder(
         $centerImage,
-        ?array $parsedData1 = null,
-        ?array $parsedData2 = null,
+        $parsedData1 = null,
+        $parsedData2 = null,
         bool $merged = false
     ) {
         if (is_numeric($this->border)) {

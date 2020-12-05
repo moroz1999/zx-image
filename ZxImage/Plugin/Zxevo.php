@@ -7,10 +7,19 @@ namespace ZxImage\Plugin;
 
 class Zxevo extends Plugin
 {
-    protected int $width = 320;
-    protected int $height = 200;
+    /**
+     * @var int
+     */
+    protected $width = 320;
+    /**
+     * @var int
+     */
+    protected $height = 200;
 
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         if ($gdObject = $this->loadResource()) {
@@ -20,7 +29,10 @@ class Zxevo extends Plugin
         return $result;
     }
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         return null;
     }

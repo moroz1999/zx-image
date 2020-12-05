@@ -7,9 +7,15 @@ namespace ZxImage\Plugin;
 
 class Lowresgs extends Gigascreen
 {
-    protected ?int $strictFileSize = 1628;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 1628;
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $texture = [];
         $attributesArray = [[], []];

@@ -7,10 +7,19 @@ namespace ZxImage\Plugin;
 class Bmc4 extends Bsc
 {
     protected $attributesLength = 1536;
-    protected int $attributeHeight = 4;
-    protected ?int $strictFileSize = 11904;
+    /**
+     * @var int
+     */
+    protected $attributeHeight = 4;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 11904;
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         if ($resultBits = parent::loadBits()) {
             $attributesArray = [];

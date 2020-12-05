@@ -6,9 +6,18 @@ namespace ZxImage\Plugin;
 
 class SsxRaw extends Plugin
 {
-    protected ?int $strictFileSize = 98304;
-    protected int $width = 512;
-    protected int $height = 192;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 98304;
+    /**
+     * @var int
+     */
+    protected $width = 512;
+    /**
+     * @var int
+     */
+    protected $height = 192;
 
     protected function exportData(array $parsedData, bool $flashedImage = false)
     {
@@ -70,7 +79,10 @@ class SsxRaw extends Plugin
     }
 
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         if ($this->makeHandle()) {
             return [

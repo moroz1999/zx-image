@@ -7,10 +7,19 @@ namespace ZxImage\Plugin;
 class Atmega extends Plugin
 {
     const PIXELPAGESIZE = 8000;
-    protected int $width = 320;
-    protected int $height = 200;
+    /**
+     * @var int
+     */
+    protected $width = 320;
+    /**
+     * @var int
+     */
+    protected $height = 200;
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         if ($this->makeHandle()) {
             $pixelsArray = [];

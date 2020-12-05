@@ -8,9 +8,15 @@ namespace ZxImage\Plugin;
 class Chrd extends Gigascreen
 {
     protected $colorType;
-    protected ?int $strictFileSize;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize;
 
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         $this->loadBits();
@@ -39,7 +45,10 @@ class Chrd extends Gigascreen
         return $result;
     }
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $pixelsArray = [];
         $attributesArray = [];

@@ -10,9 +10,15 @@ class Monochrome extends Standard
     protected $inkColorZX = '000';
     protected $paperColorZX = '111';
     protected $brightnessZX = '1';
-    protected ?int $strictFileSize = 6144;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 6144;
 
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         if ($bits = $this->loadBits()) {
@@ -24,7 +30,10 @@ class Monochrome extends Standard
         return $result;
     }
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $pixelsArray = [];
         if ($this->makeHandle()) {

@@ -7,7 +7,10 @@ namespace ZxImage\Plugin;
 
 class Flash extends Standard
 {
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         if ($bits = $this->loadBits()) {

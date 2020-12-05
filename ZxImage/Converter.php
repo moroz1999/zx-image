@@ -8,34 +8,115 @@ use ZxImage\Plugin\Plugin;
 
 class Converter
 {
-    protected ?string $hash = null;
-    protected array $colors = [];
-    protected string $gigascreenMode = 'mix';
-    protected string $cachePath;
-    protected ?string $sourceFileContents = null;
-    protected string $sourceFilePath;
-    protected string $resultFilePath;
-    protected string $cacheDirMarkerPath;
-    protected int $cacheDeletionPeriod = 300; //start cache clearing every 5 minutes
-    protected int $cacheDeletionAmount = 1000; //delete not more than 1000 images at once
-    protected int $cacheExpirationLimit;
-    protected string $type = 'standard';
-    protected ?int $border = null;
-    protected float $zoom = 1;
-    protected int $rotation = 0;
-    protected string $cacheFileName;
-    protected bool $cacheEnabled = false;
-    protected ?string $resultMime = null;
-    protected string $basePath;
-    protected array $preFilters = [];
-    protected array $postFilters = [];
+    /**
+     * @var string|null
+     */
+    protected $hash = null;
+    /**
+     * @var mixed[]
+     */
+    protected $colors = [];
+    /**
+     * @var string
+     */
+    protected $gigascreenMode = 'mix';
+    /**
+     * @var string
+     */
+    protected $cachePath;
+    /**
+     * @var string|null
+     */
+    protected $sourceFileContents = null;
+    /**
+     * @var string
+     */
+    protected $sourceFilePath;
+    /**
+     * @var string
+     */
+    protected $resultFilePath;
+    /**
+     * @var string
+     */
+    protected $cacheDirMarkerPath;
+    /**
+     * @var int
+     */
+    protected $cacheDeletionPeriod = 300; //start cache clearing every 5 minutes
+    /**
+     * @var int
+     */
+    protected $cacheDeletionAmount = 1000; //delete not more than 1000 images at once
+    /**
+     * @var int
+     */
+    protected $cacheExpirationLimit;
+    /**
+     * @var string
+     */
+    protected $type = 'standard';
+    /**
+     * @var int|null
+     */
+    protected $border = null;
+    /**
+     * @var float
+     */
+    protected $zoom = 1;
+    /**
+     * @var int
+     */
+    protected $rotation = 0;
+    /**
+     * @var string
+     */
+    protected $cacheFileName;
+    /**
+     * @var bool
+     */
+    protected $cacheEnabled = false;
+    /**
+     * @var string|null
+     */
+    protected $resultMime = null;
+    /**
+     * @var string
+     */
+    protected $basePath;
+    /**
+     * @var mixed[]
+     */
+    protected $preFilters = [];
+    /**
+     * @var mixed[]
+     */
+    protected $postFilters = [];
 
-    protected string $palette = '';
-    protected string $palette1 = '00,76,CD,E9,FF,9F:FF,00,00;00,FF,00;00,00,FF'; //pulsar
-    protected string $palette2 = '00,76,CD,E9,FF,9F:D0,00,00;00,E4,00;00,00,FF'; //orthodox
-    protected string $palette3 = '00,60,A0,E0,FF,A0:FF,00,00;00,FF,00;00,00,FF'; //alone
-    protected string $palette4 = '4F,A1,DD,F0,FF,BD:39,73,1D;3C,77,1E;46,8C,23'; //electroscale
-    protected string $palette5 = '00,96,CD,E8,FF,BC:FF,00,00;00,FF,00;00,00,FF'; //srgb
+    /**
+     * @var string
+     */
+    protected $palette = '';
+    /**
+     * @var string
+     */
+    protected $palette1 = '00,76,CD,E9,FF,9F:FF,00,00;00,FF,00;00,00,FF'; //pulsar
+    /**
+     * @var string
+     */
+    protected $palette2 = '00,76,CD,E9,FF,9F:D0,00,00;00,E4,00;00,00,FF'; //orthodox
+    /**
+     * @var string
+     */
+    protected $palette3 = '00,60,A0,E0,FF,A0:FF,00,00;00,FF,00;00,00,FF'; //alone
+    /**
+     * @var string
+     */
+    protected $palette4 = '4F,A1,DD,F0,FF,BD:39,73,1D;3C,77,1E;46,8C,23'; //electroscale
+    /**
+     * @var string
+     */
+    protected $palette5 = '00,96,CD,E8,FF,BC:FF,00,00;00,FF,00;00,00,FF'; //srgb
 
     public function __construct()
     {
@@ -162,7 +243,10 @@ class Converter
         return $this;
     }
 
-    public function getResultMime(): ?string
+    /**
+     * @return string|null
+     */
+    public function getResultMime()
     {
         $resultMime = null;
         if ($this->resultMime) {
@@ -185,7 +269,10 @@ class Converter
         return $this->cacheFileName;
     }
 
-    public function getHash(): ?string
+    /**
+     * @return string|null
+     */
+    public function getHash()
     {
         if (!$this->hash && ($this->sourceFileContents || is_file($this->sourceFilePath))) {
             $text = '';
@@ -230,7 +317,10 @@ class Converter
         return $this->hash;
     }
 
-    public function getBinary(): ?string
+    /**
+     * @return string|null
+     */
+    public function getBinary()
     {
         if (!$this->cacheEnabled) {
             return $this->generateBinary();
@@ -239,7 +329,10 @@ class Converter
         }
     }
 
-    public function generateBinary(): ?string
+    /**
+     * @return string|null
+     */
+    public function generateBinary()
     {
         $result = null;
         if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
@@ -270,7 +363,10 @@ class Converter
         return $result;
     }
 
-    public function generateCacheFile(): ?string
+    /**
+     * @return string|null
+     */
+    public function generateCacheFile()
     {
         $result = null;
         if ($resultFilePath = $this->getCacheFileName()) {
@@ -287,7 +383,10 @@ class Converter
         return $result;
     }
 
-    protected function checkCacheClearing(): void
+    /**
+     * @return void
+     */
+    protected function checkCacheClearing()
     {
         if ($date = $this->getCacheLastClearedDate()) {
             $now = time();
@@ -298,7 +397,10 @@ class Converter
         }
     }
 
-    protected function getCacheLastClearedDate(): ?int
+    /**
+     * @return int|null
+     */
+    protected function getCacheLastClearedDate()
     {
         $date = null;
 
@@ -312,7 +414,10 @@ class Converter
         return $date;
     }
 
-    protected function clearOutdatedCache(): void
+    /**
+     * @return void
+     */
+    protected function clearOutdatedCache()
     {
         $c = 0;
         $now = time();

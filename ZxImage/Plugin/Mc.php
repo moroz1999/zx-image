@@ -6,8 +6,14 @@ namespace ZxImage\Plugin;
 
 class Mc extends Standard
 {
-    protected int $attributeHeight = 1;
-    protected ?int $strictFileSize;
+    /**
+     * @var int
+     */
+    protected $attributeHeight = 1;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize;
 
     protected function calculateZXY(int $y): int
     {

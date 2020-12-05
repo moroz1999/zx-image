@@ -7,17 +7,32 @@ namespace ZxImage\Plugin;
 
 class Bsp extends Standard
 {
-    protected int $borderWidth = 64;
-    protected int $borderHeightTop = 64;
-    protected int $borderHeightBottom = 48;
+    /**
+     * @var int
+     */
+    protected $borderWidth = 64;
+    /**
+     * @var int
+     */
+    protected $borderHeightTop = 64;
+    /**
+     * @var int
+     */
+    protected $borderHeightBottom = 48;
     protected $hasGigaData;
     protected $hasBorderData;
     protected $borders = [];
     protected $author;
     protected $title;
-    protected ?int $strictFileSize;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize;
 
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         if ($bits = $this->loadBits()) {
@@ -117,7 +132,10 @@ class Bsp extends Standard
         return $result;
     }
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         if ($this->makeHandle()) {
             if ($this->readString(3) === 'bsp') {

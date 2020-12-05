@@ -6,7 +6,10 @@ namespace ZxImage\Plugin;
 
 trait Sam
 {
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $pixelsArray = [];
         $paletteArray = [];

@@ -11,7 +11,7 @@
   "license": "CC0-1.0",
   "type": "package",
   "require": {
-    "php": ">=7.4",
+    "php": ">=7.0",
     "moroz1999/gif-creator": "*"
   },
   "autoload": {
@@ -20,6 +20,7 @@
     }
   },
   "require-dev": {
-    "vimeo/psalm": "^3.13"
+    "vimeo/psalm": "^4",
+    "rector/rector": "^0.8.56"
   }
 }

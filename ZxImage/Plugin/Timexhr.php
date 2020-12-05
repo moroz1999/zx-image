@@ -7,11 +7,23 @@ namespace ZxImage\Plugin;
 
 class Timexhr extends Standard
 {
-    protected ?int $strictFileSize = 12289;
-    protected int $width = 512;
-    protected int $height = 384;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 12289;
+    /**
+     * @var int
+     */
+    protected $width = 512;
+    /**
+     * @var int
+     */
+    protected $height = 384;
 
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         if ($bits = $this->loadBits()) {
@@ -22,7 +34,10 @@ class Timexhr extends Standard
         return $result;
     }
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $pixelsArray = [];
         if ($this->makeHandle()) {

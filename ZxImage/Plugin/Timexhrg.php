@@ -7,9 +7,18 @@ namespace ZxImage\Plugin;
 
 class Timexhrg extends Gigascreen
 {
-    protected ?int $strictFileSize = 12289 * 2;
-    protected int $width = 512;
-    protected int $height = 384;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 12289 * 2;
+    /**
+     * @var int
+     */
+    protected $width = 512;
+    /**
+     * @var int
+     */
+    protected $height = 384;
 
     protected function parseAttributes(array $attributesArray): array
     {
@@ -54,7 +63,10 @@ class Timexhrg extends Gigascreen
         return $attributesData;
     }
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $pixelsArray = [];
         if ($this->makeHandle()) {

@@ -7,9 +7,15 @@ namespace ZxImage\Plugin;
 
 class Gigascreen extends Standard
 {
-    protected ?int $strictFileSize = 13824;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 13824;
 
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         if ($bits = $this->loadBits()) {
@@ -100,7 +106,10 @@ class Gigascreen extends Standard
         return $result;
     }
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $pixelsArray = [];
         $attributesArray = [];

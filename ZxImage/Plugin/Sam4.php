@@ -8,10 +8,22 @@ class Sam4 extends Standard
 {
     use Sam;
 
-    protected ?int $strictFileSize;
-    protected int $paletteLength = 16;
-    protected int $bitPerPixel = 4;
-    protected float $pixelRatio = 1;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize;
+    /**
+     * @var int
+     */
+    protected $paletteLength = 16;
+    /**
+     * @var int
+     */
+    protected $bitPerPixel = 4;
+    /**
+     * @var float
+     */
+    protected $pixelRatio = 1;
 
     protected function parsePixels(array $pixelsArray): array
     {

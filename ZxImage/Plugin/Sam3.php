@@ -9,12 +9,30 @@ class Sam3 extends Standard
 {
     use Sam;
 
-    protected ?int $strictFileSize;
-    protected int $width = 512;
-    protected int $height = 384;
-    protected int $paletteLength = 4;
-    protected int $bitPerPixel = 2;
-    protected float $pixelRatio = 0.5;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize;
+    /**
+     * @var int
+     */
+    protected $width = 512;
+    /**
+     * @var int
+     */
+    protected $height = 384;
+    /**
+     * @var int
+     */
+    protected $paletteLength = 4;
+    /**
+     * @var int
+     */
+    protected $bitPerPixel = 2;
+    /**
+     * @var float
+     */
+    protected $pixelRatio = 0.5;
 
     protected function parsePixels(array $pixelsArray): array
     {

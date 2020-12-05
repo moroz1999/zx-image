@@ -7,12 +7,21 @@ namespace ZxImage\Plugin;
 
 class Stellar extends Gigascreen
 {
-    protected ?int $strictFileSize = 3072;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 3072;
     protected $atrWidth = 64;
     protected $atrHeight = 48;
-    protected int $attributeHeight = 4;
+    /**
+     * @var int
+     */
+    protected $attributeHeight = 4;
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $texture = [];
         $attributesArray = [[], []];

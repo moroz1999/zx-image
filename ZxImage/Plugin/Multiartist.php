@@ -10,9 +10,15 @@ class Multiartist extends Gigascreen
     protected $mghMode = false;
     protected $borders = [];
     protected $mghMixedBorder = false;
-    protected ?int $strictFileSize;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize;
 
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         if ($bits = $this->loadBits()) {
@@ -116,7 +122,10 @@ class Multiartist extends Gigascreen
         return $result;
     }
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         if ($this->makeHandle()) {
             $length = 0;

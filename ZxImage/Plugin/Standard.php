@@ -9,7 +9,10 @@ use GifCreator\GifCreator;
 
 class Standard extends Plugin
 {
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         if ($bits = $this->loadBits()) {
@@ -33,7 +36,10 @@ class Standard extends Plugin
         return $result;
     }
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $attributesArray = [];
         if ($this->makeHandle()) {

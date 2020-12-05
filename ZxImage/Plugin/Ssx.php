@@ -6,9 +6,15 @@ namespace ZxImage\Plugin;
 
 class Ssx extends Standard
 {
-    protected ?int $strictFileSize;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize;
 
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         if ($this->makeHandle()) {
             $binary = null;

@@ -9,9 +9,15 @@ class Sxg extends Plugin
 {
     const FORMAT_256 = 2;
     const FORMAT_16 = 1;
-    protected int $sxgFormat = 2;
+    /**
+     * @var int
+     */
+    protected $sxgFormat = 2;
 
-    protected array $table = [
+    /**
+     * @var mixed[]
+     */
+    protected $table = [
         0 => 0,
         1 => 10,
         2 => 21,
@@ -39,7 +45,10 @@ class Sxg extends Plugin
         24 => 255,
     ];
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         if ($this->makeHandle()) {
             $resultBits = [

@@ -7,9 +7,15 @@ namespace ZxImage\Plugin;
 
 class Tricolor extends Standard
 {
-    protected ?int $strictFileSize = 18432;
+    /**
+     * @var int|null
+     */
+    protected $strictFileSize = 18432;
 
-    public function convert(): ?string
+    /**
+     * @return string|null
+     */
+    public function convert()
     {
         $result = null;
         if ($bits = $this->loadBits()) {
@@ -41,7 +47,10 @@ class Tricolor extends Standard
         return $result;
     }
 
-    protected function loadBits(): ?array
+    /**
+     * @return mixed[]|null
+     */
+    protected function loadBits()
     {
         $pixelsArray = [];
         if ($this->makeHandle()) {

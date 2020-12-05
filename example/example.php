@@ -46,7 +46,7 @@ if (!empty($_GET['zoom'])) {
     $zoom = (float)$_GET['zoom'];
 }
 if (!isset($zoom) || $zoom > 4) {
-    $zoom = 1.0;
+    $zoom = 1;
 }
 if (isset($_GET['cacheEnabled'])) {
     $cacheEnabled = (bool)$_GET['cacheEnabled'];

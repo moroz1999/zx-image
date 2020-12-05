@@ -8,15 +8,33 @@ interface Configurable
 {
     public function __construct(string $sourceFilePath);
 
-    public function convert(): ?string;
+    /**
+     * @return string|null
+     */
+    public function convert();
 
-    public function setBorder(int $border = null): void;
+    /**
+     * @return void
+     */
+    public function setBorder(int $border = null);
 
-    public function setPalette(string $palette): void;
+    /**
+     * @return void
+     */
+    public function setPalette(string $palette);
 
-    public function setZoom(float $zoom): void;
+    /**
+     * @return void
+     */
+    public function setZoom(float $zoom);
 
-    public function setRotation(int $rotation): void;
+    /**
+     * @return void
+     */
+    public function setRotation(int $rotation);
 
-    public function setGigascreenMode(string $mode): void;
+    /**
+     * @return void
+     */
+    public function setGigascreenMode(string $mode);
 }
