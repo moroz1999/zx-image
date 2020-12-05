@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ZxImage\Plugin;
 
 class Bmc4 extends Bsc

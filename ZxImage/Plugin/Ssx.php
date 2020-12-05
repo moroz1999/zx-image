@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ZxImage\Plugin;
 
 class Ssx extends Standard
 {
-//    use Sam;
     protected ?int $strictFileSize;
 
     public function convert(): ?string

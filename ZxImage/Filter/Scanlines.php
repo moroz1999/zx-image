@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ZxImage\Filter;
 
 class Scanlines extends Filter
@@ -18,9 +20,9 @@ class Scanlines extends Filter
                 $g = ($rgb >> 8) & 0xFF;
                 $b = $rgb & 0xFF;
 
-                $r = ceil($r * $this->interlaceMultiplier);
-                $g = ceil($g * $this->interlaceMultiplier);
-                $b = ceil($b * $this->interlaceMultiplier);
+                $r = (int)ceil($r * $this->interlaceMultiplier);
+                $g = (int)ceil($g * $this->interlaceMultiplier);
+                $b = (int)ceil($b * $this->interlaceMultiplier);
 
                 $color = $r * 0x010000 + $g * 0x0100 + $b;
 

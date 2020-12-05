@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
@@ -152,6 +154,7 @@ abstract class Plugin implements Configurable
         $palette = $this->palette;
 
         foreach ($colors as $zxColor => &$RGB) {
+            $zxColor = (string)$zxColor;
             $brightness = substr($zxColor, 0, 1);
 
             $zero = $palette['ZZ'];
@@ -164,9 +167,9 @@ abstract class Plugin implements Configurable
             $g = (1 - substr($zxColor, 1, 1)) * $zero + intval(substr($zxColor, 1, 1)) * $one;
             $b = (1 - substr($zxColor, 3, 1)) * $zero + intval(substr($zxColor, 3, 1)) * $one;
 
-            $redChannel = round(($r * $palette['R11'] + $g * $palette['R12'] + $b * $palette['R13']) / 0xFF);
-            $greenChannel = round(($r * $palette['R21'] + $g * $palette['R22'] + $b * $palette['R23']) / 0xFF);
-            $blueChannel = round(($r * $palette['R31'] + $g * $palette['R32'] + $b * $palette['R33']) / 0xFF);
+            $redChannel = (int)round(($r * $palette['R11'] + $g * $palette['R12'] + $b * $palette['R13']) / 0xFF);
+            $greenChannel = (int)round(($r * $palette['R21'] + $g * $palette['R22'] + $b * $palette['R23']) / 0xFF);
+            $blueChannel = (int)round(($r * $palette['R31'] + $g * $palette['R32'] + $b * $palette['R33']) / 0xFF);
 
             $RGB = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
         }
@@ -213,6 +216,7 @@ abstract class Plugin implements Configurable
         $palette['NZ'] = $palette['ZN'];
 
         foreach ($gigaColors as $zxColor => &$RGB) {
+            $zxColor = (string)$zxColor;
             $brightness1 = substr($zxColor, 0, 1);
             $brightness2 = substr($zxColor, 4, 1);
 
@@ -232,9 +236,9 @@ abstract class Plugin implements Configurable
                 1
             )]];
 
-            $redChannel = round(($r * $palette['R11'] + $g * $palette['R12'] + $b * $palette['R13']) / 0xFF);
-            $greenChannel = round(($r * $palette['R21'] + $g * $palette['R22'] + $b * $palette['R23']) / 0xFF);
-            $blueChannel = round(($r * $palette['R31'] + $g * $palette['R32'] + $b * $palette['R33']) / 0xFF);
+            $redChannel = (int)round(($r * $palette['R11'] + $g * $palette['R12'] + $b * $palette['R13']) / 0xFF);
+            $greenChannel = (int)round(($r * $palette['R21'] + $g * $palette['R22'] + $b * $palette['R23']) / 0xFF);
+            $blueChannel = (int)round(($r * $palette['R31'] + $g * $palette['R32'] + $b * $palette['R33']) / 0xFF);
 
             $RGB = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
         }
@@ -316,7 +320,7 @@ abstract class Plugin implements Configurable
         return $strings;
     }
 
-    protected function readByte(): ?string
+    protected function readByte(): ?int
     {
         $read = fread($this->handle, 1);
         if (feof($this->handle)) {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ZxImage\Filter;
 
 class Atari extends Filter

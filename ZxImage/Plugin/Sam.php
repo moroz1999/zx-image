@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ZxImage\Plugin;
 
 trait Sam
@@ -46,13 +48,13 @@ trait Sam
             $g = ((int)substr($clutItem, 1, 1) * 4 + (int)substr($clutItem, 5, 1) * 2 + $bright) * $m;
             $b = ((int)substr($clutItem, 3, 1) * 4 + (int)substr($clutItem, 7, 1) * 2 + $bright) * $m;
 
-            $redChannel = round(
+            $redChannel = (int)round(
                 ($r * $this->palette['R11'] + $g * $this->palette['R12'] + $b * $this->palette['R13']) / 0xFF
             );
-            $greenChannel = round(
+            $greenChannel = (int)round(
                 ($r * $this->palette['R21'] + $g * $this->palette['R22'] + $b * $this->palette['R23']) / 0xFF
             );
-            $blueChannel = round(
+            $blueChannel = (int)round(
                 ($r * $this->palette['R31'] + $g * $this->palette['R32'] + $b * $this->palette['R33']) / 0xFF
             );
 

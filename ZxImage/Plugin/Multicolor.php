@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ZxImage\Plugin;
 
 
@@ -22,8 +24,7 @@ class Multicolor extends Standard
                 }
                 $length++;
             }
-            $resultBits = ['pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray];
-            return $resultBits;
+            return ['pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray];
         }
         return null;
     }

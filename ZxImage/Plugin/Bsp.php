@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ZxImage\Plugin;
 
 
@@ -118,8 +120,6 @@ class Bsp extends Standard
     protected function loadBits(): ?array
     {
         if ($this->makeHandle()) {
-
-
             if ($this->readString(3) === 'bsp') {
                 if (($configByte = $this->readByte()) !== null) {
                     $this->hasGigaData = (boolean)($configByte & 0b10000000);

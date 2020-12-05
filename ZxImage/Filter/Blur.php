@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ZxImage\Filter;
 
 class Blur extends Filter
@@ -83,13 +85,13 @@ class Blur extends Filter
                 $g = ($rgb >> 8) & 0xFF;
                 $b = $rgb & 0xFF;
                 if ($x % 2) {
-                    $r = ceil($r * $vert1 * $int);
-                    $g = ceil($g * $vert1 * $int);
-                    $b = ceil($b * $vert1 * $int);
+                    $r = (int)ceil($r * $vert1 * $int);
+                    $g = (int)ceil($g * $vert1 * $int);
+                    $b = (int)ceil($b * $vert1 * $int);
                 } else {
-                    $r = ceil($r * $vert2 * $int);
-                    $g = ceil($g * $vert2 * $int);
-                    $b = ceil($b * $vert2 * $int);
+                    $r = (int)ceil($r * $vert2 * $int);
+                    $g = (int)ceil($g * $vert2 * $int);
+                    $b = (int)ceil($b * $vert2 * $int);
                 }
                 $color = $r * 0x010000 + $g * 0x0100 + $b;
 

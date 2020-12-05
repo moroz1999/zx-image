@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ZxImage\Plugin;
 
 
@@ -73,13 +75,13 @@ class Ulaplus extends Standard
             $g = bindec(substr($ulaColor, 0, 3)) * 32;
             $b = bindec(substr($ulaColor, 6, 2)) * 64;
 
-            $redChannel = round(
+            $redChannel = (int)round(
                 ($r * $this->palette['R11'] + $g * $this->palette['R12'] + $b * $this->palette['R13']) / 0xFF
             );
-            $greenChannel = round(
+            $greenChannel = (int)round(
                 ($r * $this->palette['R21'] + $g * $this->palette['R22'] + $b * $this->palette['R23']) / 0xFF
             );
-            $blueChannel = round(
+            $blueChannel = (int)round(
                 ($r * $this->palette['R31'] + $g * $this->palette['R32'] + $b * $this->palette['R33']) / 0xFF
             );
 
