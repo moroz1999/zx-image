@@ -7,7 +7,7 @@ use ZxImage\Filter\Filter;
 
 abstract class Plugin implements Configurable
 {
-    protected Converter $converter;
+    protected ?Converter $converter;
     /*
      * @var resource $handle
      */
@@ -15,7 +15,7 @@ abstract class Plugin implements Configurable
     protected ?int $strictFileSize = null;
     protected array $colors = [];
     protected array $gigaColors = [];
-    protected string $sourceFilePath;
+    protected ?string $sourceFilePath;
     protected ?string $sourceFileContents;
     protected string $gigascreenMode = 'mix';
     protected array $palette;
@@ -499,15 +499,15 @@ abstract class Plugin implements Configurable
 
     /**
      * @param resource $centerImage
-     * @param array $parsedData1
-     * @param array $parsedData2
+     * @param array|null $parsedData1
+     * @param array|null $parsedData2
      * @param bool $merged
      * @return resource
      */
     protected function drawBorder(
         $centerImage,
-        array $parsedData1 = null,
-        array $parsedData2 = null,
+        ?array $parsedData1 = null,
+        ?array $parsedData2 = null,
         bool $merged = false
     ) {
         if (is_numeric($this->border)) {
