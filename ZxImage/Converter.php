@@ -12,8 +12,8 @@ class Converter
     protected array $colors = [];
     protected string $gigascreenMode = 'mix';
     protected string $cachePath;
-    protected ?string $sourceFileContents = null;
-    protected string $sourceFilePath;
+    protected string $sourceFileContents = '';
+    protected string $sourceFilePath = '';
     protected string $resultFilePath;
     protected string $cacheDirMarkerPath;
     protected int $cacheDeletionPeriod = 300; //start cache clearing every 5 minutes
@@ -187,12 +187,12 @@ class Converter
 
     public function getHash(): ?string
     {
-        if (!$this->hash && (isset($this->sourceFileContents) || isset($this->sourceFilePath))) {
+        if (!$this->hash && ($this->sourceFileContents || $this->sourceFilePath)) {
             $text = '';
-            if (isset($this->sourceFilePath) && is_file($this->sourceFilePath)) {
+            if (is_file($this->sourceFilePath)) {
                 $text .= $this->sourceFilePath;
                 $text .= filemtime($this->sourceFilePath);
-            } elseif (isset($this->sourceFileContents)) {
+            } elseif ($this->sourceFileContents) {
                 $text .= md5($this->sourceFileContents);
             }
             $text .= $this->type;
