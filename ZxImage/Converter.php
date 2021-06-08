@@ -187,12 +187,12 @@ class Converter
 
     public function getHash(): ?string
     {
-        if (!$this->hash && ($this->sourceFileContents || is_file($this->sourceFilePath))) {
+        if (!$this->hash && (isset($this->sourceFileContents) || isset($this->sourceFilePath))) {
             $text = '';
-            if (is_file($this->sourceFilePath)) {
+            if (isset($this->sourceFilePath) && is_file($this->sourceFilePath)) {
                 $text .= $this->sourceFilePath;
                 $text .= filemtime($this->sourceFilePath);
-            } elseif ($this->sourceFileContents) {
+            } elseif (isset($this->sourceFileContents)) {
                 $text .= md5($this->sourceFileContents);
             }
             $text .= $this->type;
