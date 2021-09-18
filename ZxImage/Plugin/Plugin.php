@@ -25,6 +25,8 @@ abstract class Plugin implements Configurable
     protected float $zoom = 1;
     protected ?string $resultMime = null;
 
+    protected bool $usesBorder = true;
+
     protected array $preFilters = [];
     protected array $postFilters = [];
 
@@ -39,10 +41,11 @@ abstract class Plugin implements Configurable
     protected string $basePath;
 
     public function __construct(
-        string $sourceFilePath = null,
-        string $sourceFileContents = null,
+        string    $sourceFilePath = null,
+        string    $sourceFileContents = null,
         Converter $converter = null
-    ) {
+    )
+    {
         $this->sourceFilePath = $sourceFilePath;
         $this->sourceFileContents = $sourceFileContents;
         $this->converter = $converter;
@@ -513,8 +516,9 @@ abstract class Plugin implements Configurable
         ?array $parsedData1 = null,
         ?array $parsedData2 = null,
         bool $merged = false
-    ) {
-        if (is_numeric($this->border)) {
+    )
+    {
+        if ($this->usesBorder && is_numeric($this->border)) {
             $resultImage = imagecreatetruecolor(
                 $this->width + $this->borderWidth * 2,
                 $this->height + $this->borderHeight * 2

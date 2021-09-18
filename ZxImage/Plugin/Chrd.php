@@ -9,6 +9,7 @@ class Chrd extends Gigascreen
 {
     protected $colorType;
     protected ?int $strictFileSize;
+    protected bool $usesBorder = false;
 
     public function convert(): ?string
     {
