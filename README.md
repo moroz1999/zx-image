@@ -79,6 +79,7 @@ The library is also capable of working without Composer autoloader.
 * "stellar" - ZX Spectrum graphics mode combining multicolour and 128K screen switching to produce 4x4-pixel blocks of alternating bright and dark colours, giving an effective palette of 64 colours at 64x48 resolution with no attribute restrictions and no flicker. First achieved by RST7 in Eye Ache 2 for Pentagon machines, and re-implemented for original Spectrums by Gasman in Buttercream Sputnik.
 * "atmega" - ATM Turbo 2+ EGA graphics mode. 32128 file containing pixel data and palette.
 * "nxi" - ZX Spectrum Next nxi file. 49664 file containing 512 bytes of RGB333 palette and 256*192 bytes of pixels.
+* "grf" - Profi GRF file (partial support for hi-res 16 colors mode)
 
 ## License
 Creative Commons Zero v1.0 Universal
