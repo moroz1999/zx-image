@@ -3,3 +3,5 @@
 /example/ export-ignore
 /.gitattributes export-ignore
 /.gitignore export-ignore
+/psalm.xml export-ignore
+/psalm.bat export-ignore

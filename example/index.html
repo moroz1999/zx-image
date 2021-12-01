@@ -1,29 +1,150 @@
-<h1>Image without disk cache used</h1>
-<img src="example-nocache.php">
+<!DOCTYPE html>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #000;
+        color: #fff;
+    }
 
-<h1>Image with disk cache used</h1>
-<img src="example-cache.php">
+    h1, h2 {
+        margin: 3em 0 1em;
+    }
+</style>
+<body>
+<h1>Caching</h1>
+<h2>Image without disk cache used</h2>
+<img src="example.php?cacheEnabled=0">
 
-<h1>Image with zoom 0.5</h1>
-<img src="example-zoom05.php">
+<h2>Image with disk cache used</h2>
+<img src="example.php?cacheEnabled=1">
 
-<h1>Image with zoom 2</h1>
-<img src="example-zoom2.php">
+<h1>Zoom</h1>
+<h2>Image with zoom 0.5</h2>
+<img src="example.php?zoom=0.5">
 
-<h1>Image with zoom 3</h1>
-<img src="example-zoom3.php">
+<h2>Image with zoom 2</h2>
+<img src="example.php?zoom=2">
 
-<h1>Image with border</h1>
-<img src="example-border.php">
+<h2>Image with zoom 3</h2>
+<img src="example.php?zoom=3">
 
-<h1>Image with zoom 2 and blur postfilter</h1>
-<img src="example-blur.php">
+<h1>Border</h1>
+<h2>Image with border</h2>
+<img src="example.php?border=5">
 
-<h1>Image with zoom 2 and scanlines postfilter</h1>
-<img src="example-scanlines.php">
+<h1>Postfilters</h1>
+<h2>Image with zoom 2 and blur postfilter</h2>
+<img src="example.php?postfilter=blur">
 
-<h1>Image with zoom 2 and atari-like prefilter</h1>
-<img src="example-atari.php">
+<h2>Image with zoom 2 and scanlines postfilter</h2>
+<img src="example.php?postfilter=scanlines&zoom=2">
 
-<h1>ZX Spectrum Next .nxi file</h1>
-<img src="example-nxi.php">
+<h1>Prefilters</h1>
+<h2>Image with zoom 2 and atari-like prefilter</h2>
+<img src="example.php?prefilter=atari&zoom=2">
+
+<h1>Supported formats</h1>
+<h2>ZX Spectrum ULA+ .scr file</h2>
+<img src="example.php?type=ulaplus&file=ulaplus.scr">
+
+<h2>ZX Spectrum Hardware Flash .scr file</h2>
+<img src="example.php?type=flash&file=hwflash.scr">
+
+<h2>ZX Spectrum Monochrome 6144 .scr file</h2>
+<img src="example.php?type=monochrome&file=monochrome.scr">
+
+<h2>ZX Spectrum RGB Tricolor .3 file</h2>
+<img src="example.php?type=tricolor&file=example.3">
+
+<h2>ZX Spectrum Multicolor 8*2 .ifl file</h2>
+<img src="example.php?type=multicolor&file=example.ifl">
+
+<h2>ZX Spectrum Multicolor 8*4 ? file</h2>
+Sample is needed
+
+<h2>ZX Spectrum Multicolor 8*1 .mlt file</h2>
+<img src="example.php?type=mlt&file=example.mlt">
+
+<h2>ZX Spectrum Multicolor 8*1 .mc file</h2>
+<img src="example.php?type=mc&file=example.mc">
+
+<h2>ZX Spectrum Screen with Multicolor border .bsc file</h2>
+<img src="example.php?type=bsc&border=1&file=example.bsc">
+
+<h2>ZX Spectrum Gigascreen with Multicolor border .bsp file</h2>
+<img src="example.php?type=bsp&border=1&file=example.bsp">
+
+<h2>ZX Spectrum Multicolor Screen with Multicolor border .bmc4 file</h2>
+<img src="example.php?type=bmc4&border=1&file=example.bmc4">
+
+<h2>ZX Spectrum Gigascreen .img file</h2>
+<img src="example.php?type=gigascreen&file=example.img">
+
+<h2>ZX Spectrum Gigascreen with Multicolor 8*1 .mg1 file</h2>
+<img src="example.php?type=mg1&file=example.mg1">
+
+<h2>ZX Spectrum Gigascreen with Multicolor 8*2 .mg2 file</h2>
+<img src="example.php?type=mg2&file=example.mg2">
+
+<h2>ZX Spectrum Gigascreen with Multicolor 8*4 .mg4 file</h2>
+<img src="example.php?type=mg4&file=example.mg4">
+
+<h2>ZX Spectrum Gigascreen .mg8 file</h2>
+<img src="example.php?type=mg8&file=example.mg8">
+
+<h2>ZX Spectrum 53c attributes .atr file</h2>
+<img src="example.php?type=attributes&file=example.atr">
+
+<h2>ZX Spectrum Gigascreen attributes .hlr file</h2>
+<img src="example.php?type=lowresgs&file=example.hlr">
+
+<h2>ZX Spectrum Stellar (lowres interlaced gigascreen+multicolor) .stl file</h2>
+<img src="example.php?type=stellar&file=example.stl">
+
+<h2>ZX Spectrum Macroscreen with optional Gigascreen .ch$ file</h2>
+<img src="example.php?type=chrd&file=example.ch$">
+
+<h2>ZX Spectrum Next .nxi file</h2>
+<img src="example.php?type=nxi&file=example.nxi">
+
+<h2>ZX Evolution baseconf .bmp file</h2>
+<img src="example.php?type=zxevo&file=example.bmp">
+
+<h2>ZX Evolution tsconf .sxg file</h2>
+<img src="example.php?type=sxg&file=example.sxg">
+
+<h2>Sam Coupe SS3 (mode3)</h2>
+Sample is needed
+<!--<img src="example.php?type=sam3&file=sam.ss3">-->
+
+<h2>Sam Coupe SS4 (mode4)</h2>
+<img src="example.php?type=sam4&file=sam.ss4">
+
+<h2>Sam Coupe SSX (mode1)</h2>
+<img src="example.php?type=ssx&file=mode1.ssx">
+
+<h2>Sam Coupe SSX (mode2)</h2>
+<img src="example.php?type=ssx&file=mode2.ssx">
+
+<h2>Sam Coupe SSX (mode3)</h2>
+<img src="example.php?type=ssx&file=mode3.ssx">
+
+<h2>Sam Coupe SSX (mode4)</h2>
+<img src="example.php?type=ssx&file=mode4.ssx">
+
+<h2>Sam Coupe SSX (raw)</h2>
+<img src="example.php?type=ssx&file=raw.ssx">
+
+<h2>Timex Multicolor 8*1 .scr file</h2>
+<img src="example.php?type=timex81&file=timex81.scr">
+
+<h2>Timex hires 512x192 .scr file</h2>
+<img src="example.php?type=timexhr&file=timexhr.scr">
+
+<h2>Timex hires gigascreen 512x192 .scr file</h2>
+<img src="example.php?type=timexhrg&file=example.hrg">
+
+<h2>Profi GRF (512х240, 16 colors)</h2>
+<img src="example.php?type=grf&file=NewProject.grf">
+
+</body>

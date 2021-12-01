@@ -4,24 +4,24 @@ PHP-based ZX Spectrum images parsing into PNG/GIF. Supports animation, supports 
 ## Basic usage example
 ```php
 <?php
-include_once('src/ZxImage/Converter.php');
+include_once('ZxImage/Converter.php');
 
 $converter = new \ZxImage\Converter();
 $converter->setType('standard');
 $converter->setPath('example.scr'); //
 $converter->setBorder(5); //cyan
-$converter->setSize(2); //2 for 320*240 (256*192 with border)
+$converter->setZoom(1); //1 for 320*240 (256*192 with border)
 
 //convert and return image data
 if ($binary = $converter->getBinary()) {
     //after conversion we can ask for a mime type of last operation and send it to browser
-    $imageType = $converter->getResultMime();
-    header('Content-Type: ' . $imageType);
+    if ($imageType = $converter->getResultMime()) {
+        header('Content-Type: ' . $imageType);
+    }
 
     //send image contents to browser
     echo $binary;
 }
-
 ```
 
 ## File cache setup example
@@ -76,7 +76,7 @@ The library is also capable of working without Composer autoloader.
 * "timex81" - Timex multicolor 8*1 screen. Size: 12288. 6144 bytes of non-linear pixel data, 6144 bytes of attributes in non-linear format (Timex screen memory dump).
 * "timexhr" - Timex hi-res 512*192 screen. Size: 12289. 6144 bytes of odd columns pixel data, 6144 bytes of even columns pixel data, 1 byte of color information.  
 * "timexhrg" - Timex hi-res gigascreen 512*192 screen. Size: 24578. Two timexhr screens one by one  
-* "stellar" - ZX Spectrum graphics mode combining multicolour and 128K screen switching to produce 4x4-pixel blocks of alternating bright and dark colours, giving an effective palette of 64 colours at 64x48 resolution with no attribute restrictions and no flicker. First achieved by RST7 in Eye Ache 2 for Pentagon machines, and re-implemented for original Spectrums by Gasman in Buttercream Sputnik..
+* "stellar" - ZX Spectrum graphics mode combining multicolour and 128K screen switching to produce 4x4-pixel blocks of alternating bright and dark colours, giving an effective palette of 64 colours at 64x48 resolution with no attribute restrictions and no flicker. First achieved by RST7 in Eye Ache 2 for Pentagon machines, and re-implemented for original Spectrums by Gasman in Buttercream Sputnik.
 * "atmega" - ATM Turbo 2+ EGA graphics mode. 32128 file containing pixel data and palette.
 * "nxi" - ZX Spectrum Next nxi file. 49664 file containing 512 bytes of RGB333 palette and 256*192 bytes of pixels.
 

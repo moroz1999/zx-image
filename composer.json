@@ -11,12 +11,15 @@
   "license": "CC0-1.0",
   "type": "package",
   "require": {
-    "php": ">=7.0",
+    "php": ">=7.4",
     "moroz1999/gif-creator": "*"
   },
   "autoload": {
-    "psr-0": {
-      "ZxImage": "src/"
+    "psr-4": {
+      "ZxImage\\": "ZxImage/"
     }
+  },
+  "require-dev": {
+    "vimeo/psalm": "^3.13"
   }
 }
