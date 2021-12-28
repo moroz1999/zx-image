@@ -447,7 +447,7 @@ abstract class Plugin implements Configurable
             $dstWidth = $srcWidth * 3;
             $dstHeight = $srcHeight * 3;
         }
-        $this->applyPreFilters($srcImage);
+        $srcImage = $this->applyPreFilters($srcImage);
 
         if ($this->zoom == 1) {
             $dstImage = $srcImage;
@@ -458,7 +458,7 @@ abstract class Plugin implements Configurable
 
             imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
         }
-        $this->applyPostFilters($srcImage, $dstImage);
+        $dstImage = $this->applyPostFilters($srcImage, $dstImage);
 
         imagegammacorrect($dstImage, 1.0, 2.2);
 
@@ -468,7 +468,7 @@ abstract class Plugin implements Configurable
     /**
      * @param resource $srcImage
      */
-    protected function applyPreFilters($srcImage): void
+    protected function applyPreFilters($srcImage)
     {
         foreach ($this->preFilters as $filterType) {
             $filterType = ucfirst($filterType);
@@ -482,13 +482,14 @@ abstract class Plugin implements Configurable
                 $srcImage = $filter->apply($srcImage);
             }
         }
+        return $srcImage;
     }
 
     /**
      * @param resource $srcImage
      * @param resource $dstImage
      */
-    protected function applyPostFilters($srcImage, $dstImage = null): void
+    protected function applyPostFilters($srcImage, $dstImage)
     {
         foreach ($this->postFilters as $filterType) {
             $filterType = ucfirst($filterType);
@@ -502,6 +503,7 @@ abstract class Plugin implements Configurable
                 $dstImage = $filter->apply($dstImage, $srcImage);
             }
         }
+        return $dstImage;
     }
 
     /**

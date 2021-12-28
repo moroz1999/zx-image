@@ -113,6 +113,7 @@ class Grf extends Standard
                 imagesetpixel($image, $x, $y, $color);
             }
         }
+//        imagegammacorrect($image, 1.0, 2.2);
 
         $resultImage = $this->resizeAspect($image);
         $resultImage = $this->resizeImage($resultImage);
@@ -137,10 +138,9 @@ class Grf extends Standard
         imagealphablending($dstImage, false);
         imagesavealpha($dstImage, true);
 
-        imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
+        imagecopyresized($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
         imagegammacorrect($dstImage, 1.0, 2.2);
 
         return $dstImage;
     }
-
 }
