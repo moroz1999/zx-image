@@ -34,34 +34,25 @@ class Zxevo extends Plugin
             }
 
             $gdObject = imagecreatefrombmp($this->sourceFilePath);
-            return $gdObject;
+            $colorsAmount = imagecolorstotal($gdObject);
+            if ($colorsAmount <= 16 && $colorsAmount !== 0) {
+                return $gdObject;
+            }
         }
         return null;
     }
 
     protected function adjustImage($image)
     {
-        for ($x = 0; $x < $this->width; $x++) {
-            for ($y = 0; $y < $this->height; $y++) {
-                $rgb = imagecolorat($image, $x, $y);
+        $colorsAmount = imagecolorstotal($image);
+        for ($i = 0; $i < $colorsAmount; $i++) {
+            $color = imagecolorsforindex($image, $i);
 
-                $r = ($rgb >> 16) & 0xFF;
-                $g = ($rgb >> 8) & 0xFF;
-                $b = $rgb & 0xFF;
+            $color['red'] = (int)round($color['red'] / 85) * 85;
+            $color['green'] = (int)round($color['green'] / 85) * 85;
+            $color['blue'] = (int)round($color['blue'] / 85) * 85;
 
-                $redChannel = (int)round(
-                    ($r * $this->palette['R11'] + $g * $this->palette['R12'] + $b * $this->palette['R13']) / 0xFF
-                );
-                $greenChannel = (int)round(
-                    ($r * $this->palette['R21'] + $g * $this->palette['R22'] + $b * $this->palette['R23']) / 0xFF
-                );
-                $blueChannel = (int)round(
-                    ($r * $this->palette['R31'] + $g * $this->palette['R32'] + $b * $this->palette['R33']) / 0xFF
-                );
-
-                $color = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
-                imagesetpixel($image, $x, $y, $color);
-            }
+            imagecolorset($image, $i, $color['red'],  $color['green'],  $color['blue']);
         }
 
         $resultImage = $this->resizeImage($image);

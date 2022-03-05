@@ -98,6 +98,7 @@ class Grf extends Standard
             $greenChannel = bindec(substr($clutItem, 0, 3)) * 36;
             $redChannel = bindec(substr($clutItem, 3, 3)) * 36;
             $blueChannel = bindec(substr($clutItem, 6, 2)) * 85;
+
             $parsedData['colorsData'][] = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
         }
 
@@ -113,7 +114,6 @@ class Grf extends Standard
                 imagesetpixel($image, $x, $y, $color);
             }
         }
-//        imagegammacorrect($image, 1.0, 2.2);
 
         $resultImage = $this->resizeAspect($image);
         $resultImage = $this->resizeImage($resultImage);
@@ -132,7 +132,7 @@ class Grf extends Standard
         imagegammacorrect($srcImage, 2.2, 1.0);
 
         $dstWidth = $srcWidth;
-        $dstHeight = (int)($srcHeight * 1.7);
+        $dstHeight = (int)($srcHeight * 1.6384);
 
         $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
         imagealphablending($dstImage, false);
