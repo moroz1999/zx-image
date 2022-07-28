@@ -143,7 +143,7 @@ class Converter
     {
         if (is_numeric($zoom)) {
             $zoom = floatval($zoom);
-            if ($zoom >= 0.25 && $zoom <= 3) {
+            if ($zoom >= 0.25 && $zoom <= 4) {
                 $this->zoom = $zoom;
             }
         }
@@ -165,13 +165,18 @@ class Converter
     public function getResultMime(): ?string
     {
         $resultMime = null;
-        if ($this->resultMime) {
-            $resultMime = $this->resultMime;
-        } elseif ($this->cacheEnabled) {
+        if ($this->cacheEnabled) {
             if ($resultFilePath = $this->getCacheFileName()) {
                 if (is_file($resultFilePath) && ($info = getimagesize($resultFilePath))) {
                     $resultMime = $info['mime'];
                 }
+            }
+        } else {
+            if (!$this->resultMime){
+                $this->generateBinary();
+            }
+            if ($this->resultMime) {
+                $resultMime = $this->resultMime;
             }
         }
         return $resultMime;
