@@ -434,18 +434,9 @@ abstract class Plugin implements Configurable
 
         $dstWidth = $srcWidth;
         $dstHeight = $srcHeight;
-        if ($this->zoom == 0.25) {
-            $dstWidth = $srcWidth / 4;
-            $dstHeight = $srcHeight / 4;
-        } elseif ($this->zoom == 0.5) {
-            $dstWidth = $srcWidth / 2;
-            $dstHeight = $srcHeight / 2;
-        } elseif ($this->zoom == 2) {
-            $dstWidth = $srcWidth * 2;
-            $dstHeight = $srcHeight * 2;
-        } elseif ($this->zoom == 3) {
-            $dstWidth = $srcWidth * 3;
-            $dstHeight = $srcHeight * 3;
+        if (in_array($this->zoom, [0.25, 0.5, 2, 3, 4])) {
+            $dstWidth = (int)($srcWidth * $this->zoom);
+            $dstHeight = (int)($srcHeight * $this->zoom);
         }
         $srcImage = $this->applyPreFilters($srcImage);
 
