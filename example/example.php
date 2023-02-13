@@ -82,7 +82,7 @@ if ($border !== null) {
 //$converter->addPostFilter('MinSize384');
 //convert and return image data
 if ($binary = $converter->getBinary()) {
-    //after conversion we can ask for a mime type of last operation and send it to browser
+    //after conversion, we can ask for a mime type of last operation and send it to browser
     if ($imageType = $converter->getResultMime()) {
         header('Content-Type: ' . $imageType);
     }
