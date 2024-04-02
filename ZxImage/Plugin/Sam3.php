@@ -48,7 +48,13 @@ class Sam3 extends Standard
         $image = imagecreatetruecolor($this->width, $this->height);
         foreach ($parsedData['pixelsData'] as $y => &$row) {
             foreach ($row as $x => $pixel) {
-                $color = $parsedData['colorsData'][bindec($pixel)];
+                $colorNumber = bindec($pixel);
+                if ($colorNumber === 1) {
+                    $colorNumber = 2;
+                } elseif ($colorNumber === 2) {
+                    $colorNumber = 1;
+                }
+                $color = $parsedData['colorsData'][$colorNumber];
                 imagesetpixel($image, $x, $y * 2, $color);
                 imagesetpixel($image, $x, $y * 2 + 1, $color);
             }
@@ -56,7 +62,6 @@ class Sam3 extends Standard
 
         $resultImage = $this->drawBorder($image, $parsedData);
         $resultImage = $this->resizeImage($resultImage);
-        $resultImage = $this->checkRotation($resultImage);
-        return $resultImage;
+        return $this->checkRotation($resultImage);
     }
 }

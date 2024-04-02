@@ -34,15 +34,15 @@ trait Sam
     {
         $parsedData = [];
         $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
-        $parsedData['colorsData'] = $this->parseSam4Palette($data['paletteArray']);
+        $parsedData['colorsData'] = $this->parseSamPalette($data['paletteArray']);
         return $parsedData;
     }
 
-    protected function parseSam4Palette($paletteArray)
+    protected function parseSamPalette($paletteArray)
     {
         $m = 36;
         $paletteData = [];
-        foreach ($paletteArray as &$clutItem) {
+        foreach ($paletteArray as $clutItem) {
             $bright = (int)substr($clutItem, 4, 1);
             $r = ((int)substr($clutItem, 2, 1) * 4 + (int)substr($clutItem, 6, 1) * 2 + $bright) * $m;
             $g = ((int)substr($clutItem, 1, 1) * 4 + (int)substr($clutItem, 5, 1) * 2 + $bright) * $m;
