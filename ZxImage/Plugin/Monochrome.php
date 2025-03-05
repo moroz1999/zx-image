@@ -7,8 +7,8 @@ namespace ZxImage\Plugin;
 
 class Monochrome extends Standard
 {
-    protected $inkColorZX = '000';
-    protected $paperColorZX = '111';
+    protected $inkColorZX = '111';
+    protected $paperColorZX = '000';
     protected $brightnessZX = '1';
     protected ?int $strictFileSize = 6144;
 

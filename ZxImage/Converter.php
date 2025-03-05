@@ -286,13 +286,11 @@ class Converter
             } else {
                 $result = file_get_contents($resultFilePath);
             }
-
-            $this->checkCacheClearing();
         }
         return $result;
     }
 
-    protected function checkCacheClearing(): void
+    public function checkCacheClearing(): void
     {
         if ($date = $this->getCacheLastClearedDate()) {
             $now = time();

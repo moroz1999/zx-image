@@ -170,7 +170,7 @@ class Standard extends Plugin
         return $gc->getGif();
     }
 
-    protected function interlaceMix(&$image1, &$image2, $lineHeight)
+    protected function interlaceMix($image1, $image2, $lineHeight)
     {
         $multiplier = 1;
         if ($this->zoom == '3' || $this->zoom == '4') {
