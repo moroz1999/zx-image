@@ -125,8 +125,8 @@ class Standard extends Plugin
     protected function exportData(array $parsedData, bool $flashedImage = false)
     {
         $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($parsedData['pixelsData'] as $y => &$row) {
-            foreach ($row as $x => &$pixel) {
+        foreach ($parsedData['pixelsData'] as $y => $row) {
+            foreach ($row as $x => $pixel) {
                 $mapPositionX = (int)($x / $this->attributeWidth);
                 $mapPositionY = (int)($y / $this->attributeHeight);
 
@@ -150,8 +150,7 @@ class Standard extends Plugin
 
         $resultImage = $this->drawBorder($image, $parsedData);
         $resultImage = $this->resizeImage($resultImage);
-        $resultImage = $this->checkRotation($resultImage);
-        return $resultImage;
+        return $this->checkRotation($resultImage);
     }
 
     protected function getRightPaletteGif($srcImage)
