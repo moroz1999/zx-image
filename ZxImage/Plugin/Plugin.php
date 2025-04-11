@@ -310,6 +310,13 @@ abstract class Plugin implements Configurable
         return false;
     }
 
+    protected function seek(int $offset): void
+    {
+        if ($this->handle) {
+            fseek($this->handle, $offset);
+        }
+    }
+
     protected function read8BitStrings(int $length = 1): array
     {
         $strings = [];
