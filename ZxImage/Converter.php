@@ -44,44 +44,44 @@ class Converter
         $this->basePath = pathinfo((__FILE__), PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR;
     }
 
-    public function setSourceFileContents(string $sourceFileContents): Converter
+    public function setSourceFileContents(string $sourceFileContents): self
     {
         $this->sourceFileContents = $sourceFileContents;
         return $this;
     }
 
-    public function setCacheEnabled(bool $cacheEnabled): Converter
+    public function setCacheEnabled(bool $cacheEnabled): self
     {
         $this->cacheEnabled = $cacheEnabled;
         return $this;
     }
 
-    public function setCachePath(string $cachePath): Converter
+    public function setCachePath(string $cachePath): self
     {
         $this->cachePath = $cachePath . DIRECTORY_SEPARATOR;
         $this->cacheDirMarkerPath = $this->cachePath . DIRECTORY_SEPARATOR . '_marker';
         return $this;
     }
 
-    public function setCacheExpirationLimit(int $cacheExpirationLimit): Converter
+    public function setCacheExpirationLimit(int $cacheExpirationLimit): self
     {
         $this->cacheExpirationLimit = $cacheExpirationLimit;
         return $this;
     }
 
-    public function setCacheDeletionAmount(int $cacheDeletionAmount): Converter
+    public function setCacheDeletionAmount(int $cacheDeletionAmount): self
     {
         $this->cacheDeletionAmount = $cacheDeletionAmount;
         return $this;
     }
 
-    public function setCacheDeletionPeriod(int $cacheDeletionPeriod): Converter
+    public function setCacheDeletionPeriod(int $cacheDeletionPeriod): self
     {
         $this->cacheDeletionPeriod = $cacheDeletionPeriod;
         return $this;
     }
 
-    public function setGigascreenMode(string $mode): Converter
+    public function setGigascreenMode(string $mode): self
     {
         if ($mode === 'flicker' || $mode === 'interlace2' || $mode === 'interlace1' || $mode === 'mix') {
             $this->gigascreenMode = $mode;
@@ -89,7 +89,7 @@ class Converter
         return $this;
     }
 
-    public function setRotation(int $rotation): Converter
+    public function setRotation(int $rotation): self
     {
         if (in_array($rotation, [0, 90, 180, 270])) {
             $this->rotation = $rotation;
@@ -97,29 +97,29 @@ class Converter
         return $this;
     }
 
-    public function addPreFilter(string $type): Converter
+    public function addPreFilter(string $type): self
     {
         $this->preFilters[] = $type;
         return $this;
     }
 
-    public function addPostFilter(string $type): Converter
+    public function addPostFilter(string $type): self
     {
         $this->postFilters[] = $type;
         return $this;
     }
 
-    public function setPalette(string $palette): Converter
+    public function setPalette(string $palette): self
     {
-        if ($palette == 'orthodox') {
+        if ($palette === 'orthodox') {
             $this->palette = $this->palette2;
-        } elseif ($palette == 'alone') {
+        } elseif ($palette === 'alone') {
             $this->palette = $this->palette3;
-        } elseif ($palette == 'electroscale') {
+        } elseif ($palette === 'electroscale') {
             $this->palette = $this->palette4;
-        } elseif ($palette == 'srgb') {
+        } elseif ($palette === 'srgb') {
             $this->palette = $this->palette5;
-        } elseif ($palette == 'pulsar') {
+        } elseif ($palette === 'pulsar') {
             $this->palette = $this->palette1;
         } else {
             $this->palette = $this->palette5;
@@ -127,9 +127,9 @@ class Converter
         return $this;
     }
 
-    public function setBorder(int $border = null): Converter
+    public function setBorder(?int $border = null): self
     {
-        if ($border >= 0 && $border < 8 || $border === null) {
+        if (($border >= 0 && $border < 8) || $border === null) {
             $this->border = $border;
         }
         return $this;
@@ -139,24 +139,21 @@ class Converter
      * @param $zoom
      * @return $this
      */
-    public function setZoom(float $zoom): Converter
+    public function setZoom(float $zoom): self
     {
-        if (is_numeric($zoom)) {
-            $zoom = floatval($zoom);
-            if ($zoom >= 0.25 && $zoom <= 4) {
-                $this->zoom = $zoom;
-            }
+        if ($zoom >= 0.25 && $zoom <= 4) {
+            $this->zoom = $zoom;
         }
         return $this;
     }
 
-    public function setType(string $type): Converter
+    public function setType(string $type): self
     {
         $this->type = $type;
         return $this;
     }
 
-    public function setPath(string $path): Converter
+    public function setPath(string $path): self
     {
         $this->sourceFilePath = $path;
         return $this;
@@ -239,20 +236,20 @@ class Converter
     {
         if (!$this->cacheEnabled) {
             return $this->generateBinary();
-        } else {
-            return $this->generateCacheFile();
         }
+
+        return $this->generateCacheFile();
     }
 
     public function generateBinary(): ?string
     {
         $result = null;
-        if ($this->type == 'mg1' || $this->type == 'mg2' || $this->type == 'mg4' || $this->type == 'mg8') {
+        if ($this->type === 'mg1' || $this->type === 'mg2' || $this->type === 'mg4' || $this->type === 'mg8') {
             $className = 'multiartist';
-        } elseif ($this->type == 'chr$') {
+        } elseif ($this->type === 'chr$') {
             $className = 'chrd';
         } else {
-            $className = '' . $this->type;
+            $className = $this->type;
         }
         $className = __NAMESPACE__ . '\\Plugin\\' . ucfirst($className);
         if (class_exists($className)) {

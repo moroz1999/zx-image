@@ -50,7 +50,7 @@ class Sca extends Standard
                 $this->seek($dataPointer);
 
                 for ($i = 0; $i < $framesAmount; $i++) {
-                    $this->delays[] = (int)($this->readByte() * (50 / 1000));
+                    $this->delays[] = (int)($this->readByte() * (100 / 50));
                 }
 
                 for ($i = 0; $i < $framesAmount; $i++) {

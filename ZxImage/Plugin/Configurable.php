@@ -10,7 +10,7 @@ interface Configurable
 
     public function convert(): ?string;
 
-    public function setBorder(int $border = null): void;
+    public function setBorder(?int $border = null): void;
 
     public function setPalette(string $palette): void;
 

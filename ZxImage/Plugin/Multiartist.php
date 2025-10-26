@@ -21,7 +21,7 @@ class Multiartist extends Gigascreen
 
             $gifImages = [];
 
-            if ($this->gigascreenMode == 'flicker' || $this->gigascreenMode == 'interlace1' || $this->gigascreenMode == 'interlace2') {
+            if ($this->gigascreenMode === 'flicker' || $this->gigascreenMode === 'interlace1' || $this->gigascreenMode === 'interlace2') {
                 if (count($parsedData1['attributesData']['flashMap']) > 0 || count(
                         $parsedData2['attributesData']['flashMap']
                     ) > 0
@@ -38,10 +38,10 @@ class Multiartist extends Gigascreen
                     $this->border = $this->borders[1];
                     $image2f = $this->exportData($parsedData2, true);
 
-                    if ($this->gigascreenMode == 'interlace1') {
+                    if ($this->gigascreenMode === 'interlace1') {
                         $this->interlaceMix($image1, $image2, 1);
                         $this->interlaceMix($image1f, $image2f, 1);
-                    } elseif ($this->gigascreenMode == 'interlace2') {
+                    } elseif ($this->gigascreenMode === 'interlace2') {
                         $this->interlaceMix($image1, $image2, 2);
                         $this->interlaceMix($image1f, $image2f, 2);
                     }
@@ -77,9 +77,9 @@ class Multiartist extends Gigascreen
                     $this->border = $this->borders[1];
                     $image2 = $this->exportData($parsedData2, false);
 
-                    if ($this->gigascreenMode == 'interlace1') {
+                    if ($this->gigascreenMode === 'interlace1') {
                         $this->interlaceMix($image1, $image2, 1);
-                    } elseif ($this->gigascreenMode == 'interlace2') {
+                    } elseif ($this->gigascreenMode === 'interlace2') {
                         $this->interlaceMix($image1, $image2, 2);
                     }
 
@@ -162,7 +162,7 @@ class Multiartist extends Gigascreen
                 $attributesLength = 768;
             }
 
-            if ($signature == 'MGH' && $version == '1') {
+            if ($signature === 'MGH' && $version == '1') {
                 $firstImage = [];
                 $secondImage = [];
 
@@ -301,8 +301,8 @@ class Multiartist extends Gigascreen
 
     protected function drawBorder(
         $centerImage,
-        array $parsedData1 = null,
-        array $parsedData2 = null,
+        ?array $parsedData1 = null,
+        ?array $parsedData2 = null,
         bool $merged = false
     ) {
         if (is_numeric($this->borders[0]) && is_numeric($this->borders[1]) && $this->mghMixedBorder == true) {

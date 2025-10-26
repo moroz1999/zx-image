@@ -50,8 +50,8 @@ class Bsc extends Standard
 
     protected function drawBorder(
         $centerImage,
-        array $parsedData1 = null,
-        array $parsedData2 = null,
+        ?array $parsedData1 = null,
+        ?array $parsedData2 = null,
         bool $merged = false
     ) {
         if (is_numeric($this->border)) {

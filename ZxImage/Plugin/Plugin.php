@@ -41,9 +41,9 @@ abstract class Plugin implements Configurable
     protected string $basePath;
 
     public function __construct(
-        string    $sourceFilePath = null,
-        string    $sourceFileContents = null,
-        Converter $converter = null
+        ?string    $sourceFilePath = null,
+        ?string    $sourceFileContents = null,
+        ?Converter $converter = null
     )
     {
         $this->sourceFilePath = $sourceFilePath;
@@ -72,7 +72,7 @@ abstract class Plugin implements Configurable
         $this->postFilters = $filters;
     }
 
-    public function setBorder(int $border = null): void
+    public function setBorder(?int $border = null): void
     {
         $this->border = $border;
     }
@@ -89,7 +89,7 @@ abstract class Plugin implements Configurable
 
     public function setGigascreenMode(string $mode): void
     {
-        if ($mode == 'flicker' || $mode == 'interlace2' || $mode == 'interlace1') {
+        if ($mode === 'flicker' || $mode === 'interlace2' || $mode === 'interlace1') {
             $this->gigascreenMode = $mode;
         }
     }
@@ -101,7 +101,7 @@ abstract class Plugin implements Configurable
         $this->generateGigaColors();
     }
 
-    protected function parsePalette($palette)
+    protected function parsePalette($palette): void
     {
         $paletteData = explode(':', $palette);
         $baseColors = explode(',', $paletteData[0]);
@@ -134,7 +134,7 @@ abstract class Plugin implements Configurable
         $this->palette = $result;
     }
 
-    protected function generateColors()
+    protected function generateColors(): void
     {
         $colors = [
             '0000' => 0,
@@ -157,12 +157,12 @@ abstract class Plugin implements Configurable
         $palette = $this->palette;
 
         foreach ($colors as $zxColor => &$RGB) {
-            $zxColor = (string)$zxColor;
+            $zxColor = $zxColor;
             $brightness = substr($zxColor, 0, 1);
 
             $zero = $palette['ZZ'];
             $one = $palette['NN'];
-            if ($brightness == '1') {
+            if ($brightness === '1') {
                 $one = $palette['BB'];
             }
 
@@ -180,7 +180,7 @@ abstract class Plugin implements Configurable
         $this->colors = $colors;
     }
 
-    protected function generateGigaColors()
+    protected function generateGigaColors(): void
     {
         $colors = [];
         $colors[] = '0000';
@@ -202,8 +202,8 @@ abstract class Plugin implements Configurable
 
         $palette = $this->palette;
         $gigaColors = [];
-        foreach ($colors as &$zxColor1) {
-            foreach ($colors as &$zxColor2) {
+        foreach ($colors as $zxColor1) {
+            foreach ($colors as $zxColor2) {
                 $gigaColors[$zxColor1 . $zxColor2] = 0;
             }
         }
@@ -275,15 +275,13 @@ abstract class Plugin implements Configurable
         $this->resultMime = 'image/png';
         ob_start();
         imagepng($image);
-        $binary = ob_get_contents();
-        ob_end_clean();
-        return $binary;
+        return ob_get_clean();
     }
 
     /**
      * @return mixed
      */
-    public function getResultMime()
+    public function getResultMime(): mixed
     {
         return $this->resultMime;
     }
@@ -294,7 +292,7 @@ abstract class Plugin implements Configurable
             if (!isset($this->strictFileSize)) {
                 $this->strictFileSize = filesize($this->sourceFilePath);
             }
-            if ($this->strictFileSize == filesize($this->sourceFilePath)) {
+            if ($this->strictFileSize === filesize($this->sourceFilePath)) {
                 $this->handle = fopen($this->sourceFilePath, "rb");
                 return true;
             }
@@ -302,7 +300,7 @@ abstract class Plugin implements Configurable
             if (!isset($this->strictFileSize)) {
                 $this->strictFileSize = strlen($this->sourceFileContents);
             }
-            $this->handle = fopen('php://memory', 'w+');
+            $this->handle = fopen('php://memory', 'wb+');
             fwrite($this->handle, $this->sourceFileContents);
             rewind($this->handle);
             return true;
@@ -336,9 +334,9 @@ abstract class Plugin implements Configurable
         if (feof($this->handle)) {
             fclose($this->handle);
             return null;
-        } else {
-            return ord($read);
         }
+
+        return ord($read);
     }
 
     protected function read16BitStrings(int $length = 1, $bigEndian = true): array
@@ -360,9 +358,9 @@ abstract class Plugin implements Configurable
             if ($b2 = $this->read8BitString()) {
                 if (!$bigEndian) {
                     return $b2 . $b1;
-                } else {
-                    return $b1 . $b2;
                 }
+
+                return $b1 . $b2;
             }
         }
         return null;
@@ -604,8 +602,6 @@ abstract class Plugin implements Configurable
         $this->resultMime = 'image/gif';
         ob_start();
         imagegif($image);
-        $binary = ob_get_contents();
-        ob_end_clean();
-        return $binary;
+        return ob_get_clean();
     }
 }
