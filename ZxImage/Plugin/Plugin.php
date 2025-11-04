@@ -157,7 +157,7 @@ abstract class Plugin implements Configurable
         $palette = $this->palette;
 
         foreach ($colors as $zxColor => &$RGB) {
-            $zxColor = $zxColor;
+            $zxColor = (string)$zxColor;
             $brightness = substr($zxColor, 0, 1);
 
             $zero = $palette['ZZ'];
