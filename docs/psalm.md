@@ -1,0 +1,16 @@
+## Psalm
+- NEVER use @psalm-suppress. Instead, add clear and minimal type annotations.
+- Do NOT use `@var` by default. Allow it only when native PHP types cannot express the needed information, primarily for generics (including typed arrays) and complex Psalm array shapes.
+- Do NOT add PHPDoc that only duplicates native parameter, property, or return types. Use PHPDoc only when it adds information that native types cannot express.
+- Type declarations and PHPDoc unions must be the narrowest types justified by the real contract and actual call sites. Do NOT add extra union members "just in case".
+- Do NOT mix `false` and `null` as absence markers in the same contract. Prefer `null` for "not found"/"not loaded" object or value results; use `false` only when it is a real domain value or required by an external PHP API.
+- When modernizing legacy methods that use `false` as a "not found" sentinel, change the source to return `null` and update touched call sites to check `!== null`. Do not preserve `false` in PHPDoc just to match the old implementation.
+- Before widening a type, verify both sides: the callee contract and the concrete values passed by callers. Generic library signatures must not be copied into local contracts if the local code only accepts a narrower subset.
+- Do NOT hide missing types behind helper wrappers, broad casts, or normalization layers added only for static analysis. Prefer fixing the contract or the nearest reasonable source of the mixed value, as long as that can be done without disproportionate refactoring.
+- Do NOT "massage" legacy values into the wanted type in random consumers by sprinkling casts, fallbacks, `normalize*()` helpers, `strtotime()` guesses, or "accept everything and coerce it" branches across the codebase. That spreads an implicit contract instead of fixing it. If the code expects `int` timestamps, booleans, enums, or typed arrays, make the source return that type or add one typed accessor at the source boundary and reuse it.
+- For Psalm fixes, local validation and ad hoc type-repair in consumer code are prohibited. Do NOT add one-off `getIntArrayValue()`-style generic wrappers, local exceptions, fallback branches, or consumer-side sanitizers just to satisfy static analysis. The only acceptable fix is to declare or expose a clear strict type at the real source boundary, with casting localized there.
+- Do NOT spread complex inline `@var` array-shape annotations through application code. If a long shape annotation is needed at the usage site, treat that as a signal to type the source data earlier.
+- When a complex Psalm array shape originates in one service or repository, define a named `@psalm-type` there and import it at consumers with `@psalm-import-type` instead of repeating inline shapes at usage sites.
+- If a legacy method cannot be reasonably typed directly, introduce a named accessor with an explicit return type and keep the local cast or normalization inside that accessor, not at each call site.
+- When handling legacy values, first convert them to the target type, then validate or branch on the typed result. Do NOT scatter repeated strict checks against multiple raw legacy representations such as `false`, `''`, `0`, and `'0'`.
+- Annotate magic variables and methods in original legacy classes.
