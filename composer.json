@@ -11,7 +11,7 @@
   "license": "CC0-1.0",
   "type": "package",
   "require": {
-    "php": ">=8.4",
+    "php": ">=8.5",
     "moroz1999/gif-creator": "*"
   },
   "autoload": {
@@ -20,6 +20,10 @@
     }
   },
   "require-dev": {
-    "vimeo/psalm": "*"
+    "vimeo/psalm": "^6.16"
+  },
+  "scripts": {
+    "psalm": "vendor/bin/psalm --memory-limit=2G --use-baseline=psalm-baseline.xml --no-cache --force-jit",
+    "psalm-baseline": "vendor/bin/psalm --memory-limit=2G --set-baseline=psalm-baseline.xml --no-cache"
   }
 }
