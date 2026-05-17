@@ -19,10 +19,17 @@
       "ZxImage\\": "ZxImage/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "ZxImage\\Tests\\": "tests/"
+    }
+  },
   "require-dev": {
-    "vimeo/psalm": "^6.16"
+    "vimeo/psalm": "^6.16",
+    "phpunit/phpunit": "^12.0"
   },
   "scripts": {
+    "test": "vendor/bin/phpunit",
     "psalm": "vendor/bin/psalm --memory-limit=2G --use-baseline=psalm-baseline.xml --no-cache --force-jit",
     "psalm-baseline": "vendor/bin/psalm --memory-limit=2G --set-baseline=psalm-baseline.xml --no-cache"
   }

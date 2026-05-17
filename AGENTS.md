@@ -28,9 +28,11 @@ Read ONLY the documents relevant to your task.
 
 ### Core Documentation
 - **[docs/domain.md](docs/domain.md)** - Project domain and entities
+- **[docs/architecture.md](docs/architecture.md)** - Implementation architecture, class hierarchy, color encoding
 
 ### Backend (PHP)
 - **[docs/php.md](docs/php.md)** - PHP coding standards, DDD, SOLID, immutability, type safety
+- **[docs/psalm.md](docs/psalm.md)** - Psalm static analysis configuration and rules
 
 ## COMMANDS
 

@@ -122,8 +122,8 @@ class Bsp extends Standard
         if ($this->makeHandle()) {
             if ($this->readString(3) === 'bsp') {
                 if (($configByte = $this->readByte()) !== null) {
-                    $this->hasGigaData = (boolean)($configByte & 0b10000000);
-                    $this->hasBorderData = (boolean)($configByte & 0b01000000);
+                    $this->hasGigaData = (bool)($configByte & 0b10000000);
+                    $this->hasBorderData = (bool)($configByte & 0b01000000);
 
                     //skip reserved byte
                     $this->readByte();

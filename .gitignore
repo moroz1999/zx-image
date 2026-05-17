@@ -3,3 +3,5 @@
 /composer.lock
 /sandbox
 /example/tmp
+/.phpunit.result.cache
+/tests/fixtures/received
