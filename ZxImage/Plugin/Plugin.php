@@ -137,117 +137,66 @@ abstract class Plugin implements Configurable
 
     protected function generateColors(): void
     {
-        $colors = [
-            '0000' => 0,
-            '0001' => 0,
-            '0010' => 0,
-            '0011' => 0,
-            '0100' => 0,
-            '0101' => 0,
-            '0110' => 0,
-            '0111' => 0,
-            '1000' => 0,
-            '1001' => 0,
-            '1010' => 0,
-            '1011' => 0,
-            '1100' => 0,
-            '1101' => 0,
-            '1110' => 0,
-            '1111' => 0,
-        ];
         $palette = $this->palette;
-
-        foreach ($colors as $zxColor => &$RGB) {
-            $zxColor = (string)$zxColor;
-            $brightness = substr($zxColor, 0, 1);
+        for ($colorIndex = 0; $colorIndex < 16; $colorIndex++) {
+            $bright = ($colorIndex >> 3) & 1;
+            $green = ($colorIndex >> 2) & 1;
+            $red = ($colorIndex >> 1) & 1;
+            $blue = $colorIndex & 1;
 
             $zero = $palette['ZZ'];
-            $one = $palette['NN'];
-            if ($brightness === '1') {
-                $one = $palette['BB'];
-            }
+            $one = $bright === 1 ? $palette['BB'] : $palette['NN'];
 
-            $r = (1 - substr($zxColor, 2, 1)) * $zero + intval(substr($zxColor, 2, 1)) * $one;
-            $g = (1 - substr($zxColor, 1, 1)) * $zero + intval(substr($zxColor, 1, 1)) * $one;
-            $b = (1 - substr($zxColor, 3, 1)) * $zero + intval(substr($zxColor, 3, 1)) * $one;
+            $r = (1 - $red) * $zero + $red * $one;
+            $g = (1 - $green) * $zero + $green * $one;
+            $b = (1 - $blue) * $zero + $blue * $one;
 
             $redChannel = (int)round(($r * $palette['R11'] + $g * $palette['R12'] + $b * $palette['R13']) / 0xFF);
             $greenChannel = (int)round(($r * $palette['R21'] + $g * $palette['R22'] + $b * $palette['R23']) / 0xFF);
             $blueChannel = (int)round(($r * $palette['R31'] + $g * $palette['R32'] + $b * $palette['R33']) / 0xFF);
 
-            $RGB = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
+            $this->colors[$colorIndex] = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
         }
-
-        $this->colors = $colors;
     }
 
     protected function generateGigaColors(): void
     {
-        $colors = [];
-        $colors[] = '0000';
-        $colors[] = '0001';
-        $colors[] = '0010';
-        $colors[] = '0011';
-        $colors[] = '0100';
-        $colors[] = '0101';
-        $colors[] = '0110';
-        $colors[] = '0111';
-        $colors[] = '1000';
-        $colors[] = '1001';
-        $colors[] = '1010';
-        $colors[] = '1011';
-        $colors[] = '1100';
-        $colors[] = '1101';
-        $colors[] = '1110';
-        $colors[] = '1111';
-
         $palette = $this->palette;
-        $gigaColors = [];
-        foreach ($colors as $zxColor1) {
-            foreach ($colors as $zxColor2) {
-                $gigaColors[$zxColor1 . $zxColor2] = 0;
-            }
-        }
-
-        $cache = [];
-        $cache['00'] = 'Z';
-        $cache['01'] = 'N';
-        $cache['10'] = 'Z';
-        $cache['11'] = 'B';
-
         $palette['BN'] = $palette['NB'];
         $palette['BZ'] = $palette['ZB'];
         $palette['NZ'] = $palette['ZN'];
 
-        foreach ($gigaColors as $zxColor => &$RGB) {
-            $zxColor = (string)$zxColor;
-            $brightness1 = substr($zxColor, 0, 1);
-            $brightness2 = substr($zxColor, 4, 1);
+        for ($index1 = 0; $index1 < 16; $index1++) {
+            $bright1 = ($index1 >> 3) & 1;
+            $green1 = ($index1 >> 2) & 1;
+            $red1 = ($index1 >> 1) & 1;
+            $blue1 = $index1 & 1;
 
-            $r = $palette[$cache[$brightness1 . substr($zxColor, 2, 1)] . $cache[$brightness2 . substr(
-                $zxColor,
-                6,
-                1
-            )]];
-            $g = $palette[$cache[$brightness1 . substr($zxColor, 1, 1)] . $cache[$brightness2 . substr(
-                $zxColor,
-                5,
-                1
-            )]];
-            $b = $palette[$cache[$brightness1 . substr($zxColor, 3, 1)] . $cache[$brightness2 . substr(
-                $zxColor,
-                7,
-                1
-            )]];
+            for ($index2 = 0; $index2 < 16; $index2++) {
+                $bright2 = ($index2 >> 3) & 1;
+                $green2 = ($index2 >> 2) & 1;
+                $red2 = ($index2 >> 1) & 1;
+                $blue2 = $index2 & 1;
 
-            $redChannel = (int)round(($r * $palette['R11'] + $g * $palette['R12'] + $b * $palette['R13']) / 0xFF);
-            $greenChannel = (int)round(($r * $palette['R21'] + $g * $palette['R22'] + $b * $palette['R23']) / 0xFF);
-            $blueChannel = (int)round(($r * $palette['R31'] + $g * $palette['R32'] + $b * $palette['R33']) / 0xFF);
+                $r = $palette[$this->gigaChannelLevel($bright1, $red1) . $this->gigaChannelLevel($bright2, $red2)];
+                $g = $palette[$this->gigaChannelLevel($bright1, $green1) . $this->gigaChannelLevel($bright2, $green2)];
+                $b = $palette[$this->gigaChannelLevel($bright1, $blue1) . $this->gigaChannelLevel($bright2, $blue2)];
 
-            $RGB = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
+                $redChannel = (int)round(($r * $palette['R11'] + $g * $palette['R12'] + $b * $palette['R13']) / 0xFF);
+                $greenChannel = (int)round(($r * $palette['R21'] + $g * $palette['R22'] + $b * $palette['R23']) / 0xFF);
+                $blueChannel = (int)round(($r * $palette['R31'] + $g * $palette['R32'] + $b * $palette['R33']) / 0xFF);
+
+                $this->gigaColors[($index1 << 4) | $index2] = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
+            }
         }
+    }
 
-        $this->gigaColors = $gigaColors;
+    private function gigaChannelLevel(int $bright, int $bit): string
+    {
+        if ($bit === 0) {
+            return 'Z';
+        }
+        return $bright === 1 ? 'B' : 'N';
     }
 
     public function convert(): ?string
@@ -263,9 +212,9 @@ abstract class Plugin implements Configurable
 
     abstract protected function loadBits(): ?array;
 
-    abstract protected function parseScreen($data): array;
+    abstract protected function parseScreen($data);
 
-    abstract protected function exportData(array $parsedData, bool $flashedImage = false);
+    abstract protected function exportData($parsedData, bool $flashedImage = false);
 
     protected function makePngFromGd(GdImage $image): string
     {
@@ -320,19 +269,6 @@ abstract class Plugin implements Configurable
         }
     }
 
-    protected function read8BitStrings(int $length = 1): array
-    {
-        $strings = [];
-        while ($length) {
-            if (($byte = $this->readByte()) !== null) {
-                $strings[] = str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
-            }
-            $length--;
-        }
-
-        return $strings;
-    }
-
     protected function readByte(): ?int
     {
         $read = fread($this->handle, 1);
@@ -342,50 +278,6 @@ abstract class Plugin implements Configurable
         }
 
         return ord($read);
-    }
-
-    protected function read16BitStrings(int $length = 1, $bigEndian = true): array
-    {
-        $strings = [];
-        while ($length) {
-            if (($string = $this->read16BitString($bigEndian)) !== null) {
-                $strings[] = $string;
-            }
-            $length--;
-        }
-
-        return $strings;
-    }
-
-    protected function read16BitString(bool $bigEndian = true): ?string
-    {
-        if ($b1 = $this->read8BitString()) {
-            if ($b2 = $this->read8BitString()) {
-                if (!$bigEndian) {
-                    return $b2 . $b1;
-                }
-
-                return $b1 . $b2;
-            }
-        }
-        return null;
-    }
-
-    protected function read8BitString(): ?string
-    {
-        if (($byte = $this->readByte()) !== null) {
-            return str_pad(decbin($byte), 8, '0', STR_PAD_LEFT);
-        }
-        return null;
-    }
-
-    protected function readChar(): ?string
-    {
-        $result = null;
-        if (($bits = $this->readByte()) || $bits === 0) {
-            $result = chr($bits);
-        }
-        return $result;
     }
 
     protected function readString(int $length): ?string
@@ -516,8 +408,8 @@ abstract class Plugin implements Configurable
      */
     protected function drawBorder(
         $centerImage,
-        ?array $parsedData1 = null,
-        ?array $parsedData2 = null,
+        $parsedData1 = null,
+        $parsedData2 = null,
         bool $merged = false
     )
     {
@@ -526,8 +418,7 @@ abstract class Plugin implements Configurable
                 $this->width + $this->borderWidth * 2,
                 $this->height + $this->borderHeight * 2
             );
-            $code = sprintf('%04.0f', decbin($this->border));
-            $color = $this->colors[$code];
+            $color = $this->colors[$this->border];
             imagefill($resultImage, 0, 0, $color);
             imagecopy(
                 $resultImage,

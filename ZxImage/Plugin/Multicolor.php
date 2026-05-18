@@ -4,28 +4,22 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use ZxImage\Converter;
 
-class Multicolor extends Standard
+class Multicolor implements PluginInterface
 {
-    protected int $attributeHeight = 2;
-    protected ?int $strictFileSize = 9216;
+    use StandardConvertTrait;
 
-    protected function loadBits(): ?array
-    {
-        $pixelsArray = [];
-        $attributesArray = [];
-        if ($this->makeHandle()) {
-            $length = 0;
-            while ($bin = $this->read8BitString()) {
-                if ($length < 6144) {
-                    $pixelsArray[] = $bin;
-                } else {
-                    $attributesArray[] = $bin;
-                }
-                $length++;
-            }
-            return ['pixelsArray' => $pixelsArray, 'attributesArray' => $attributesArray];
-        }
-        return null;
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->attributeHeight = 2;
+        $this->requiredFileSize = 9216;
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
     }
 }

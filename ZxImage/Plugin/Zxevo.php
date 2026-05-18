@@ -4,89 +4,66 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use GdImage;
+use ZxImage\Converter;
 
-class Zxevo extends Plugin
+class Zxevo implements PluginInterface
 {
-    protected int $width = 320;
-    protected int $height = 200;
+    use PluginConfigTrait;
+
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->width = 320;
+        $this->height = 200;
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
+    }
 
     public function convert(): ?string
     {
-        $result = null;
-        if ($gdObject = $this->loadResource()) {
-            $image = $this->adjustImage($gdObject);
-            $result = $this->makePngFromGd($image);
+        if ($this->sourceFilePath === null || !file_exists($this->sourceFilePath)) {
+            return null;
         }
-        return $result;
-    }
 
-    protected function loadBits(): ?array
-    {
-        return null;
-    }
-
-    protected function loadResource()
-    {
-        if (file_exists($this->sourceFilePath)) {
-            if ($sizes = getimagesize($this->sourceFilePath)) {
-                $this->width = $sizes[0];
-                $this->height = $sizes[1];
-            }
-
-            $gdObject = imagecreatefrombmp($this->sourceFilePath);
-            $colorsAmount = imagecolorstotal($gdObject);
-            if ($colorsAmount <= 16 && $colorsAmount !== 0) {
-                return $gdObject;
-            }
+        $sizes = getimagesize($this->sourceFilePath);
+        if ($sizes !== false) {
+            $this->width = $sizes[0];
+            $this->height = $sizes[1];
         }
-        return null;
+
+        $gdObject = imagecreatefrombmp($this->sourceFilePath);
+        if ($gdObject === false) {
+            return null;
+        }
+
+        $colorsAmount = imagecolorstotal($gdObject);
+        if ($colorsAmount > 16 || $colorsAmount === 0) {
+            return null;
+        }
+
+        $image = $this->adjustImage($gdObject);
+
+        $this->resultMime = 'image/png';
+        return $this->imageEncoder->toPng($image);
     }
 
-    protected function adjustImage($image)
+    private function adjustImage(GdImage $image): GdImage
     {
         $colorsAmount = imagecolorstotal($image);
         for ($i = 0; $i < $colorsAmount; $i++) {
             $color = imagecolorsforindex($image, $i);
-
             $color['red'] = (int)round($color['red'] / 85) * 85;
             $color['green'] = (int)round($color['green'] / 85) * 85;
             $color['blue'] = (int)round($color['blue'] / 85) * 85;
-
-            imagecolorset($image, $i, $color['red'],  $color['green'],  $color['blue']);
+            imagecolorset($image, $i, $color['red'], $color['green'], $color['blue']);
         }
 
-        $resultImage = $this->resizeImage($image);
-        $resultImage = $this->checkRotation($resultImage);
-        return $resultImage;
-    }
-
-    protected function parseAttributes(array $attributesArray): array
-    {
-        $x = 0;
-        $y = 0;
-        $attributesData = ['inkMap' => [], 'paperMap' => []];
-        foreach ($attributesArray as &$bits) {
-            $ink = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 5, 3));
-            $paper = bindec(substr($bits, 0, 2)) * 16 + bindec(substr($bits, 2, 3)) + 8;
-
-            $attributesData['inkMap'][$y][$x] = $ink;
-            $attributesData['paperMap'][$y][$x] = $paper;
-
-            if ($x == ($this->width / 8) - 1) {
-                $x = 0;
-                $y++;
-            } else {
-                $x++;
-            }
-        }
-        return $attributesData;
-    }
-
-    protected function parseScreen($data): array
-    {
-    }
-
-    protected function exportData(array $parsedData, bool $flashedImage = false)
-    {
+        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
+        return $this->imageProcessor->rotate($image, $this->rotation);
     }
 }

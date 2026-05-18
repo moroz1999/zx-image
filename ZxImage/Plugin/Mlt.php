@@ -4,37 +4,33 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use ZxImage\Converter;
+use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Standard\AttributeParser;
+use ZxImage\Plugin\Standard\PixelParser;
 
-class Mlt extends Standard
+class Mlt implements PluginInterface
 {
-    protected int $attributeHeight = 1;
-    protected ?int $strictFileSize = 12288;
+    use StandardConvertTrait;
 
-    protected function parseAttributes(array $attributesArray): array
-    {
-        $x = 0;
-        $y = 0;
-        $attributesData = ['inkMap' => [], 'paperMap' => [], 'flashMap' => []];
-        foreach ($attributesArray as &$bits) {
-            $ink = substr($bits, 1, 1) . substr($bits, 5);
-            $paper = substr($bits, 1, 4);
-
-            $attributesData['inkMap'][$y][$x] = $ink;
-            $attributesData['paperMap'][$y][$x] = $paper;
-
-            $flashStatus = substr($bits, 0, 1);
-            if ($flashStatus == '1') {
-                $attributesData['flashMap'][$y][$x] = $flashStatus;
-            }
-
-            if ($x == ($this->width / 8) - 1) {
-                $x = 0;
-                $y++;
-            } else {
-                $x++;
-            }
-        }
-        return $attributesData;
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->attributeHeight = 1;
+        $this->requiredFileSize = 12288;
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
     }
 
+    protected function parseScreen(RawScreen $rawScreen): ParsedScreen
+    {
+        $attributes = (new AttributeParser($this->width))->parse($rawScreen->attributesBytes);
+        $pixelsData = (new PixelParser($this->width))->parse($rawScreen->pixelsBytes);
+        return new ParsedScreen($pixelsData, $attributes);
+    }
 }

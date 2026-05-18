@@ -11,21 +11,14 @@ trait Sam
         $pixelsArray = [];
         $paletteArray = [];
         if ($this->makeHandle()) {
-            $length = 0;
             $divisor = (8 / $this->bitPerPixel) / $this->pixelRatio;
-            while ($bin = $this->read8BitString()) {
-                if ($length < $this->width * $this->height / $divisor) {
-                    $pixelsArray[] = $bin;
-                } elseif ($length < $this->width * $this->height / $divisor + $this->paletteLength) {
-                    $paletteArray[] = $bin;
-                }
-                $length++;
-            }
-            $resultBits = [
+            $pixelByteCount = (int)($this->width * $this->height / $divisor);
+            $pixelsArray = $this->readBytes($pixelByteCount);
+            $paletteArray = $this->readBytes($this->paletteLength);
+            return [
                 'pixelsArray' => $pixelsArray,
                 'paletteArray' => $paletteArray,
             ];
-            return $resultBits;
         }
         return null;
     }
@@ -38,15 +31,15 @@ trait Sam
         return $parsedData;
     }
 
-    protected function parseSamPalette($paletteArray)
+    protected function parseSamPalette(array $paletteArray): array
     {
         $m = 36;
         $paletteData = [];
-        foreach ($paletteArray as $clutItem) {
-            $bright = (int)substr($clutItem, 4, 1);
-            $r = ((int)substr($clutItem, 2, 1) * 4 + (int)substr($clutItem, 6, 1) * 2 + $bright) * $m;
-            $g = ((int)substr($clutItem, 1, 1) * 4 + (int)substr($clutItem, 5, 1) * 2 + $bright) * $m;
-            $b = ((int)substr($clutItem, 3, 1) * 4 + (int)substr($clutItem, 7, 1) * 2 + $bright) * $m;
+        foreach ($paletteArray as $byte) {
+            $bright = ($byte >> 3) & 1;
+            $r = ((($byte >> 5) & 1) * 4 + (($byte >> 1) & 1) * 2 + $bright) * $m;
+            $g = ((($byte >> 6) & 1) * 4 + (($byte >> 2) & 1) * 2 + $bright) * $m;
+            $b = ((($byte >> 4) & 1) * 4 + ($byte & 1) * 2 + $bright) * $m;
 
             $redChannel = (int)round(
                 ($r * $this->palette['R11'] + $g * $this->palette['R12'] + $b * $this->palette['R13']) / 0xFF
@@ -58,9 +51,7 @@ trait Sam
                 ($r * $this->palette['R31'] + $g * $this->palette['R32'] + $b * $this->palette['R33']) / 0xFF
             );
 
-            $RGB = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
-
-            $paletteData[] = $RGB;
+            $paletteData[] = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
         }
         return $paletteData;
     }

@@ -4,125 +4,102 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use GdImage;
+use ZxImage\Converter;
+use ZxImage\Dto\AttributeMap;
+use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\ParsedScreen;
+use ZxImage\Plugin\Standard\PixelParser;
 
-class Timexhr extends Standard
+class Timexhr implements PluginInterface
 {
-    protected ?int $strictFileSize = 12289;
-    protected int $width = 512;
-    protected int $height = 384;
+    use PluginConfigTrait;
+
+    private const int REQUIRED_FILE_SIZE = 12289;
+
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->width = 512;
+        $this->height = 384;
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
+    }
 
     public function convert(): ?string
     {
-        $result = null;
-        if ($bits = $this->loadBits()) {
-            $parsedData = $this->parseScreen($bits);
-            $image = $this->exportData($parsedData, false);
-            $result = $this->makePngFromGd($image);
+        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, self::REQUIRED_FILE_SIZE);
+        if ($reader === null) {
+            return null;
         }
-        return $result;
-    }
 
-    protected function loadBits(): ?array
-    {
+        $pixelsArray1 = $reader->readBytes(6144);
+        $pixelsArray2 = $reader->readBytes(6144);
+        $attributeByte = $reader->readByte() ?? 0;
+
         $pixelsArray = [];
-        if ($this->makeHandle()) {
-            $attribute = 0;
-            $length = 0;
-            $pixelsArray1 = [];
-            $pixelsArray2 = [];
-            while ($bin = $this->read8BitString()) {
-                if ($length < 6144) {
-                    $pixelsArray1[] = $bin;
-                } elseif ($length < 6144 * 2) {
-                    $pixelsArray2[] = $bin;
-                } else {
-                    $attribute = [$bin];
-                }
-                $length++;
-            }
-
-            $x = 0;
-            $length = $this->width * ($this->height / 2) / 8;
-            while (($x < $length)) {
-                $pixelsArray[] = $pixelsArray1[$x / 2];
-                $pixelsArray[] = $pixelsArray2[$x / 2];
-                $x = $x + 2;
-            }
-
-            return ['pixelsArray' => $pixelsArray, 'attributesArray' => $attribute];
+        for ($i = 0; $i < 6144; $i++) {
+            $pixelsArray[] = $pixelsArray1[$i];
+            $pixelsArray[] = $pixelsArray2[$i];
         }
-        return null;
+
+        $colorTable = $this->paletteService->buildColorTable($this->paletteString);
+        $attributes = $this->buildColorAttributeMap($attributeByte);
+        $pixelsData = (new PixelParser($this->width))->parse($pixelsArray);
+        $parsedScreen = new ParsedScreen($pixelsData, $attributes);
+
+        $image = $this->renderImage($parsedScreen, $colorTable);
+        $this->resultMime = 'image/png';
+        return $this->imageEncoder->toPng($image);
     }
 
-    protected function exportData(array $parsedData, bool $flashedImage = false)
+    private function buildColorAttributeMap(int $byte): AttributeMap
     {
+        $colorCode = ($byte >> 3) & 0x07;
+        $colorPairs = [
+            [8, 15],
+            [9, 14],
+            [10, 13],
+            [11, 12],
+            [12, 11],
+            [13, 10],
+            [14, 9],
+            [15, 8],
+        ];
+        [$inkKey, $paperKey] = $colorPairs[$colorCode];
+
+        $rows = (int)($this->height / 8);
+        $cols = (int)($this->width / 8);
+        $inkMap = array_fill(0, $rows, array_fill(0, $cols, $inkKey));
+        $paperMap = array_fill(0, $rows, array_fill(0, $cols, $paperKey));
+        return new AttributeMap($inkMap, $paperMap, []);
+    }
+
+    private function renderImage(ParsedScreen $parsedScreen, ColorTable $colorTable): GdImage
+    {
+        $inkColor = $parsedScreen->attributes->inkMap[0][0];
+        $paperColor = $parsedScreen->attributes->paperMap[0][0];
         $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($parsedData['pixelsData'] as $rowY => &$row) {
+
+        foreach ($parsedScreen->pixelsData as $rowY => $row) {
             $y = $rowY * 2;
-            foreach ($row as $x => &$pixel) {
-                if ($pixel === '1') {
-                    $ZXcolor = $parsedData['attributesData']['inkMap'];
-                } else {
-                    $ZXcolor = $parsedData['attributesData']['paperMap'];
-                }
-                $color = $this->colors[$ZXcolor];
+            foreach ($row as $x => $pixel) {
+                $zxColor = $pixel === 1 ? $inkColor : $paperColor;
+                $color = $colorTable->colors[$zxColor];
                 imagesetpixel($image, $x, $y, $color);
                 imagesetpixel($image, $x, $y + 1, $color);
             }
         }
+
         if ($this->border) {
-            $this->border = bindec($parsedData['attributesData']['paperMap']);
-            $resultImage = $this->drawBorder($image, $parsedData);
-        } else {
-            $resultImage = $image;
+            $this->border = $paperColor;
         }
-        $resultImage = $this->resizeImage($resultImage);
-        $resultImage = $this->checkRotation($resultImage);
-        return $resultImage;
+        $image = $this->imageProcessor->applyBorder($image, $this->border, $colorTable, $this->width, $this->height, $this->borderWidth, $this->borderHeight, $this->usesBorder);
+        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
+        return $this->imageProcessor->rotate($image, $this->rotation);
     }
-
-    protected function parseAttributes(array $attributesArray): array
-    {
-        $attributesData = [];
-        //Bits 3-5: Sets the screen colour in hi-res mode.
-        //000 - Black on White     100 - Green on Magenta
-        //001 - Blue on Yellow     101 - Cyan on Red
-        //010 - Red on Cyan        110 - Yellow on Blue
-        //011 - Magenta on Green   111 - White on Black
-        $color = substr(reset($attributesArray), 2, 3);
-        switch ($color) {
-            case '000':
-                $attributesData['inkMap'] = '1000';
-                $attributesData['paperMap'] = '1111';
-                break;
-            case '001':
-                $attributesData['inkMap'] = '1001';
-                $attributesData['paperMap'] = '1110';
-                break;
-            case '010':
-                $attributesData['inkMap'] = '1010';
-                $attributesData['paperMap'] = '1101';
-                break;
-            case '011':
-                $attributesData['inkMap'] = '1011';
-                $attributesData['paperMap'] = '1100';
-                break;
-            case '100':
-                $attributesData['inkMap'] = '1100';
-                $attributesData['paperMap'] = '1011';
-                break;
-            case '101':
-                $attributesData['inkMap'] = '1101';
-                $attributesData['paperMap'] = '1010';
-                break;
-            case '111':
-                $attributesData['inkMap'] = '1111';
-                $attributesData['paperMap'] = '1000';
-                break;
-        }
-
-        return $attributesData;
-    }
-
-
 }

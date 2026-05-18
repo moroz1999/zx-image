@@ -12,7 +12,8 @@
   "type": "package",
   "require": {
     "php": ">=8.5",
-    "moroz1999/gif-creator": "*"
+    "moroz1999/gif-creator": "*",
+    "ext-gd": "*"
   },
   "autoload": {
     "psr-4": {

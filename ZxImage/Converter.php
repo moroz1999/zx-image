@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage;
 
-use ZxImage\Plugin\Plugin;
+use ZxImage\Plugin\PluginInterface;
 
 class Converter
 {
@@ -258,9 +258,7 @@ class Converter
         }
         $className = __NAMESPACE__ . '\\Plugin\\' . ucfirst($className);
         if (class_exists($className)) {
-            /**
-             * @var Plugin $converter
-             */
+            /** @var PluginInterface $converter */
             $converter = new $className($this->sourceFilePath, $this->sourceFileContents, $this);
             $converter->setBasePath($this->basePath);
             $converter->setBorder($this->border);

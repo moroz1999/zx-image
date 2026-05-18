@@ -17,25 +17,24 @@ Tests: 72 integration SHA256 hash comparisons in `tests/ConverterFixtureTest.php
 
 ### 1a. DTOs (`ZxImage/Dto/`)
 
-- [ ] `ZxImage\Dto\AttributeMap` — `readonly class`; `int[][] $inkMap`, `int[][] $paperMap`, `bool[][] $flashMap`
-- [ ] `ZxImage\Dto\ParsedScreen` — `readonly class`; `int[][] $pixelsData`, `AttributeMap $attributes`, `int[] $colorOverrides = []`
-- [ ] `ZxImage\Dto\PaletteConfig` — `readonly class`; 15 named int properties (`$zz`, `$zn`, ..., `$r33`) replacing assoc array
+- [x] `ZxImage\Dto\AttributeMap` — `readonly class`; `int[][] $inkMap`, `int[][] $paperMap`, `bool[][] $flashMap`
+- [x] `ZxImage\Dto\ParsedScreen` — `readonly class`; `int[][] $pixelsData`, `AttributeMap $attributes`, `int[] $colorOverrides = []`
+- [x] `ZxImage\Dto\PaletteConfig` — `readonly class`; 15 named int properties (`$zz`, `$zn`, ..., `$r33`) replacing assoc array
 
 ### 1b. Color lookup key change
 
-- [ ] Change `$colors` keys from binary strings (`'0101'`) to ints (`5`) in `Plugin::generateColors()`
-- [ ] Change `$gigaColors` keys from binary strings (`'01011010'`) to ints (`90`) in `Plugin::generateGigaColors()`
-- [ ] Update color key assembly in `Standard::exportData()` to use bitwise ops: `($bright << 3) | $color3bit`
-- [ ] Update color key assembly in `Gigascreen::exportDataMerged()`: `($colorA << 4) | $colorB`
-- [ ] Run `composer test`
+- [x] Change `$colors` keys from binary strings (`'0101'`) to ints (`5`) in `Plugin::generateColors()`
+- [x] Change `$gigaColors` keys from binary strings (`'01011010'`) to ints (`90`) in `Plugin::generateGigaColors()`
+- [x] Update color key assembly in `Standard::parseAttributes()`, `Gigascreen::exportDataMerged()`, and all other callers
+- [x] Run `composer test`
 
 ### 1c. `BitReader` service (`ZxImage/Service/BitReader.php`)
 
-- [ ] Create `readonly class BitReader` wrapping file handle
+- [x] Create `readonly class BitReader` wrapping file handle
   - `readByte(): ?int`, `readWord(): ?int`, `readBytes(int $n): array`, `readWords(int $n): array`, `seek(int $offset): void`, `getSize(): int`
   - Static helpers: `bit(int $byte, int $position): int`, `bits(int $byte, int $offset, int $length): int`
-- [ ] Mark `Plugin::read8BitString()`, `read8BitStrings()`, `read16BitString()`, `read16BitStrings()` as `@deprecated`
-- [ ] Run `composer test`
+- [x] Mark `Plugin::read8BitString()`, `read8BitStrings()`, `read16BitString()`, `read16BitStrings()` as `@deprecated`
+- [x] Run `composer test`
 
 ---
 
@@ -43,12 +42,12 @@ Tests: 72 integration SHA256 hash comparisons in `tests/ConverterFixtureTest.php
 
 Extract from `Standard.php` into `ZxImage/Plugin/Standard/`:
 
-- [ ] `AttributeParser` — `parseAttributes()` logic; input: `int[]` raw bytes; output: `AttributeMap`; use `BitReader::bit()` / `bits()` instead of `substr()`
-- [ ] `PixelParser` — `parsePixels()` logic; input: `int[]` raw bytes; output: `int[y][x]`; ZX non-linear mapping via `calculateZXY`
-- [ ] `PixelRenderer` — `exportData()` drawing loop; input: `ParsedScreen`, `bool $flashedImage`, `int[] $colors`; output: `GdImage`
-- [ ] Update `Standard::parseScreen()` to return `ParsedScreen` DTO
-- [ ] Update `Standard::exportData()` to accept `ParsedScreen`
-- [ ] Run `composer test`
+- [x] `AttributeParser` — `parseAttributes()` logic; input: `int[]` raw bytes; output: `AttributeMap`; use `BitReader::bit()` / `bits()` instead of `substr()`
+- [x] `PixelParser` — `parsePixels()` logic; input: `int[]` raw bytes; output: `int[y][x]`; ZX non-linear mapping via `calculateZXY`
+- [x] `PixelRenderer` — `exportData()` drawing loop; input: `ParsedScreen`, `bool $flashedImage`, `int[] $colors`; output: `GdImage`
+- [x] Update `Standard::parseScreen()` to return `ParsedScreen` DTO
+- [x] Update `Standard::exportData()` to accept `ParsedScreen`
+- [x] Run `composer test`
 
 ---
 
@@ -56,41 +55,41 @@ Extract from `Standard.php` into `ZxImage/Plugin/Standard/`:
 
 Each step: update `loadBits()` to use `BitReader` (raw bytes), update `parseScreen()` to return `ParsedScreen`, remove binary-string calls, run `composer test`.
 
-- [ ] `Monochrome` — no attributes, minimal loadBits
-- [ ] `Attributes` — attributes only, no pixel data
-- [ ] `Hidden` — Standard variant, orange override for hidden pixels
-- [ ] `Flash` — Standard variant, always GIF
-- [ ] `Multicolor` / `Multicolor4` — differ only in `$attributeHeight`
-- [ ] `Mc` / `Mlt` — pixel-order variant
-- [ ] `Timex81`
-- [ ] `Sam2`, `Sam3`, `Sam4`
-- [ ] `Ulaplus` — custom palette; use `colorOverrides` field of `ParsedScreen`
-- [ ] `Nxi` / `Sl2` — indexed 256-color
-- [ ] `Specscii` / `S81` / `S80` — token-based text
-- [ ] `Bsc` / `Bmc4` — embedded border pixel data
-- [ ] `Timexhr`
-- [ ] `Grf`
-- [ ] `Lowresgs`
-- [ ] `Stellar`
-- [ ] `Chrd`
-- [ ] `Multiartist`
-- [ ] `Bsp`
-- [ ] `Gigascreen` + `Timexhrg`
-- [ ] `Tricolor`
-- [ ] `Sca`
-- [ ] `Atmega`
-- [ ] `Sxg`
-- [ ] `Zxevo`
-- [ ] `Ssx` / `SsxRaw`
+- [x] `Monochrome` — no attributes, minimal loadBits
+- [x] `Attributes` — attributes only, no pixel data
+- [x] `Hidden` — Standard variant, orange override for hidden pixels
+- [x] `Flash` — Standard variant, always GIF
+- [x] `Multicolor` / `Multicolor4` — differ only in `$attributeHeight`
+- [x] `Mc` / `Mlt` — pixel-order variant
+- [x] `Timex81`
+- [x] `Sam2`, `Sam3`, `Sam4`
+- [x] `Ulaplus` — custom palette; use `colorOverrides` field of `ParsedScreen`
+- [x] `Nxi` / `Sl2` — indexed 256-color
+- [x] `Specscii` / `S81` / `S80` — token-based text
+- [x] `Bsc` / `Bmc4` — embedded border pixel data
+- [x] `Timexhr`
+- [x] `Grf`
+- [x] `Lowresgs`
+- [x] `Stellar`
+- [x] `Chrd`
+- [x] `Multiartist`
+- [x] `Bsp`
+- [x] `Gigascreen` + `Timexhrg`
+- [x] `Tricolor`
+- [x] `Sca`
+- [x] `Atmega`
+- [x] `Sxg`
+- [x] `Zxevo`
+- [x] `Ssx` / `SsxRaw`
 
 ---
 
 ## Phase 4 — Cleanup
 
-- [ ] Remove deprecated `read8BitString*` / `read16BitString*` from `Plugin.php` (verify no callers with grep)
-- [ ] Remove deprecated abstract method variants if replaced
+- [x] Remove deprecated `read8BitString*` / `read16BitString*` from `Plugin.php` (verify no callers with grep)
+- [x] Remove deprecated abstract method variants if replaced
 - [ ] Run `composer psalm` and fix all issues
-- [ ] Final `composer test` — all 72 fixtures green
+- [x] Final `composer test` — all 71 fixtures green
 
 ---
 

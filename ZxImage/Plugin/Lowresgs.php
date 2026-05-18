@@ -4,44 +4,56 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use ZxImage\Converter;
+use ZxImage\Dto\DualRawScreen;
+use ZxImage\Dto\RawScreen;
 
-class Lowresgs extends Gigascreen
+class Lowresgs implements PluginInterface
 {
-    protected ?int $strictFileSize = 1628;
+    use GigascreenConvertTrait;
 
-    protected function loadBits(): ?array
-    {
-        $texture = [];
-        $attributesArray = [[], []];
-        if ($this->makeHandle()) {
-            $length = 0;
-            while ($bin = $this->read8BitString()) {
-                if ($length >= 84 && $length < 92) {
-                    $texture[] = $bin;
-                } elseif ($length >= 92 && $length < 92 + 768) {
-                    $attributesArray[0][] = $bin;
-                } elseif ($length >= 92 + 768) {
-                    $attributesArray[1][] = $bin;
-                }
-                $length++;
-            }
-            $pixelsArray = $this->generatePixelsArray($texture);
-            $resultBits = [
-                $resultBits = [
-                    'pixelsArray' => $pixelsArray,
-                    'attributesArray' => $attributesArray[0],
-                ],
-                [
-                    'pixelsArray' => $pixelsArray,
-                    'attributesArray' => $attributesArray[1],
-                ],
-            ];
-            return $resultBits;
-        }
-        return null;
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->requiredFileSize = 1628;
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
     }
 
-    protected function generatePixelsArray($texture)
+    protected function loadBits(): ?DualRawScreen
+    {
+        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, $this->requiredFileSize);
+        if ($reader === null) {
+            return null;
+        }
+
+        $texture = [];
+        $attr0 = [];
+        $attr1 = [];
+        $length = 0;
+        while (($bin = $reader->readByte()) !== null) {
+            if ($length >= 84 && $length < 92) {
+                $texture[] = $bin;
+            } elseif ($length >= 92 && $length < 92 + 768) {
+                $attr0[] = $bin;
+            } elseif ($length >= 92 + 768) {
+                $attr1[] = $bin;
+            }
+            $length++;
+        }
+
+        $pixelsArray = $this->generatePixelsArray($texture);
+        return new DualRawScreen(
+            new RawScreen($pixelsArray, $attr0),
+            new RawScreen($pixelsArray, $attr1),
+        );
+    }
+
+    private function generatePixelsArray(array $texture): array
     {
         $pixelsArray = [];
         for ($third = 0; $third < 3; $third++) {

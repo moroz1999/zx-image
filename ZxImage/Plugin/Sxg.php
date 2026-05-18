@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use ZxImage\Converter;
 
-class Sxg extends Plugin
+class Sxg implements PluginInterface
 {
-    const FORMAT_256 = 2;
-    const FORMAT_16 = 1;
-    protected int $sxgFormat = 2;
+    use PluginConfigTrait;
 
-    protected array $table = [
+    private const int FORMAT_256 = 2;
+    private const int FORMAT_16 = 1;
+
+    private const array LEVEL_TABLE = [
         0 => 0,
         1 => 10,
         2 => 21,
@@ -39,71 +41,87 @@ class Sxg extends Plugin
         24 => 255,
     ];
 
-    protected function loadBits(): ?array
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
+    }
+
+    public function convert(): ?string
     {
-        if ($this->makeHandle()) {
-            $resultBits = [
-                'pixelsArray' => [],
-                'paletteArray' => [],
-            ];
-            $firstByte = $this->readByte();
-            $signature = $this->readString(3);
-            if ($firstByte === 127 && $signature === 'SXG') {
-                $version = $this->readByte(); //version
-                $background = $this->readByte(); //background
-                $packed = $this->readByte(); //packed
-                $this->sxgFormat = $this->readByte();
-                $this->width = $this->readWord();
-                $this->height = $this->readWord();
-                $paletteShift = $this->readWord();
-                $pixelsShift = $this->readWord();
-
-                $this->readBytes($paletteShift - 2);
-
-                $paletteLength = ($pixelsShift - $paletteShift + 2) / 2;
-                $paletteArray = $this->read16BitStrings($paletteLength, false);
-
-                $pixelsArray = [];
-                while (($word = $this->readByte()) !== null) {
-                    $pixelsArray[] = $word;
-                }
-
-                $resultBits['pixelsArray'] = $pixelsArray;
-                $resultBits['paletteArray'] = $paletteArray;
-            }
-            return $resultBits;
+        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, null);
+        if ($reader === null) {
+            return null;
         }
-        return null;
+
+        $firstByte = $reader->readByte();
+        $signature = $reader->readString(3);
+        if ($firstByte !== 127 || $signature !== 'SXG') {
+            return null;
+        }
+
+        $reader->readByte(); // version
+        $reader->readByte(); // background
+        $reader->readByte(); // packed
+        $sxgFormat = $reader->readByte() ?? self::FORMAT_256;
+        $this->width = $reader->readWord() ?? $this->width;
+        $this->height = $reader->readWord() ?? $this->height;
+        $paletteShift = $reader->readWord() ?? 0;
+        $pixelsShift = $reader->readWord() ?? 0;
+
+        $reader->readBytes($paletteShift - 2);
+
+        $paletteLength = (int)(($pixelsShift - $paletteShift + 2) / 2);
+        $paletteWords = $reader->readWords($paletteLength);
+
+        $pixelsBytes = [];
+        while (($byte = $reader->readByte()) !== null) {
+            $pixelsBytes[] = $byte;
+        }
+
+        $colors = $this->parseSxgPalette($paletteWords, $sxgFormat);
+        $pixelsData = $this->parsePixels($pixelsBytes, $sxgFormat);
+
+        $image = imagecreatetruecolor($this->width, $this->height);
+        foreach ($pixelsData as $y => $row) {
+            foreach ($row as $x => $pixel) {
+                if (isset($colors[$pixel])) {
+                    imagesetpixel($image, $x, $y, $colors[$pixel]);
+                }
+            }
+        }
+
+        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
+        $image = $this->imageProcessor->rotate($image, $this->rotation);
+
+        $this->resultMime = 'image/png';
+        return $this->imageEncoder->toPng($image);
     }
 
-    protected function parseScreen($data): array
-    {
-        $parsedData = [];
-        $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
-        $parsedData['colorsData'] = $this->parseSxgPalette($data['paletteArray']);
-        return $parsedData;
-    }
-
-    protected function parsePixels(array $pixelsArray): array
+    private function parsePixels(array $pixelsBytes, int $format): array
     {
         $x = 0;
         $y = 0;
         $pixelsData = [];
-        if ($this->sxgFormat === self::FORMAT_16) {
-            foreach ($pixelsArray as $bits) {
-                $bits = str_pad(decbin($bits), 8, '0', STR_PAD_LEFT);
-                $pixelsData[$y][$x] = bindec(substr($bits, 0, 4));
-                $x++;
-                $pixelsData[$y][$x] = bindec(substr($bits, 4, 4));
-                $x++;
 
+        if ($format === self::FORMAT_16) {
+            foreach ($pixelsBytes as $byte) {
+                $pixelsData[$y][$x] = ($byte >> 4) & 0x0F;
+                $x++;
+                $pixelsData[$y][$x] = $byte & 0x0F;
+                $x++;
                 if ($x >= $this->width) {
                     $x = 0;
                     $y++;
                 }
             }
-        } elseif ($this->sxgFormat === self::FORMAT_256) {
-            foreach ($pixelsArray as $pixel) {
+        } else {
+            foreach ($pixelsBytes as $pixel) {
                 $pixelsData[$y][$x] = $pixel;
                 $x++;
                 if ($x >= $this->width) {
@@ -115,48 +133,24 @@ class Sxg extends Plugin
         return $pixelsData;
     }
 
-    protected function parseSxgPalette($paletteArray)
+    private function parseSxgPalette(array $words, int $format): array
     {
-        $paletteData = [];
-        foreach ($paletteArray as $clutItem) {
-            if (substr($clutItem, 0, 1) == '0') {
-                $color = bindec(substr($clutItem, 1, 5));
-                $r = isset($this->table[$color]) ? $this->table[$color] : reset($this->table);
-                $color = bindec(substr($clutItem, 6, 5));
-                $g = isset($this->table[$color]) ? $this->table[$color] : reset($this->table);
-                $color = bindec(substr($clutItem, 11, 5));
-                $b = isset($this->table[$color]) ? $this->table[$color] : reset($this->table);
+        $colors = [];
+        foreach ($words as $word) {
+            if (($word >> 15) === 0) {
+                $colorIdx = ($word >> 10) & 0x1F;
+                $r = self::LEVEL_TABLE[$colorIdx] ?? reset(self::LEVEL_TABLE);
+                $colorIdx = ($word >> 5) & 0x1F;
+                $g = self::LEVEL_TABLE[$colorIdx] ?? reset(self::LEVEL_TABLE);
+                $colorIdx = $word & 0x1F;
+                $b = self::LEVEL_TABLE[$colorIdx] ?? reset(self::LEVEL_TABLE);
             } else {
-                $r = bindec(substr($clutItem, 1, 5)) << 3;
-                $g = bindec(substr($clutItem, 6, 5)) << 3;
-                $b = bindec(substr($clutItem, 11, 5)) << 3;
+                $r = (($word >> 10) & 0x1F) << 3;
+                $g = (($word >> 5) & 0x1F) << 3;
+                $b = ($word & 0x1F) << 3;
             }
-
-            $redChannel = $r;
-            $greenChannel = $g;
-            $blueChannel = $b;
-
-            $RGB = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
-
-            $paletteData[] = $RGB;
+            $colors[] = $r * 0x010000 + $g * 0x0100 + $b;
         }
-        return $paletteData;
+        return $colors;
     }
-
-    protected function exportData(array $parsedData, bool $flashedImage = false)
-    {
-        $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($parsedData['pixelsData'] as $y => $row) {
-            foreach ($row as $x => $pixel) {
-                if (isset($parsedData['colorsData'][$pixel])) {
-                    imagesetpixel($image, $x, $y, $parsedData['colorsData'][$pixel]);
-                }
-            }
-        }
-
-        $resultImage = $this->resizeImage($image);
-        $resultImage = $this->checkRotation($resultImage);
-        return $resultImage;
-    }
-
 }

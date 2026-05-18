@@ -4,28 +4,72 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-class Sam4 extends Standard
+use ZxImage\Converter;
+
+class Sam4 implements PluginInterface
 {
-    use Sam;
+    use PluginConfigTrait;
 
-    protected ?int $strictFileSize;
-    protected int $paletteLength = 16;
-    protected int $bitPerPixel = 4;
-    protected float $pixelRatio = 1;
+    private const int PALETTE_LENGTH = 16;
+    private const int BITS_PER_PIXEL = 4;
+    private const int BRIGHTNESS_MULTIPLIER = 36;
 
-    protected function parsePixels(array $pixelsArray): array
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->width = 256;
+        $this->height = 192;
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
+    }
+
+    public function convert(): ?string
+    {
+        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, null);
+        if ($reader === null) {
+            return null;
+        }
+
+        $colorTable = $this->paletteService->buildColorTable($this->paletteString);
+        $config = $colorTable->config;
+
+        $pixelByteCount = (int)($this->width * $this->height / (8 / self::BITS_PER_PIXEL));
+        $pixelsBytes = $reader->readBytes($pixelByteCount);
+        $paletteBytes = $reader->readBytes(self::PALETTE_LENGTH);
+
+        $colors = $this->parseSamPalette($paletteBytes, $config->r11, $config->r12, $config->r13, $config->r21, $config->r22, $config->r23, $config->r31, $config->r32, $config->r33);
+        $pixelsData = $this->parsePixels($pixelsBytes);
+
+        $image = imagecreatetruecolor($this->width, $this->height);
+        foreach ($pixelsData as $y => $row) {
+            foreach ($row as $x => $colorIndex) {
+                $color = $colors[$colorIndex];
+                imagesetpixel($image, $x, $y, $color);
+            }
+        }
+
+        $image = $this->imageProcessor->applyBorder($image, $this->border, $colorTable, $this->width, $this->height, $this->borderWidth, $this->borderHeight, $this->usesBorder);
+        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
+        $image = $this->imageProcessor->rotate($image, $this->rotation);
+
+        $this->resultMime = 'image/png';
+        return $this->imageEncoder->toPng($image);
+    }
+
+    private function parsePixels(array $pixelsBytes): array
     {
         $x = 0;
         $y = 0;
         $pixelsData = [];
-        foreach ($pixelsArray as &$bits) {
-            $p1 = substr($bits, 0, 4);
-            $pixelsData[$y][$x] = $p1;
+        foreach ($pixelsBytes as $byte) {
+            $pixelsData[$y][$x] = ($byte >> 4) & 0x0F;
             $x++;
-            $p2 = substr($bits, 4, 4);
-            $pixelsData[$y][$x] = $p2;
+            $pixelsData[$y][$x] = $byte & 0x0F;
             $x++;
-
             if ($x >= $this->width) {
                 $x = 0;
                 $y++;
@@ -34,19 +78,22 @@ class Sam4 extends Standard
         return $pixelsData;
     }
 
-    protected function exportData(array $parsedData, bool $flashedImage = false)
+    private function parseSamPalette(array $paletteBytes, int $r11, int $r12, int $r13, int $r21, int $r22, int $r23, int $r31, int $r32, int $r33): array
     {
-        $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($parsedData['pixelsData'] as $y => &$row) {
-            foreach ($row as $x => $pixel) {
-                $color = $parsedData['colorsData'][bindec($pixel)];
-                imagesetpixel($image, $x, $y, $color);
-            }
-        }
+        $m = self::BRIGHTNESS_MULTIPLIER;
+        $colors = [];
+        foreach ($paletteBytes as $byte) {
+            $bright = ($byte >> 3) & 1;
+            $r = ((($byte >> 5) & 1) * 4 + (($byte >> 1) & 1) * 2 + $bright) * $m;
+            $g = ((($byte >> 6) & 1) * 4 + (($byte >> 2) & 1) * 2 + $bright) * $m;
+            $b = ((($byte >> 4) & 1) * 4 + ($byte & 1) * 2 + $bright) * $m;
 
-        $resultImage = $this->drawBorder($image, $parsedData);
-        $resultImage = $this->resizeImage($resultImage);
-        $resultImage = $this->checkRotation($resultImage);
-        return $resultImage;
+            $red = (int)round(($r * $r11 + $g * $r12 + $b * $r13) / 0xFF);
+            $green = (int)round(($r * $r21 + $g * $r22 + $b * $r23) / 0xFF);
+            $blue = (int)round(($r * $r31 + $g * $r32 + $b * $r33) / 0xFF);
+
+            $colors[] = $red * 0x010000 + $green * 0x0100 + $blue;
+        }
+        return $colors;
     }
 }

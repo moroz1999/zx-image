@@ -4,47 +4,60 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use ZxImage\Converter;
+use ZxImage\Dto\DualRawScreen;
+use ZxImage\Dto\RawScreen;
 
-class Stellar extends Gigascreen
+class Stellar implements PluginInterface
 {
-    protected ?int $strictFileSize = 3072;
-    protected $atrWidth = 64;
-    protected $atrHeight = 48;
-    protected int $attributeHeight = 4;
+    use GigascreenConvertTrait;
 
-    protected function loadBits(): ?array
-    {
-        $texture = [];
-        $attributesArray = [[], []];
-        if ($this->makeHandle()) {
-            while (($bin = $this->read8BitString()) && ($bin2 = $this->read8BitString(
-                )) && ($bin3 = $this->read8BitString()) && ($bin4 = $this->read8BitString())) {
-                $attributesArray[0][] = $bin;
-                $attributesArray[0][] = $bin2;
-                $attributesArray[1][] = $bin3;
-                $attributesArray[1][] = $bin4;
-            }
-            $pixelsArray = $this->generatePixelsArray($texture);
-            $resultBits = [
-                $resultBits = [
-                    'pixelsArray' => $pixelsArray,
-                    'attributesArray' => $attributesArray[0],
-                ],
-                [
-                    'pixelsArray' => $pixelsArray,
-                    'attributesArray' => $attributesArray[1],
-                ],
-            ];
-            return $resultBits;
-        }
-        return null;
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->requiredFileSize = 3072;
+        $this->attributeHeight = 4;
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
     }
 
-    protected function generatePixelsArray()
+    protected function loadBits(): ?DualRawScreen
+    {
+        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, $this->requiredFileSize);
+        if ($reader === null) {
+            return null;
+        }
+
+        $attr0 = [];
+        $attr1 = [];
+        while (
+            ($b0 = $reader->readByte()) !== null
+            && ($b1 = $reader->readByte()) !== null
+            && ($b2 = $reader->readByte()) !== null
+            && ($b3 = $reader->readByte()) !== null
+        ) {
+            $attr0[] = $b0;
+            $attr0[] = $b1;
+            $attr1[] = $b2;
+            $attr1[] = $b3;
+        }
+
+        $pixelsArray = $this->generatePixelsArray();
+        return new DualRawScreen(
+            new RawScreen($pixelsArray, $attr0),
+            new RawScreen($pixelsArray, $attr1),
+        );
+    }
+
+    private function generatePixelsArray(): array
     {
         $pixelsArray = [];
-        for ($x = 0; $x < $this->width * $this->height / 8; $x++) {
-            $pixelsArray[] = '00001111';
+        for ($i = 0; $i < $this->width * $this->height / 8; $i++) {
+            $pixelsArray[] = 0x0F;
         }
         return $pixelsArray;
     }

@@ -1,30 +1,58 @@
 <?php
-declare(strict_types=1);
 
+declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use InvalidArgumentException;
+use ZxImage\Converter;
+use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Standard\AttributeParser;
+use ZxImage\Plugin\Standard\PixelParser;
 
-class S81 extends Standard
+class S81 implements PluginInterface
 {
-    protected function loadBits(): ?array
+    use StandardConvertTrait;
+
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
+    }
+
+    protected function loadBits(): ?RawScreen
     {
-        $tokens = [];
-        if ($this->makeHandle()) {
-            while (($bin = $this->readByte()) !== null) {
-                $tokens[] = $bin;
-            }
-            return $this->parseTokens($tokens);
+        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, $this->requiredFileSize);
+        if ($reader === null) {
+            return null;
         }
-        return null;
+
+        $tokens = [];
+        while (($byte = $reader->readByte()) !== null) {
+            $tokens[] = $byte;
+        }
+
+        [$pixelsBytes, $attributesBytes] = $this->parseTokens($tokens);
+        return new RawScreen($pixelsBytes, $attributesBytes);
+    }
+
+    protected function parseScreen(RawScreen $rawScreen): ParsedScreen
+    {
+        $pixelsData = (new PixelParser($this->width))->parse($rawScreen->pixelsBytes, fn($y) => $y);
+        $attributes = (new AttributeParser($this->width))->parse($rawScreen->attributesBytes);
+        return new ParsedScreen($pixelsData, $attributes);
     }
 
     private function parseTokens(array $tokens): array
     {
         $pixelsArray = [];
         $attributesArray = [];
-        $currentAttribute = '00111000';
+        $currentAttribute = 0x38;
         $attrX = 0;
         $attrY = 0;
 
@@ -38,10 +66,8 @@ class S81 extends Standard
                 } elseif ($attrY > 7) {
                     $base = 32 * 8 * 8;
                 }
-
-                $pixelY = $base + $attrY * 32 + $row * 256;
-                $pixelX = $attrX;
-                $pixelsArray[$pixelY + $pixelX] = $pixels;
+                $pixelKey = $base + $attrY * 32 + $row * 256 + $attrX;
+                $pixelsArray[$pixelKey] = $pixels;
             }
             $attrX++;
             if ($attrX === 32) {
@@ -49,9 +75,10 @@ class S81 extends Standard
                 $attrY++;
             }
         }
+
         ksort($pixelsArray);
         ksort($attributesArray);
-        return compact('pixelsArray', 'attributesArray');
+        return [array_values($pixelsArray), array_values($attributesArray)];
     }
 
     protected static function getChar(int $token): array
@@ -1348,13 +1375,11 @@ class Zx81FontData
     public static function getChar(int $number): array
     {
         if ($number > 0 && $number < 64) {
-            return self::$data[$number];
+            return array_map('bindec', self::$data[$number]);
         }
         if ($number > 127 && $number < 192) {
-            return self::$data[$number - 64];
+            return array_map('bindec', self::$data[$number - 64]);
         }
-        return self::$data[0];
+        return array_map('bindec', self::$data[0]);
     }
 }
-
-

@@ -4,61 +4,55 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-class Attributes extends Standard
+use ZxImage\Converter;
+use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Standard\AttributeParser;
+
+class Attributes implements PluginInterface
 {
-    protected ?int $strictFileSize = 768;
+    use StandardConvertTrait;
 
-    public function convert(): ?string
-    {
-        $result = null;
-        if ($bits = $this->loadBits()) {
-            $parsedData = $this->parseScreen($bits);
-            if (count($parsedData['attributesData']['flashMap']) > 0) {
-                $gifImages = [];
-
-                $image = $this->exportData($parsedData, false);
-                $gifImages[] = $this->getRightPaletteGif($image);
-
-                $image = $this->exportData($parsedData, true);
-                $gifImages[] = $this->getRightPaletteGif($image);
-
-                $delays = [32, 32];
-                $result = $this->buildAnimatedGif($gifImages, $delays);
-            } else {
-                $image = $this->exportData($parsedData, false);
-                $result = $this->makePngFromGd($image);
-            }
-        }
-        return $result;
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->requiredFileSize = 768;
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
     }
 
-    protected function loadBits(): ?array
+    protected function loadBits(): ?RawScreen
     {
-        $attributesArray = [];
-
-        if ($this->makeHandle()) {
-            while ($bin = $this->read8BitString()) {
-                $attributesArray[] = $bin;
-            }
-            $resultBits = ['pixelsArray' => $this->generatePixelsArray(), 'attributesArray' => $attributesArray];
-            return $resultBits;
+        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, $this->requiredFileSize);
+        if ($reader === null) {
+            return null;
         }
-        return null;
+
+        $attributesBytes = [];
+        while (($byte = $reader->readByte()) !== null) {
+            $attributesBytes[] = $byte;
+        }
+        return new RawScreen([], $attributesBytes);
     }
 
-    protected function generatePixelsArray()
+    protected function parseScreen(RawScreen $rawScreen): ParsedScreen
     {
-        $pixelsArray = [];
-        for ($third = 0; $third < 3; $third++) {
-            for ($y = 0; $y < 4; $y++) {
-                for ($x = 0; $x < 32 * 8; $x++) {
-                    $pixelsArray[] = '01010101';
-                }
-                for ($x = 0; $x < 32 * 8; $x++) {
-                    $pixelsArray[] = '10101010';
-                }
+        $attributes = (new AttributeParser($this->width))->parse($rawScreen->attributesBytes);
+        return new ParsedScreen($this->generatePixelsData(), $attributes);
+    }
+
+    private function generatePixelsData(): array
+    {
+        $pixelsData = [];
+        for ($y = 0; $y < $this->height; $y++) {
+            for ($x = 0; $x < $this->width; $x++) {
+                $pixelsData[$y][$x] = ($x + $y) % 2;
             }
         }
-        return $pixelsArray;
+        return $pixelsData;
     }
 }

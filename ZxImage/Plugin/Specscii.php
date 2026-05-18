@@ -1,64 +1,67 @@
 <?php
-declare(strict_types=1);
 
+declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use InvalidArgumentException;
+use ZxImage\Converter;
+use ZxImage\Dto\RawScreen;
 
-class Specscii extends Standard
+class Specscii implements PluginInterface
 {
-    protected function loadBits(): ?array
-    {
-        $tokens = [];
-        if ($this->makeHandle()) {
-            while (($bin = $this->readByte()) !== null) {
-                $tokens[] = $bin;
-            }
-            return $this->parseTokens($tokens);
-        }
-        return null;
+    use StandardConvertTrait;
+
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
     }
 
-    private function parseTokens(array $tokens): array
+    protected function loadBits(): ?RawScreen
+    {
+        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, null);
+        if ($reader === null) {
+            return null;
+        }
+
+        $tokens = [];
+        while (($byte = $reader->readByte()) !== null) {
+            $tokens[] = $byte;
+        }
+        return $this->parseTokens($tokens);
+    }
+
+    private function parseTokens(array $tokens): RawScreen
     {
         $pixelsArray = [];
         $attributesArray = [];
-        $currentAttribute = '00000000';
+        $currentAttribute = 0;
         $command = null;
         $nextCommand = null;
         $attrX = 0;
         $attrY = 0;
 
         foreach ($tokens as $token) {
-            if (!$command) {
-                switch ($token) {
-                    case Chr::INK->value:
-                    case Chr::PAPER->value:
-                    case Chr::FLASH->value:
-                    case Chr::BRIGHT->value:
-                        $nextCommand = $token;
-                        break;
-                }
+            if ($command === null) {
+                $nextCommand = match ($token) {
+                    Chr::INK->value, Chr::PAPER->value, Chr::FLASH->value, Chr::BRIGHT->value => $token,
+                    default => $nextCommand,
+                };
             }
-            if ($command) {
-                //switch color
-                switch ($command) {
-                    case Chr::INK->value:
-                        $color = $this->toBinaryString($token);
-                        $currentAttribute = substr_replace($currentAttribute, $color, 5, 3);
-                        break;
-                    case Chr::PAPER->value:
-                        $color = $this->toBinaryString($token);
-                        $currentAttribute = substr_replace($currentAttribute, $color, 2, 3);
-                        break;
-                    case Chr::FLASH->value:
-                        $currentAttribute[0] = $token === 1 ? '1' : '0';
-                        break;
-                    case Chr::BRIGHT->value:
-                        $currentAttribute[1] = $token === 1 ? '1' : '0';
-                        break;
-                }
+
+            if ($command !== null) {
+                $currentAttribute = match ($command) {
+                    Chr::INK->value => ($currentAttribute & ~0x07) | ($token & 0x07),
+                    Chr::PAPER->value => ($currentAttribute & ~0x38) | (($token & 0x07) << 3),
+                    Chr::FLASH->value => $token === 1 ? ($currentAttribute | 0x80) : ($currentAttribute & ~0x80),
+                    Chr::BRIGHT->value => $token === 1 ? ($currentAttribute | 0x40) : ($currentAttribute & ~0x40),
+                    default => $currentAttribute,
+                };
                 $command = null;
             } elseif ($nextCommand === null) {
                 $charData = FontData::getChar($token - 32);
@@ -70,10 +73,7 @@ class Specscii extends Standard
                     } elseif ($attrY > 7) {
                         $base = 32 * 8 * 8;
                     }
-
-                    $pixelY = $base + $attrY * 32 + $row * 256;
-                    $pixelX = $attrX;
-                    $pixelsArray[$pixelY + $pixelX] = $pixels;
+                    $pixelsArray[$base + $attrY * 32 + $row * 256 + $attrX] = $pixels;
                 }
                 $attrX++;
                 if ($attrX === 32) {
@@ -85,17 +85,11 @@ class Specscii extends Standard
                 $nextCommand = null;
             }
         }
+
         ksort($pixelsArray);
         ksort($attributesArray);
-        return compact('pixelsArray', 'attributesArray');
-    }
 
-    private function toBinaryString($number): string
-    {
-        if ($number < 0 || $number > 7) {
-            throw new InvalidArgumentException("Invalid range");
-        }
-        return str_pad(decbin($number), 3, '0', STR_PAD_LEFT);
+        return new RawScreen(array_values($pixelsArray), array_values($attributesArray));
     }
 }
 
@@ -1234,8 +1228,8 @@ class FontData
         ],
     ];
 
-    public static function getChar($number): array
+    public static function getChar(int $number): array
     {
-        return self::$data[$number];
+        return array_map('bindec', self::$data[$number]);
     }
 }

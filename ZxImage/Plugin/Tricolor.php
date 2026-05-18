@@ -4,90 +4,101 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use GdImage;
+use ZxImage\Converter;
+use ZxImage\Dto\AttributeMap;
+use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\ParsedScreen;
+use ZxImage\Plugin\Standard\PixelParser;
+use ZxImage\Plugin\Standard\PixelRenderer;
 
-class Tricolor extends Standard
+class Tricolor implements PluginInterface
 {
-    protected ?int $strictFileSize = 18432;
+    use PluginConfigTrait;
+
+    private const int REQUIRED_FILE_SIZE = 18432;
+
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
+    }
 
     public function convert(): ?string
     {
-        $result = null;
-        if ($bits = $this->loadBits()) {
-            $parsedData = $this->parseScreen($bits);
-
-            if ($this->gigascreenMode == 'flicker') {
-                $gifImages = [];
-                $image = $this->exportData($parsedData[0], false);
-                $gifImages[] = $this->getRightPaletteGif($image);
-
-                $image = $this->exportData($parsedData[1], false);
-                $gifImages[] = $this->getRightPaletteGif($image);
-
-                $image = $this->exportData($parsedData[2], false);
-                $gifImages[] = $this->getRightPaletteGif($image);
-
-                $delays = [2, 2, 2];
-
-                $result = $this->buildAnimatedGif($gifImages, $delays);
-            } else {
-                $resources = [];
-                $resources[] = $this->exportData($parsedData[0], false);
-                $resources[] = $this->exportData($parsedData[1], false);
-                $resources[] = $this->exportData($parsedData[2], false);
-
-                $result = $this->buildMixedPng($resources);
-            }
+        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, self::REQUIRED_FILE_SIZE);
+        if ($reader === null) {
+            return null;
         }
-        return $result;
-    }
 
-    protected function loadBits(): ?array
-    {
-        $pixelsArray = [];
-        if ($this->makeHandle()) {
-            $length = 0;
-            $image = 0;
-            while ($bin = $this->read8BitString()) {
-                if ($length == 6144) {
-                    $length = 0;
-                    $image++;
-                    $pixelsArray[$image] = [];
-                }
-                $pixelsArray[$image][] = $bin;
-                $length++;
-            }
-            $resultBits = ['pixelsArray' => $pixelsArray];
-            return $resultBits;
+        $colorTable = $this->paletteService->buildColorTable($this->paletteString);
+
+        $screenColors = [
+            [10, 0],
+            [12, 0],
+            [9, 0],
+        ];
+
+        $screens = [];
+        for ($i = 0; $i < 3; $i++) {
+            $pixelsBytes = $reader->readBytes(6144);
+            [$inkKey, $paperKey] = $screenColors[$i];
+            $pixelsData = (new PixelParser($this->width))->parse($pixelsBytes);
+            $screens[] = new ParsedScreen($pixelsData, $this->buildFlatAttributeMap($inkKey, $paperKey));
         }
-        return null;
-    }
 
-    protected function parseScreen($data): array
-    {
-        $parsedData = [];
-        $parsedData[0]['pixelsData'] = $this->parsePixels($data['pixelsArray'][0]);
-        $parsedData[0]['attributesData'] = $this->generateAttributesArray('1010', '0000');
-        $parsedData[1]['pixelsData'] = $this->parsePixels($data['pixelsArray'][1]);
-        $parsedData[1]['attributesData'] = $this->generateAttributesArray('1100', '0000');
-        $parsedData[2]['pixelsData'] = $this->parsePixels($data['pixelsArray'][2]);
-        $parsedData[2]['attributesData'] = $this->generateAttributesArray('1001', '0000');
-        return $parsedData;
-    }
-
-    protected function generateAttributesArray($inkColorCode, $paperColorCode)
-    {
-        $attributesData = [];
-        for ($y = 0; $y < 24; $y++) {
-            for ($x = 0; $x < 32; $x++) {
-                $attributesData['inkMap'][$y][$x] = $inkColorCode;
-                $attributesData['paperMap'][$y][$x] = $paperColorCode;
+        if ($this->gigascreenMode === 'flicker') {
+            $gifImages = [];
+            foreach ($screens as $screen) {
+                $gifImages[] = $this->imageEncoder->toPaletteGif($this->renderScreen($screen, $colorTable));
             }
+            $this->resultMime = 'image/gif';
+            return $this->imageEncoder->toAnimatedGif($gifImages, [2, 2, 2]);
         }
-        $attributesData['flashMap'] = [];
-        return $attributesData;
+
+        $resources = [];
+        foreach ($screens as $screen) {
+            $resources[] = $this->renderScreen($screen, $colorTable);
+        }
+
+        $this->resultMime = 'image/png';
+        return $this->imageEncoder->toPng($this->buildMixedImage($resources));
     }
 
-    protected function buildMixedPng($resources): string
+    private function renderScreen(ParsedScreen $screen, ColorTable $colorTable): GdImage
+    {
+        $renderer = new PixelRenderer();
+        $image = $renderer->render(
+            $screen,
+            false,
+            $colorTable->colors,
+            $this->width,
+            $this->height,
+            $this->attributeWidth,
+            $this->attributeHeight,
+        );
+        $image = $this->imageProcessor->applyBorder($image, $this->border, $colorTable, $this->width, $this->height, $this->borderWidth, $this->borderHeight, $this->usesBorder);
+        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
+        return $this->imageProcessor->rotate($image, $this->rotation);
+    }
+
+    private function buildFlatAttributeMap(int $inkKey, int $paperKey): AttributeMap
+    {
+        $rows = (int)($this->height / 8);
+        $cols = (int)($this->width / 8);
+        return new AttributeMap(
+            array_fill(0, $rows, array_fill(0, $cols, $inkKey)),
+            array_fill(0, $rows, array_fill(0, $cols, $paperKey)),
+            [],
+        );
+    }
+
+    private function buildMixedImage(array $resources): GdImage
     {
         $first = reset($resources);
         $width = imagesx($first);
@@ -97,14 +108,12 @@ class Tricolor extends Standard
         for ($y = 0; $y < $height; $y++) {
             for ($x = 0; $x < $width; $x++) {
                 $overall = 0;
-                foreach ($resources as &$resource) {
-                    $color = imagecolorat($resource, $x, $y);
-                    $overall = $overall + $color;
+                foreach ($resources as $resource) {
+                    $overall += imagecolorat($resource, $x, $y);
                 }
                 imagesetpixel($image, $x, $y, $overall);
             }
         }
-        $result = $this->makePngFromGd($image);
-        return $result;
+        return $image;
     }
 }

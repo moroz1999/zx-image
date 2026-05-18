@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use ZxImage\Converter;
 
-class Nxi extends Standard
+class Nxi implements PluginInterface
 {
-    protected ?int $strictFileSize = 49664;
-    protected int $paletteLength = 256;
-    protected $rgb3torgb8 = [
+    use PluginConfigTrait;
+
+    protected const int PALETTE_LENGTH = 256;
+
+    private const array RGB3_TO_RGB8 = [
         0 => 0,
         1 => 36,
         2 => 73,
@@ -20,36 +23,59 @@ class Nxi extends Standard
         7 => 255,
     ];
 
-    protected function loadBits(): ?array
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
+    ) {
+        $this->requiredFileSize = 49664;
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
+    }
+
+    public function convert(): ?string
     {
-        $pixelsArray = [];
-        $paletteArray = [];
-        if ($this->makeHandle()) {
-            $paletteArray = $this->read16BitStrings($this->paletteLength);
-            $pixelsArray = $this->read8BitStrings($this->width * $this->height);
+        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, $this->requiredFileSize);
+        if ($reader === null) {
+            return null;
         }
-        $resultBits = [
-            'pixelsArray' => $pixelsArray,
-            'paletteArray' => $paletteArray,
-        ];
-        return $resultBits;
+
+        $colorTable = $this->paletteService->buildColorTable($this->paletteString);
+        $config = $colorTable->config;
+
+        $paletteBytes = [];
+        for ($i = 0; $i < static::PALETTE_LENGTH; $i++) {
+            $paletteBytes[] = [$reader->readByte() ?? 0, $reader->readByte() ?? 0];
+        }
+        $pixelsBytes = $reader->readBytes($this->width * $this->height);
+
+        $colors = $this->parseNxiPalette($paletteBytes, $config->r11, $config->r12, $config->r13, $config->r21, $config->r22, $config->r23, $config->r31, $config->r32, $config->r33);
+        $pixelsData = $this->parseLinearPixels($pixelsBytes);
+
+        $image = imagecreatetruecolor($this->width, $this->height);
+        foreach ($pixelsData as $y => $row) {
+            foreach ($row as $x => $pixel) {
+                imagesetpixel($image, $x, $y, $colors[$pixel]);
+            }
+        }
+
+        $image = $this->imageProcessor->applyBorder($image, $this->border, $colorTable, $this->width, $this->height, $this->borderWidth, $this->borderHeight, $this->usesBorder);
+        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
+        $image = $this->imageProcessor->rotate($image, $this->rotation);
+
+        $this->resultMime = 'image/png';
+        return $this->imageEncoder->toPng($image);
     }
 
-    protected function parseScreen($data): array
-    {
-        $parsedData = [];
-        $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
-        $parsedData['colorsData'] = $this->parseNxiPalette($data['paletteArray']);
-        return $parsedData;
-    }
-
-    protected function parsePixels(array $pixelsArray): array
+    protected function parseLinearPixels(array $pixelsBytes): array
     {
         $x = 0;
         $y = 0;
         $pixelsData = [];
-        foreach ($pixelsArray as $bit) {
-            $pixelsData[$y][$x] = bindec($bit);
+        foreach ($pixelsBytes as $byte) {
+            $pixelsData[$y][$x] = $byte;
             $x++;
             if ($x >= $this->width) {
                 $x = 0;
@@ -59,44 +85,20 @@ class Nxi extends Standard
         return $pixelsData;
     }
 
-    protected function parseNxiPalette($paletteArray)
+    protected function parseNxiPalette(array $paletteBytes, int $r11, int $r12, int $r13, int $r21, int $r22, int $r23, int $r31, int $r32, int $r33): array
     {
-        $paletteData = [];
-        foreach ($paletteArray as $clutItem) {
-            $r = (int)$this->rgb3torgb8[bindec(substr($clutItem, 0, 3))];
-            $g = (int)$this->rgb3torgb8[bindec(substr($clutItem, 3, 3))];
-            $b = (int)$this->rgb3torgb8[bindec(substr($clutItem, 6, 2) . substr($clutItem, 15, 1))];
+        $colors = [];
+        foreach ($paletteBytes as [$byte1, $byte2]) {
+            $r = self::RGB3_TO_RGB8[($byte1 >> 5) & 0x07];
+            $g = self::RGB3_TO_RGB8[($byte1 >> 2) & 0x07];
+            $b = self::RGB3_TO_RGB8[(($byte1 & 0x03) << 1) | ($byte2 & 0x01)];
 
-            $redChannel = (int)round(
-                ($r * $this->palette['R11'] + $g * $this->palette['R12'] + $b * $this->palette['R13']) / 0xFF
-            );
-            $greenChannel = (int)round(
-                ($r * $this->palette['R21'] + $g * $this->palette['R22'] + $b * $this->palette['R23']) / 0xFF
-            );
-            $blueChannel = (int)round(
-                ($r * $this->palette['R31'] + $g * $this->palette['R32'] + $b * $this->palette['R33']) / 0xFF
-            );
+            $red = (int)round(($r * $r11 + $g * $r12 + $b * $r13) / 0xFF);
+            $green = (int)round(($r * $r21 + $g * $r22 + $b * $r23) / 0xFF);
+            $blue = (int)round(($r * $r31 + $g * $r32 + $b * $r33) / 0xFF);
 
-            $RGB = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;
-
-            $paletteData[] = $RGB;
+            $colors[] = $red * 0x010000 + $green * 0x0100 + $blue;
         }
-        return $paletteData;
-    }
-
-    protected function exportData(array $parsedData, bool $flashedImage = false)
-    {
-        $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($parsedData['pixelsData'] as $y => $row) {
-            foreach ($row as $x => $pixel) {
-                $color = $parsedData['colorsData'][$pixel];
-                imagesetpixel($image, $x, $y, $color);
-            }
-        }
-
-        $resultImage = $this->drawBorder($image, $parsedData);
-        $resultImage = $this->resizeImage($resultImage);
-        $resultImage = $this->checkRotation($resultImage);
-        return $resultImage;
+        return $colors;
     }
 }

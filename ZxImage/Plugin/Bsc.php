@@ -4,107 +4,116 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use GdImage;
+use ZxImage\Converter;
+use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Standard\AttributeParser;
+use ZxImage\Plugin\Standard\PixelParser;
 
-class Bsc extends Standard
+class Bsc implements PluginInterface
 {
-    protected $attributesLength = 768;
-    protected int $borderWidth = 64;
-    protected int $borderHeight = 56;
-    protected ?int $strictFileSize = 11136;
+    use StandardConvertTrait;
 
-    protected function loadBits(): ?array
-    {
-        $pixelsArray = [];
-        $attributesArray = [];
-        $borderArray = [];
-        if ($this->makeHandle()) {
-            $length = 0;
-            while ($bin = $this->read8BitString()) {
-                if ($length < 6144) {
-                    $pixelsArray[] = $bin;
-                } elseif ($length < 6144 + $this->attributesLength) {
-                    $attributesArray[] = $bin;
-                } else {
-                    $borderArray[] = $bin;
-                }
-                $length++;
-            }
-            $resultBits = [
-                'pixelsArray' => $pixelsArray,
-                'attributesArray' => $attributesArray,
-                'borderArray' => $borderArray,
-            ];
-            return $resultBits;
-        }
-        return null;
-    }
+    private const int ATTRIBUTES_LENGTH = 768;
+    private const int FILE_SIZE = 11136;
 
-    protected function parseScreen($data): array
-    {
-        $parsedData = [];
-        $parsedData['attributesData'] = $this->parseAttributes($data['attributesArray']);
-        $parsedData['pixelsData'] = $this->parsePixels($data['pixelsArray']);
-        $parsedData['borderData'] = $data['borderArray'];
-        return $parsedData;
-    }
-
-    protected function drawBorder(
-        $centerImage,
-        ?array $parsedData1 = null,
-        ?array $parsedData2 = null,
-        bool $merged = false
+    public function __construct(
+        ?string $sourceFilePath = null,
+        ?string $sourceFileContents = null,
+        ?Converter $converter = null,
     ) {
-        if (is_numeric($this->border)) {
-            $resultImage = imagecreatetruecolor(
-                $this->width + $this->borderWidth * 2,
-                $this->height + $this->borderHeight * 2
-            );
+        $this->borderWidth = 64;
+        $this->borderHeight = 56;
+        $this->requiredFileSize = self::FILE_SIZE;
+        $this->sourceFilePath = $sourceFilePath;
+        $this->sourceFileContents = $sourceFileContents;
+        $this->converter = $converter;
+        $this->initServices();
+    }
 
-            $x = 0;
-            $y = 0;
+    protected function loadBits(): ?RawScreen
+    {
+        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, $this->requiredFileSize);
+        if ($reader === null) {
+            return null;
+        }
 
-            foreach ($parsedData1['borderData'] as $byte) {
-                $left = "0" . substr($byte, 5, 3);
+        $pixelsBytes = $reader->readBytes(6144);
+        $attributesBytes = $reader->readBytes(self::ATTRIBUTES_LENGTH);
+        $borderBytes = [];
+        while (($byte = $reader->readByte()) !== null) {
+            $borderBytes[] = $byte;
+        }
+        return new RawScreen($pixelsBytes, $attributesBytes, $borderBytes);
+    }
 
-                $code = sprintf('%04.0f', $left);
-                $color = $this->colors[$code];
-                for ($i = 0; $i < 8; $i++) {
-                    imagesetpixel($resultImage, $x + $i, $y, $color);
-                }
+    protected function parseScreen(RawScreen $rawScreen): ParsedScreen
+    {
+        $attributes = (new AttributeParser($this->width))->parse($rawScreen->attributesBytes);
+        $pixelsData = (new PixelParser($this->width))->parse($rawScreen->pixelsBytes);
+        return new ParsedScreen($pixelsData, $attributes, [], $rawScreen->borderBytes);
+    }
 
-                $x = $x + 8;
-                $right = "0" . substr($byte, 2, 3);
-                $code = sprintf('%04.0f', $right);
-                $color = $this->colors[$code];
-                for ($i = 0; $i < 8; $i++) {
-                    imagesetpixel($resultImage, $x + $i, $y, $color);
-                }
+    protected function renderImage(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage
+    {
+        $renderer = new \ZxImage\Plugin\Standard\PixelRenderer();
+        $image = $renderer->render(
+            $parsedScreen,
+            $flashedImage,
+            $colorTable->colors,
+            $this->width,
+            $this->height,
+            $this->attributeWidth,
+            $this->attributeHeight,
+        );
 
-                $x = $x + 8;
-                //skip central pixels for center of image
-                if ($y >= ($this->borderHeight + 8) && $y < ($this->height + $this->borderHeight + 8) && $x == $this->borderWidth) {
-                    $x = $x + $this->width;
-                }
+        $image = $this->applyBscBorder($image, $parsedScreen, $colorTable);
+        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
+        return $this->imageProcessor->rotate($image, $this->rotation);
+    }
 
-                if ($x >= $this->width + $this->borderWidth * 2) {
-                    $x = 0;
-                    $y++;
-                }
+    private function applyBscBorder(GdImage $centerImage, ParsedScreen $parsedScreen, ColorTable $colorTable): GdImage
+    {
+        if ($this->border === null) {
+            return $centerImage;
+        }
+
+        $resultImage = imagecreatetruecolor(
+            $this->width + $this->borderWidth * 2,
+            $this->height + $this->borderHeight * 2,
+        );
+
+        $x = 0;
+        $y = 0;
+
+        foreach ($parsedScreen->borderData as $byte) {
+            $leftColor = $byte & 0x07;
+            $color = $colorTable->colors[$leftColor];
+            for ($i = 0; $i < 8; $i++) {
+                imagesetpixel($resultImage, $x + $i, $y, $color);
             }
 
-            imagecopy(
-                $resultImage,
-                $centerImage,
-                $this->borderWidth,
-                $this->borderHeight + 8,
-                0,
-                0,
-                $this->width,
-                $this->height
-            );
-        } else {
-            $resultImage = $centerImage;
+            $x += 8;
+            $rightColor = ($byte >> 3) & 0x07;
+            $color = $colorTable->colors[$rightColor];
+            for ($i = 0; $i < 8; $i++) {
+                imagesetpixel($resultImage, $x + $i, $y, $color);
+            }
+
+            $x += 8;
+            if ($y >= ($this->borderHeight + 8) && $y < ($this->height + $this->borderHeight + 8) && $x === $this->borderWidth) {
+                $x += $this->width;
+            }
+
+            if ($x >= $this->width + $this->borderWidth * 2) {
+                $x = 0;
+                $y++;
+            }
         }
+
+        imagecopy($resultImage, $centerImage, $this->borderWidth, $this->borderHeight + 8, 0, 0, $this->width, $this->height);
         return $resultImage;
     }
 }
