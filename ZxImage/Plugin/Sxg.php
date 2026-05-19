@@ -5,56 +5,29 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Plugin\Sxg\SxgPaletteParser;
+use ZxImage\Plugin\Sxg\SxgPixelParser;
+use ZxImage\Service\PluginRuntime;
 
 class Sxg implements PluginInterface
 {
-    use PluginConfigTrait;
-
-    private const int FORMAT_256 = 2;
-    private const int FORMAT_16 = 1;
-
-    private const array LEVEL_TABLE = [
-        0 => 0,
-        1 => 10,
-        2 => 21,
-        3 => 31,
-        4 => 42,
-        5 => 53,
-        6 => 63,
-        7 => 74,
-        8 => 85,
-        9 => 95,
-        10 => 106,
-        11 => 117,
-        12 => 127,
-        13 => 138,
-        14 => 149,
-        15 => 159,
-        16 => 170,
-        17 => 181,
-        18 => 191,
-        19 => 202,
-        20 => 213,
-        21 => 223,
-        22 => 234,
-        23 => 245,
-        24 => 255,
-    ];
+    private PluginRuntime $runtime;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
     }
 
     public function convert(): ?string
     {
-        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, null);
+        $reader = $this->runtime->fileLoader->openSource(
+            $this->runtime->sourceFilePath,
+            $this->runtime->sourceFileContents,
+            null,
+        );
         if ($reader === null) {
             return null;
         }
@@ -69,8 +42,8 @@ class Sxg implements PluginInterface
         $reader->readByte(); // background
         $reader->readByte(); // packed
         $sxgFormat = $reader->readByte() ?? self::FORMAT_256;
-        $this->width = $reader->readWord() ?? $this->width;
-        $this->height = $reader->readWord() ?? $this->height;
+        $this->runtime->width = $reader->readWord() ?? $this->runtime->width;
+        $this->runtime->height = $reader->readWord() ?? $this->runtime->height;
         $paletteShift = $reader->readWord() ?? 0;
         $pixelsShift = $reader->readWord() ?? 0;
 
@@ -84,10 +57,10 @@ class Sxg implements PluginInterface
             $pixelsBytes[] = $byte;
         }
 
-        $colors = $this->parseSxgPalette($paletteWords, $sxgFormat);
-        $pixelsData = $this->parsePixels($pixelsBytes, $sxgFormat);
+        $colors = (new SxgPaletteParser())->parse($paletteWords);
+        $pixelsData = (new SxgPixelParser())->parse($pixelsBytes, $sxgFormat, $this->runtime->width);
 
-        $image = imagecreatetruecolor($this->width, $this->height);
+        $image = imagecreatetruecolor($this->runtime->width, $this->runtime->height);
         foreach ($pixelsData as $y => $row) {
             foreach ($row as $x => $pixel) {
                 if (isset($colors[$pixel])) {
@@ -96,61 +69,55 @@ class Sxg implements PluginInterface
             }
         }
 
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        $image = $this->imageProcessor->rotate($image, $this->rotation);
+        $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
+        $image = $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
 
-        $this->resultMime = 'image/png';
-        return $this->imageEncoder->toPng($image);
+        $this->runtime->resultMime = 'image/png';
+        return $this->runtime->imageEncoder->toPng($image);
     }
 
-    private function parsePixels(array $pixelsBytes, int $format): array
+    public function setBorder(?int $border = null): void
     {
-        $x = 0;
-        $y = 0;
-        $pixelsData = [];
-
-        if ($format === self::FORMAT_16) {
-            foreach ($pixelsBytes as $byte) {
-                $pixelsData[$y][$x] = ($byte >> 4) & 0x0F;
-                $x++;
-                $pixelsData[$y][$x] = $byte & 0x0F;
-                $x++;
-                if ($x >= $this->width) {
-                    $x = 0;
-                    $y++;
-                }
-            }
-        } else {
-            foreach ($pixelsBytes as $pixel) {
-                $pixelsData[$y][$x] = $pixel;
-                $x++;
-                if ($x >= $this->width) {
-                    $x = 0;
-                    $y++;
-                }
-            }
-        }
-        return $pixelsData;
+        $this->runtime->setBorder($border);
     }
 
-    private function parseSxgPalette(array $words, int $format): array
+    public function setZoom(float $zoom): void
     {
-        $colors = [];
-        foreach ($words as $word) {
-            if (($word >> 15) === 0) {
-                $colorIdx = ($word >> 10) & 0x1F;
-                $r = self::LEVEL_TABLE[$colorIdx] ?? reset(self::LEVEL_TABLE);
-                $colorIdx = ($word >> 5) & 0x1F;
-                $g = self::LEVEL_TABLE[$colorIdx] ?? reset(self::LEVEL_TABLE);
-                $colorIdx = $word & 0x1F;
-                $b = self::LEVEL_TABLE[$colorIdx] ?? reset(self::LEVEL_TABLE);
-            } else {
-                $r = (($word >> 10) & 0x1F) << 3;
-                $g = (($word >> 5) & 0x1F) << 3;
-                $b = ($word & 0x1F) << 3;
-            }
-            $colors[] = $r * 0x010000 + $g * 0x0100 + $b;
-        }
-        return $colors;
+        $this->runtime->setZoom($zoom);
+    }
+
+    public function setRotation(int $rotation): void
+    {
+        $this->runtime->setRotation($rotation);
+    }
+
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
+
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
+
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
+
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 }

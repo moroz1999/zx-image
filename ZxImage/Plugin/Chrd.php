@@ -4,142 +4,51 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use GdImage;
 use Override;
-use RuntimeException;
 use ZxImage\Converter;
-use ZxImage\Dto\AttributeMap;
+use ZxImage\Dto\ChrdData;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
-use ZxImage\Plugin\Standard\AttributeParser;
+use ZxImage\Plugin\Chrd\ChrdLoader;
 use ZxImage\Plugin\Standard\PixelRenderer;
-use ZxImage\Service\BitReader;
-use ZxImage\Service\CharacterScreenBuilder;
+use ZxImage\Service\GigascreenPipeline;
+use ZxImage\Service\PluginRuntime;
 
 class Chrd implements PluginInterface
 {
-    use PluginConfigTrait;
-
     private const int COLOR_TYPE_STANDARD = 9;
     private const int COLOR_TYPE_GIGASCREEN = 18;
+
+    private PluginRuntime $runtime;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->usesBorder = false;
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime->usesBorder = false;
     }
 
     #[Override]
     public function convert(): ?string
     {
-        $chrdData = $this->loadChrdData();
+        $chrdData = (new ChrdLoader())->load($this->runtime);
         if ($chrdData === null) {
             return null;
         }
 
-        $colorTable = $this->paletteService->buildColorTable($this->paletteString);
+        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
 
-        if ($chrdData['colorType'] === self::COLOR_TYPE_STANDARD) {
-            return $this->renderStandard($chrdData['screen1'], $colorTable);
+        if ($chrdData->colorType === self::COLOR_TYPE_STANDARD) {
+            return $this->renderStandard($chrdData->screen1, $colorTable);
         }
 
-        if ($chrdData['colorType'] === self::COLOR_TYPE_GIGASCREEN) {
-            return $this->renderGigascreen($chrdData['screen1'], $chrdData['screen2'], $colorTable);
+        if ($chrdData->colorType === self::COLOR_TYPE_GIGASCREEN) {
+            return $this->renderGigascreen($chrdData->screen1, $chrdData->screen2, $colorTable);
         }
 
         return null;
-    }
-
-    /**
-     * @return array{colorType: int, screen1: ParsedScreen, screen2: ParsedScreen}|null
-     */
-    private function loadChrdData(): ?array
-    {
-        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, null);
-        if ($reader === null) {
-            return null;
-        }
-
-        $signature = $reader->readString(4);
-        if ($signature === null || strtolower($signature) !== 'chr$') {
-            return null;
-        }
-
-        $widthInChars = $reader->readByte();
-        $heightInChars = $reader->readByte();
-        $colorType = $reader->readByte();
-
-        if ($widthInChars === null || $heightInChars === null || $colorType === null) {
-            return null;
-        }
-
-        $this->width = $widthInChars * 8;
-        $this->height = $heightInChars * 8;
-
-        if ($colorType !== self::COLOR_TYPE_STANDARD && $colorType !== self::COLOR_TYPE_GIGASCREEN) {
-            return null;
-        }
-
-        $attributesArray1 = [];
-        $attributesArray2 = [];
-        /** @var array<int, array<int, list<int>>> $characterRows1 */
-        $characterRows1 = [];
-        /** @var array<int, array<int, list<int>>> $characterRows2 */
-        $characterRows2 = [];
-
-        for ($charY = 0; $charY < $heightInChars; $charY++) {
-            for ($charX = 0; $charX < $widthInChars; $charX++) {
-                if ($colorType === self::COLOR_TYPE_STANDARD) {
-                    $characterRows1[$charY][$charX] = $this->readCharacterBytes($reader);
-                    $attributesArray1[] = $reader->readByte() ?? 0;
-                } else {
-                    $characterRows1[$charY][$charX] = $this->readCharacterBytes($reader);
-                    $attributesArray1[] = $reader->readByte() ?? 0;
-
-                    $characterRows2[$charY][$charX] = $this->readCharacterBytes($reader);
-                    $attributesArray2[] = $reader->readByte() ?? 0;
-                }
-            }
-        }
-
-        $screenBuilder = new CharacterScreenBuilder();
-        $attrParser = new AttributeParser($this->width);
-        $attributes1 = $attrParser->parse($attributesArray1);
-        $pixels1 = $screenBuilder->buildPixelsFromCharacterRows($characterRows1, $widthInChars, $heightInChars);
-        $screen1 = new ParsedScreen($pixels1, $attributes1);
-
-        $attributes2 = new AttributeMap([], [], []);
-        $pixels2 = [];
-        if ($colorType === self::COLOR_TYPE_GIGASCREEN) {
-            $attributes2 = $attrParser->parse($attributesArray2);
-            $pixels2 = $screenBuilder->buildPixelsFromCharacterRows($characterRows2, $widthInChars, $heightInChars);
-        }
-        $screen2 = new ParsedScreen($pixels2, $attributes2);
-
-        return [
-            'colorType' => $colorType,
-            'screen1' => $screen1,
-            'screen2' => $screen2,
-        ];
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function readCharacterBytes(BitReader $reader): array
-    {
-        $bytes = [];
-        for ($i = 0; $i < 8; $i++) {
-            $bytes[] = $reader->readByte() ?? 0;
-        }
-
-        return $bytes;
     }
 
     private function renderStandard(ParsedScreen $screen, ColorTable $colorTable): string
@@ -147,148 +56,83 @@ class Chrd implements PluginInterface
         $hasFlash = count($screen->attributes->flashMap) > 0;
 
         if ($hasFlash) {
-            $frame1 = $this->imageEncoder->toPaletteGif($this->renderSingleImage($screen, $colorTable, false));
-            $frame2 = $this->imageEncoder->toPaletteGif($this->renderSingleImage($screen, $colorTable, true));
-            $this->resultMime = 'image/gif';
-            return $this->imageEncoder->toAnimatedGif([$frame1, $frame2], [32, 32]);
+            $frame1 = $this->runtime->imageEncoder->toPaletteGif($this->renderSingleImage($screen, $colorTable, false));
+            $frame2 = $this->runtime->imageEncoder->toPaletteGif($this->renderSingleImage($screen, $colorTable, true));
+            $this->runtime->resultMime = 'image/gif';
+            return $this->runtime->imageEncoder->toAnimatedGif([$frame1, $frame2], [32, 32]);
         }
 
-        $this->resultMime = 'image/png';
-        return $this->imageEncoder->toPng($this->renderSingleImage($screen, $colorTable, false));
+        $this->runtime->resultMime = 'image/png';
+        return $this->runtime->imageEncoder->toPng($this->renderSingleImage($screen, $colorTable, false));
     }
 
-    private function renderSingleImage(ParsedScreen $screen, ColorTable $colorTable, bool $flashedImage): GdImage
+    private function renderSingleImage(ParsedScreen $screen, ColorTable $colorTable, bool $flashedImage): \GdImage
     {
         $image = (new PixelRenderer())->render(
             $screen,
             $flashedImage,
             $colorTable->colors,
-            $this->width,
-            $this->height,
-            $this->attributeWidth,
-            $this->attributeHeight,
+            $this->runtime->width,
+            $this->runtime->height,
+            $this->runtime->attributeWidth,
+            $this->runtime->attributeHeight,
         );
 
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        return $this->imageProcessor->rotate($image, $this->rotation);
+        $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
+        return $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
     }
 
     private function renderGigascreen(ParsedScreen $screen1, ParsedScreen $screen2, ColorTable $colorTable): string
     {
-        $isFlickerMode = $this->gigascreenMode === 'flicker'
-            || $this->gigascreenMode === 'interlace1'
-            || $this->gigascreenMode === 'interlace2';
+        $pipeline = new GigascreenPipeline();
+        $renderSingle = fn(ParsedScreen $screen, ColorTable $ct, bool $flashed): \GdImage => $this->renderSingleImage($screen, $ct, $flashed);
+        $renderMerged = fn(ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashed): \GdImage => $pipeline->renderMergedImage($s1, $s2, $ct, $flashed, $this->runtime);
 
-        if ($isFlickerMode) {
-            return $this->buildFlickerAnimation($screen1, $screen2, $colorTable);
-        }
-
-        return $this->buildMixedResult($screen1, $screen2, $colorTable);
+        return $pipeline->buildFromParsedScreens($screen1, $screen2, $colorTable, $this->runtime, $renderSingle, $renderMerged);
     }
 
-    private function buildFlickerAnimation(ParsedScreen $screen1, ParsedScreen $screen2, ColorTable $colorTable): string
+    public function setBorder(?int $border = null): void
     {
-        $hasFlash = count($screen1->attributes->flashMap) > 0 || count($screen2->attributes->flashMap) > 0;
-
-        if ($hasFlash) {
-            $image1 = $this->renderSingleImage($screen1, $colorTable, false);
-            $image2 = $this->renderSingleImage($screen2, $colorTable, false);
-            $image1f = $this->renderSingleImage($screen1, $colorTable, true);
-            $image2f = $this->renderSingleImage($screen2, $colorTable, true);
-
-            if ($this->gigascreenMode === 'interlace1') {
-                $this->imageProcessor->interlaceMix($image1, $image2, 1, $this->zoom);
-                $this->imageProcessor->interlaceMix($image1f, $image2f, 1, $this->zoom);
-            } elseif ($this->gigascreenMode === 'interlace2') {
-                $this->imageProcessor->interlaceMix($image1, $image2, 2, $this->zoom);
-                $this->imageProcessor->interlaceMix($image1f, $image2f, 2, $this->zoom);
-            }
-
-            $frame1 = $this->imageEncoder->toPaletteGif($image1);
-            $frame2 = $this->imageEncoder->toPaletteGif($image2);
-            $frame1f = $this->imageEncoder->toPaletteGif($image1f);
-            $frame2f = $this->imageEncoder->toPaletteGif($image2f);
-
-            $gifImages = [];
-            $delays = [];
-            for ($i = 0; $i < 32; $i++) {
-                $gifImages[] = $i < 16 ? (($i & 1) ? $frame1 : $frame2) : (($i & 1) ? $frame1f : $frame2f);
-                $delays[] = 2;
-            }
-        } else {
-            $image1 = $this->renderSingleImage($screen1, $colorTable, false);
-            $image2 = $this->renderSingleImage($screen2, $colorTable, false);
-
-            if ($this->gigascreenMode === 'interlace1') {
-                $this->imageProcessor->interlaceMix($image1, $image2, 1, $this->zoom);
-            } elseif ($this->gigascreenMode === 'interlace2') {
-                $this->imageProcessor->interlaceMix($image1, $image2, 2, $this->zoom);
-            }
-
-            $gifImages = [
-                $this->imageEncoder->toPaletteGif($image1),
-                $this->imageEncoder->toPaletteGif($image2),
-            ];
-            $delays = [2, 2];
-        }
-
-        $this->resultMime = 'image/gif';
-        return $this->imageEncoder->toAnimatedGif($gifImages, $delays);
+        $this->runtime->setBorder($border);
     }
 
-    private function buildMixedResult(ParsedScreen $screen1, ParsedScreen $screen2, ColorTable $colorTable): string
+    public function setZoom(float $zoom): void
     {
-        $hasFlash = count($screen1->attributes->flashMap) > 0 || count($screen2->attributes->flashMap) > 0;
-
-        if ($hasFlash) {
-            $frame1 = $this->imageEncoder->toPaletteGif($this->renderMergedImage($screen1, $screen2, $colorTable, false));
-            $frame2 = $this->imageEncoder->toPaletteGif($this->renderMergedImage($screen1, $screen2, $colorTable, true));
-            $this->resultMime = 'image/gif';
-            return $this->imageEncoder->toAnimatedGif([$frame1, $frame2], [32, 32]);
-        }
-
-        $this->resultMime = 'image/png';
-        return $this->imageEncoder->toPng($this->renderMergedImage($screen1, $screen2, $colorTable, false));
+        $this->runtime->setZoom($zoom);
     }
 
-    private function renderMergedImage(ParsedScreen $screen1, ParsedScreen $screen2, ColorTable $colorTable, bool $flashedImage): GdImage
+    public function setRotation(int $rotation): void
     {
-        $image = imagecreatetruecolor($this->width, $this->height);
-        if ($image === false) {
-            throw new RuntimeException('Unable to create CHR$ image.');
-        }
+        $this->runtime->setRotation($rotation);
+    }
 
-        for ($y = 0; $y < $this->height; $y++) {
-            for ($x = 0; $x < $this->width; $x++) {
-                $pixel1 = $screen1->pixelsData[$y][$x];
-                $mapX = (int)($x / $this->attributeWidth);
-                $mapY = (int)($y / $this->attributeHeight);
-                $pixel2 = $screen2->pixelsData[$y][$x];
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
 
-                if ($flashedImage && isset($screen1->attributes->flashMap[$mapY][$mapX])) {
-                    $color1 = $pixel1 === 1
-                        ? $screen1->attributes->paperMap[$mapY][$mapX]
-                        : $screen1->attributes->inkMap[$mapY][$mapX];
-                } else {
-                    $color1 = $pixel1 === 1
-                        ? $screen1->attributes->inkMap[$mapY][$mapX]
-                        : $screen1->attributes->paperMap[$mapY][$mapX];
-                }
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
 
-                if ($flashedImage && isset($screen2->attributes->flashMap[$mapY][$mapX])) {
-                    $color2 = $pixel2 === 1
-                        ? $screen2->attributes->paperMap[$mapY][$mapX]
-                        : $screen2->attributes->inkMap[$mapY][$mapX];
-                } else {
-                    $color2 = $pixel2 === 1
-                        ? $screen2->attributes->inkMap[$mapY][$mapX]
-                        : $screen2->attributes->paperMap[$mapY][$mapX];
-                }
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
 
-                imagesetpixel($image, $x, $y, $colorTable->gigaColors[($color1 << 4) | $color2]);
-            }
-        }
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        return $this->imageProcessor->rotate($image, $this->rotation);
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 }

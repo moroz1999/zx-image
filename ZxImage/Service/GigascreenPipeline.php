@@ -73,6 +73,29 @@ final readonly class GigascreenPipeline
         return $this->buildMixedResult($parsedScreen1, $parsedScreen2, $colorTable, $runtime, $renderMergedImage);
     }
 
+    /**
+     * @param callable(ParsedScreen, ColorTable, bool): GdImage $renderImage
+     * @param callable(ParsedScreen, ParsedScreen, ColorTable, bool): GdImage $renderMergedImage
+     */
+    public function buildFromParsedScreens(
+        ParsedScreen $parsedScreen1,
+        ParsedScreen $parsedScreen2,
+        ColorTable $colorTable,
+        PluginRuntime $runtime,
+        callable $renderImage,
+        callable $renderMergedImage,
+    ): string {
+        $isFlickerMode = $runtime->gigascreenMode === 'flicker'
+            || $runtime->gigascreenMode === 'interlace1'
+            || $runtime->gigascreenMode === 'interlace2';
+
+        if ($isFlickerMode) {
+            return $this->buildFlickerAnimation($parsedScreen1, $parsedScreen2, $colorTable, $runtime, $renderImage);
+        }
+
+        return $this->buildMixedResult($parsedScreen1, $parsedScreen2, $colorTable, $runtime, $renderMergedImage);
+    }
+
     public function parseScreen(RawScreen $rawScreen, PluginRuntime $runtime): ParsedScreen
     {
         $attributes = (new AttributeParser($runtime->width))->parse($rawScreen->attributesBytes);

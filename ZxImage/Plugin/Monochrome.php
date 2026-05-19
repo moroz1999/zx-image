@@ -7,7 +7,7 @@ namespace ZxImage\Plugin;
 use ZxImage\Converter;
 use ZxImage\Dto\AttributeMap;
 use ZxImage\Dto\ParsedScreen;
-use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Monochrome\MonochromeLoader;
 use ZxImage\Plugin\Standard\PixelParser;
 use ZxImage\Plugin\Standard\PixelRenderer;
 use ZxImage\Service\PluginRuntime;
@@ -33,13 +33,21 @@ class Monochrome implements PluginInterface
 
     public function convert(): ?string
     {
-        $rawScreen = $this->loadBits();
+        $rawScreen = (new MonochromeLoader())->load($this->runtime);
         if ($rawScreen === null) {
             return null;
         }
 
         $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
-        $parsedScreen = $this->parseScreen($rawScreen);
+        $pixelsData = (new PixelParser($this->runtime->width))->parse($rawScreen->pixelsBytes);
+        $rows = (int)($this->runtime->height / 8);
+        $cols = (int)($this->runtime->width / 8);
+        $attributes = new AttributeMap(
+            array_fill(0, $rows, array_fill(0, $cols, self::INK_KEY)),
+            array_fill(0, $rows, array_fill(0, $cols, self::PAPER_KEY)),
+            [],
+        );
+        $parsedScreen = new ParsedScreen($pixelsData, $attributes);
 
         $image = (new PixelRenderer())->render(
             $parsedScreen,
@@ -55,35 +63,6 @@ class Monochrome implements PluginInterface
 
         $this->runtime->resultMime = 'image/gif';
         return $this->runtime->imageEncoder->toGif($image);
-    }
-
-    private function loadBits(): ?RawScreen
-    {
-        $reader = $this->runtime->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
-            $this->runtime->requiredFileSize,
-        );
-        if ($reader === null) {
-            return null;
-        }
-        return new RawScreen($reader->readBytes(6144), []);
-    }
-
-    private function parseScreen(RawScreen $rawScreen): ParsedScreen
-    {
-        $pixelsData = (new PixelParser($this->runtime->width))->parse($rawScreen->pixelsBytes);
-        $attributes = $this->buildMonochromeAttributeMap();
-        return new ParsedScreen($pixelsData, $attributes);
-    }
-
-    private function buildMonochromeAttributeMap(): AttributeMap
-    {
-        $rows = (int)($this->runtime->height / 8);
-        $cols = (int)($this->runtime->width / 8);
-        $inkMap = array_fill(0, $rows, array_fill(0, $cols, self::INK_KEY));
-        $paperMap = array_fill(0, $rows, array_fill(0, $cols, self::PAPER_KEY));
-        return new AttributeMap($inkMap, $paperMap, []);
     }
 
     public function setBorder(?int $border = null): void

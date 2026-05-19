@@ -5,82 +5,91 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Plugin\SsxRaw\SsxRawRenderer;
+use ZxImage\Service\PluginRuntime;
 
 class SsxRaw implements PluginInterface
 {
-    use PluginConfigTrait;
-
     private const int REQUIRED_FILE_SIZE = 98304;
-    private const int BRIGHTNESS_MULTIPLIER = 36;
+
+    private PluginRuntime $runtime;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->requiredFileSize = self::REQUIRED_FILE_SIZE;
-        $this->width = 512;
-        $this->height = 192;
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime->requiredFileSize = self::REQUIRED_FILE_SIZE;
+        $this->runtime->width = 512;
+        $this->runtime->height = 192;
     }
 
     public function convert(): ?string
     {
-        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, $this->requiredFileSize);
+        $reader = $this->runtime->fileLoader->openSource(
+            $this->runtime->sourceFilePath,
+            $this->runtime->sourceFileContents,
+            $this->runtime->requiredFileSize,
+        );
         if ($reader === null) {
             return null;
         }
 
-        $colorTable = $this->paletteService->buildColorTable($this->paletteString);
-        $config = $colorTable->config;
-
+        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
         $pixelsBytes = $reader->readBytes(self::REQUIRED_FILE_SIZE);
-        $pixelsData = $this->parsePixels($pixelsBytes);
 
-        $m = self::BRIGHTNESS_MULTIPLIER;
-        $image = imagecreatetruecolor($this->width, $this->height * 2);
+        $image = (new SsxRawRenderer())->render($pixelsBytes, $this->runtime->width, $this->runtime->height, $colorTable->config);
 
-        foreach ($pixelsData as $rowY => $row) {
-            $y = $rowY * 2;
-            foreach ($row as $x => $clutItem) {
-                $bright = ($clutItem >> 3) & 1;
-                $r = ((($clutItem >> 5) & 1) * 4 + (($clutItem >> 1) & 1) * 2 + $bright) * $m;
-                $g = ((($clutItem >> 6) & 1) * 4 + (($clutItem >> 2) & 1) * 2 + $bright) * $m;
-                $b = ((($clutItem >> 4) & 1) * 4 + ($clutItem & 1) * 2 + $bright) * $m;
+        $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
+        $image = $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
 
-                $red = (int)round(($r * $config->r11 + $g * $config->r12 + $b * $config->r13) / 0xFF);
-                $green = (int)round(($r * $config->r21 + $g * $config->r22 + $b * $config->r23) / 0xFF);
-                $blue = (int)round(($r * $config->r31 + $g * $config->r32 + $b * $config->r33) / 0xFF);
-
-                $rgb = $red * 0x010000 + $green * 0x0100 + $blue;
-                imagesetpixel($image, $x, $y, $rgb);
-                imagesetpixel($image, $x, $y + 1, $rgb);
-            }
-        }
-
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        $image = $this->imageProcessor->rotate($image, $this->rotation);
-
-        $this->resultMime = 'image/png';
-        return $this->imageEncoder->toPng($image);
+        $this->runtime->resultMime = 'image/png';
+        return $this->runtime->imageEncoder->toPng($image);
     }
 
-    private function parsePixels(array $pixelsBytes): array
+    public function setBorder(?int $border = null): void
     {
-        $x = 0;
-        $y = 0;
-        $pixelsData = [];
-        foreach ($pixelsBytes as $pixel) {
-            $pixelsData[$y][$x] = $pixel;
-            $x++;
-            if ($x >= $this->width) {
-                $x = 0;
-                $y++;
-            }
-        }
-        return $pixelsData;
+        $this->runtime->setBorder($border);
+    }
+
+    public function setZoom(float $zoom): void
+    {
+        $this->runtime->setZoom($zoom);
+    }
+
+    public function setRotation(int $rotation): void
+    {
+        $this->runtime->setRotation($rotation);
+    }
+
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
+
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
+
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
+
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 }

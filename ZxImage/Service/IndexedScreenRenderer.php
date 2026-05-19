@@ -6,21 +6,22 @@ namespace ZxImage\Service;
 
 use GdImage;
 use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\IndexedPaletteEntry;
 use ZxImage\Dto\PaletteConfig;
 
 final readonly class IndexedScreenRenderer
 {
     /**
      * @param int[] $pixelsBytes
-     * @param array<int, array{int, int}> $paletteBytes
+     * @param IndexedPaletteEntry[] $paletteEntries
      */
     public function render(
         array $pixelsBytes,
-        array $paletteBytes,
+        array $paletteEntries,
         ColorTable $colorTable,
         PluginRuntime $runtime,
     ): GdImage {
-        $colors = $this->parsePalette($paletteBytes, $colorTable->config);
+        $colors = $this->parsePalette($paletteEntries, $colorTable->config);
         $pixelsData = $this->parseLinearPixels($pixelsBytes, $runtime->width);
 
         $image = imagecreatetruecolor($runtime->width, $runtime->height);
@@ -65,16 +66,16 @@ final readonly class IndexedScreenRenderer
     }
 
     /**
-     * @param array<int, array{int, int}> $paletteBytes
+     * @param IndexedPaletteEntry[] $paletteEntries
      * @return int[]
      */
-    private function parsePalette(array $paletteBytes, PaletteConfig $config): array
+    private function parsePalette(array $paletteEntries, PaletteConfig $config): array
     {
         $colors = [];
-        foreach ($paletteBytes as [$byte1, $byte2]) {
-            $r = $this->rgb3ToRgb8(($byte1 >> 5) & 0x07);
-            $g = $this->rgb3ToRgb8(($byte1 >> 2) & 0x07);
-            $b = $this->rgb3ToRgb8((($byte1 & 0x03) << 1) | ($byte2 & 0x01));
+        foreach ($paletteEntries as $entry) {
+            $r = $this->rgb3ToRgb8(($entry->byte1 >> 5) & 0x07);
+            $g = $this->rgb3ToRgb8(($entry->byte1 >> 2) & 0x07);
+            $b = $this->rgb3ToRgb8((($entry->byte1 & 0x03) << 1) | ($entry->byte2 & 0x01));
 
             $red = (int)round(($r * $config->r11 + $g * $config->r12 + $b * $config->r13) / 0xFF);
             $green = (int)round(($r * $config->r21 + $g * $config->r22 + $b * $config->r23) / 0xFF);

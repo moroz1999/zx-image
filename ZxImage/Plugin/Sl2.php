@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Dto\IndexedPaletteEntry;
 use ZxImage\Service\IndexedScreenRenderer;
 use ZxImage\Service\PluginRuntime;
 
@@ -303,21 +304,24 @@ class Sl2 implements PluginInterface
         }
 
         $pixelsBytes = $reader->readBytes($this->runtime->width * $this->runtime->height);
-        $paletteBytes = $this->getDefaultPaletteBytes();
+        $paletteEntries = $this->getDefaultPaletteEntries();
 
-        $image = $this->renderer->render($pixelsBytes, $paletteBytes, $colorTable, $this->runtime);
+        $image = $this->renderer->render($pixelsBytes, $paletteEntries, $colorTable, $this->runtime);
 
         $this->runtime->resultMime = 'image/png';
         return $this->runtime->imageEncoder->toPng($image);
     }
 
     /**
-     * @return array<int, array{int, int}>
+     * @return IndexedPaletteEntry[]
      */
-    private function getDefaultPaletteBytes(): array
+    private function getDefaultPaletteEntries(): array
     {
-        return array_map(static function (string $row): array {
-            return [intval(bindec(substr($row, 0, 8))), intval(bindec(substr($row, 8, 8)))];
+        return array_map(static function (string $row): IndexedPaletteEntry {
+            return new IndexedPaletteEntry(
+                intval(bindec(substr($row, 0, 8))),
+                intval(bindec(substr($row, 8, 8))),
+            );
         }, self::$defaultNextPalette);
     }
 

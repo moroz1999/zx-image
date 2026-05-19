@@ -6,7 +6,7 @@ namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
 use ZxImage\Dto\DualRawScreen;
-use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Gigascreen\GigascreenLoader;
 use ZxImage\Service\GigascreenPipeline;
 use ZxImage\Service\PluginRuntime;
 
@@ -27,23 +27,10 @@ class Gigascreen implements PluginInterface
 
     public function convert(): ?string
     {
-        return $this->pipeline->convertWithDefaultRendering($this->runtime, fn(): ?DualRawScreen => $this->loadBits());
-    }
-
-    private function loadBits(): ?DualRawScreen
-    {
-        $reader = $this->runtime->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
-            $this->runtime->requiredFileSize,
+        return $this->pipeline->convertWithDefaultRendering(
+            $this->runtime,
+            fn(): ?DualRawScreen => (new GigascreenLoader())->load($this->runtime),
         );
-        if ($reader === null) {
-            return null;
-        }
-
-        $first = new RawScreen($reader->readBytes(6144), $reader->readBytes(768));
-        $second = new RawScreen($reader->readBytes(6144), $reader->readBytes(768));
-        return new DualRawScreen($first, $second);
     }
 
     public function setBorder(?int $border = null): void

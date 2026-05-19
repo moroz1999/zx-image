@@ -9,6 +9,7 @@ use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Bsc\BscLoader;
 use ZxImage\Plugin\Standard\BscBorderRenderer;
 use ZxImage\Plugin\Standard\AttributeParser;
 use ZxImage\Plugin\Standard\PixelParser;
@@ -21,7 +22,6 @@ class Bsc implements PluginInterface
     private PluginRuntime $runtime;
     private StandardScreenPipeline $pipeline;
 
-    private const int ATTRIBUTES_LENGTH = 768;
     private const int FILE_SIZE = 11136;
 
     public function __construct(
@@ -40,41 +40,19 @@ class Bsc implements PluginInterface
     {
         return $this->pipeline->convertUsing(
             $this->runtime,
-            fn(): ?RawScreen => $this->loadBits(),
-            fn(RawScreen $rawScreen): ParsedScreen => $this->parseScreen($rawScreen),
+            fn(): ?RawScreen => (new BscLoader())->load($this->runtime),
+            fn(RawScreen $rawScreen): ParsedScreen => new ParsedScreen(
+                (new PixelParser($this->runtime->width))->parse($rawScreen->pixelsBytes),
+                (new AttributeParser($this->runtime->width))->parse($rawScreen->attributesBytes),
+                [],
+                $rawScreen->borderBytes,
+            ),
             fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderImage(
                 $parsedScreen,
                 $colorTable,
                 $flashedImage,
             ),
         );
-    }
-
-    private function loadBits(): ?RawScreen
-    {
-        $reader = $this->runtime->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
-            $this->runtime->requiredFileSize,
-        );
-        if ($reader === null) {
-            return null;
-        }
-
-        $pixelsBytes = $reader->readBytes(6144);
-        $attributesBytes = $reader->readBytes(self::ATTRIBUTES_LENGTH);
-        $borderBytes = [];
-        while (($byte = $reader->readByte()) !== null) {
-            $borderBytes[] = $byte;
-        }
-        return new RawScreen($pixelsBytes, $attributesBytes, $borderBytes);
-    }
-
-    private function parseScreen(RawScreen $rawScreen): ParsedScreen
-    {
-        $attributes = (new AttributeParser($this->runtime->width))->parse($rawScreen->attributesBytes);
-        $pixelsData = (new PixelParser($this->runtime->width))->parse($rawScreen->pixelsBytes);
-        return new ParsedScreen($pixelsData, $attributes, [], $rawScreen->borderBytes);
     }
 
     private function renderImage(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage

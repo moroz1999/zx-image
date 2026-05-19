@@ -6,7 +6,7 @@ namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
 use ZxImage\Dto\DualRawScreen;
-use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Stellar\StellarLoader;
 use ZxImage\Service\GigascreenPipeline;
 use ZxImage\Service\PluginRuntime;
 
@@ -28,38 +28,9 @@ class Stellar implements PluginInterface
 
     public function convert(): ?string
     {
-        return $this->pipeline->convertWithDefaultRendering($this->runtime, fn(): ?DualRawScreen => $this->loadBits());
-    }
-
-    private function loadBits(): ?DualRawScreen
-    {
-        $reader = $this->runtime->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
-            $this->runtime->requiredFileSize,
-        );
-        if ($reader === null) {
-            return null;
-        }
-
-        $attr0 = [];
-        $attr1 = [];
-        while (
-            ($b0 = $reader->readByte()) !== null
-            && ($b1 = $reader->readByte()) !== null
-            && ($b2 = $reader->readByte()) !== null
-            && ($b3 = $reader->readByte()) !== null
-        ) {
-            $attr0[] = $b0;
-            $attr0[] = $b1;
-            $attr1[] = $b2;
-            $attr1[] = $b3;
-        }
-
-        $pixelsArray = $this->generatePixelsArray();
-        return new DualRawScreen(
-            new RawScreen($pixelsArray, $attr0),
-            new RawScreen($pixelsArray, $attr1),
+        return $this->pipeline->convertWithDefaultRendering(
+            $this->runtime,
+            fn(): ?DualRawScreen => (new StellarLoader())->load($this->runtime),
         );
     }
 
@@ -106,14 +77,5 @@ class Stellar implements PluginInterface
     public function getResultMime(): ?string
     {
         return $this->runtime->getResultMime();
-    }
-
-    private function generatePixelsArray(): array
-    {
-        $pixelsArray = [];
-        for ($i = 0; $i < $this->runtime->width * $this->runtime->height / 8; $i++) {
-            $pixelsArray[] = 0x0F;
-        }
-        return $pixelsArray;
     }
 }

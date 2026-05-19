@@ -5,36 +5,40 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Plugin\Atmega\AtmegaPaletteParser;
+use ZxImage\Plugin\Atmega\AtmegaPixelParser;
+use ZxImage\Service\PixelCanvas;
+use ZxImage\Service\PluginRuntime;
 
 class Atmega implements PluginInterface
 {
-    use PluginConfigTrait;
-
     private const int PIXEL_PAGE_SIZE = 8000;
     private const int FILE_SIZE_WITH_GAPS = 32896;
+
+    private PluginRuntime $runtime;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->width = 320;
-        $this->height = 200;
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime->width = 320;
+        $this->runtime->height = 200;
     }
 
     public function convert(): ?string
     {
-        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, null);
+        $reader = $this->runtime->fileLoader->openSource(
+            $this->runtime->sourceFilePath,
+            $this->runtime->sourceFileContents,
+            null,
+        );
         if ($reader === null) {
             return null;
         }
 
-        $colorTable = $this->paletteService->buildColorTable($this->paletteString);
-        $config = $colorTable->config;
+        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
         $fileSize = $reader->getSize();
 
         $pixelsArray = [];
@@ -67,73 +71,70 @@ class Atmega implements PluginInterface
             0b11110011,
         ];
 
-        $colors = $this->parseAtmPalette($paletteBytes, $config->r11, $config->r12, $config->r13, $config->r21, $config->r22, $config->r23, $config->r31, $config->r32, $config->r33);
-        $pixelsData = $this->parsePixels($pixelsArray);
+        $colors = (new AtmegaPaletteParser())->parse($paletteBytes, $colorTable->config);
+        $pixelsData = (new AtmegaPixelParser())->parse($pixelsArray, $this->runtime->width);
 
-        $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($pixelsData as $y => $row) {
-            foreach ($row as $x => $colorIndex) {
-                $color = $colors[$colorIndex];
-                imagesetpixel($image, $x, $y, $color);
-            }
-        }
+        $image = (new PixelCanvas())->draw($pixelsData, $colors, $this->runtime->width, $this->runtime->height);
 
-        $image = $this->imageProcessor->applyBorder($image, $this->border, $colorTable, $this->width, $this->height, $this->borderWidth, $this->borderHeight, $this->usesBorder);
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        $image = $this->imageProcessor->rotate($image, $this->rotation);
+        $image = $this->runtime->imageProcessor->applyBorder(
+            $image,
+            $this->runtime->border,
+            $colorTable,
+            $this->runtime->width,
+            $this->runtime->height,
+            $this->runtime->borderWidth,
+            $this->runtime->borderHeight,
+            $this->runtime->usesBorder,
+        );
+        $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
+        $image = $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
 
-        $this->resultMime = 'image/png';
-        return $this->imageEncoder->toPng($image);
+        $this->runtime->resultMime = 'image/png';
+        return $this->runtime->imageEncoder->toPng($image);
     }
 
-    private function parsePixels(array $pixelsArray): array
+    public function setBorder(?int $border = null): void
     {
-        $x = 0;
-        $y = 0;
-        $length = 0;
-        $block = 0;
-        $pixelsData = [];
-
-        foreach ($pixelsArray as $byte) {
-            $length++;
-            $pixelsData[$y][$x * 2] = ((($byte & 0x40) >> 3) | ($byte & 0x07));
-            $pixelsData[$y][$x * 2 + 1] = ((($byte & 0x80) >> 4) | (($byte >> 3) & 0x07));
-
-            $x = $x + 4;
-
-            if ($x >= $this->width / 2) {
-                $x = (int)floor($length / self::PIXEL_PAGE_SIZE);
-                if ($block !== $x) {
-                    $block = $x;
-                    $y = 0;
-                } else {
-                    $y++;
-                }
-            }
-        }
-        return $pixelsData;
+        $this->runtime->setBorder($border);
     }
 
-    private function parseAtmPalette(array $paletteBytes, int $r11, int $r12, int $r13, int $r21, int $r22, int $r23, int $r31, int $r32, int $r33): array
+    public function setZoom(float $zoom): void
     {
-        $levels = [0, 0x55, 0xAA, 0xFF];
-        $colors = [];
+        $this->runtime->setZoom($zoom);
+    }
 
-        foreach ($paletteBytes as $byte) {
-            $rValue = (($byte >> 1) & 1) * 2 + (($byte >> 6) & 1);
-            $gValue = (($byte >> 4) & 1) * 2 + (($byte >> 7) & 1);
-            $bValue = ($byte & 1) * 2 + (($byte >> 5) & 1);
+    public function setRotation(int $rotation): void
+    {
+        $this->runtime->setRotation($rotation);
+    }
 
-            $r = $levels[$rValue];
-            $g = $levels[$gValue];
-            $b = $levels[$bValue];
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
 
-            $red = (int)round(($r * $r11 + $g * $r12 + $b * $r13) / 0xFF);
-            $green = (int)round(($r * $r21 + $g * $r22 + $b * $r23) / 0xFF);
-            $blue = (int)round(($r * $r31 + $g * $r32 + $b * $r33) / 0xFF);
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
 
-            $colors[] = $red * 0x010000 + $green * 0x0100 + $blue;
-        }
-        return $colors;
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
+
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 }

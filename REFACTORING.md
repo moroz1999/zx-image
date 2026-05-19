@@ -99,6 +99,8 @@ Each step: update `loadBits()` to use `BitReader` (raw bytes), update `parseScre
 - [x] Migrate `Sam3` and `Sam4` off `PluginConfigTrait`
 - [x] Migrate `Ssx` routing plugin off `PluginConfigTrait`
 - [x] Migrate `Zxevo` BMP import plugin off `PluginConfigTrait`
+- [x] Migrate `Atmega`, `Sxg`, `Grf`, `Sca`, `Tricolor`, `Timexhr`, `SsxRaw`, `Bsp`, `Chrd`, and `Multiartist` off `PluginConfigTrait`
+- [x] Remove `PluginConfigTrait`
 
 ---
 

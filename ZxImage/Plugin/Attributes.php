@@ -9,6 +9,7 @@ use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Attributes\AttributesLoader;
 use ZxImage\Plugin\Standard\AttributeParser;
 use ZxImage\Service\PluginRuntime;
 use ZxImage\Service\StandardScreenPipeline;
@@ -32,7 +33,7 @@ class Attributes implements PluginInterface
     {
         return $this->pipeline->convertUsing(
             $this->runtime,
-            fn(): ?RawScreen => $this->loadBits(),
+            fn(): ?RawScreen => (new AttributesLoader())->load($this->runtime),
             fn(RawScreen $rawScreen): ParsedScreen => $this->parseScreen($rawScreen),
             fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->pipeline->renderImage(
                 $parsedScreen,
@@ -41,6 +42,24 @@ class Attributes implements PluginInterface
                 $this->runtime,
             ),
         );
+    }
+
+    private function parseScreen(RawScreen $rawScreen): ParsedScreen
+    {
+        $attributes = (new AttributeParser($this->runtime->width))->parse($rawScreen->attributesBytes);
+        $pixelsData = $this->generateCheckerboardPixels();
+        return new ParsedScreen($pixelsData, $attributes);
+    }
+
+    private function generateCheckerboardPixels(): array
+    {
+        $pixelsData = [];
+        for ($y = 0; $y < $this->runtime->height; $y++) {
+            for ($x = 0; $x < $this->runtime->width; $x++) {
+                $pixelsData[$y][$x] = ($x + $y) % 2;
+            }
+        }
+        return $pixelsData;
     }
 
     public function setBorder(?int $border = null): void
@@ -86,40 +105,5 @@ class Attributes implements PluginInterface
     public function getResultMime(): ?string
     {
         return $this->runtime->getResultMime();
-    }
-
-    private function loadBits(): ?RawScreen
-    {
-        $reader = $this->runtime->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
-            $this->runtime->requiredFileSize,
-        );
-        if ($reader === null) {
-            return null;
-        }
-
-        $attributesBytes = [];
-        while (($byte = $reader->readByte()) !== null) {
-            $attributesBytes[] = $byte;
-        }
-        return new RawScreen([], $attributesBytes);
-    }
-
-    private function parseScreen(RawScreen $rawScreen): ParsedScreen
-    {
-        $attributes = (new AttributeParser($this->runtime->width))->parse($rawScreen->attributesBytes);
-        return new ParsedScreen($this->generatePixelsData(), $attributes);
-    }
-
-    private function generatePixelsData(): array
-    {
-        $pixelsData = [];
-        for ($y = 0; $y < $this->runtime->height; $y++) {
-            for ($x = 0; $x < $this->runtime->width; $x++) {
-                $pixelsData[$y][$x] = ($x + $y) % 2;
-            }
-        }
-        return $pixelsData;
     }
 }

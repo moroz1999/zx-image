@@ -4,35 +4,40 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use GdImage;
 use ZxImage\Converter;
+use ZxImage\Plugin\Grf\GrfAspectScaler;
+use ZxImage\Plugin\Grf\GrfPaletteParser;
+use ZxImage\Plugin\Grf\GrfPixelParser;
+use ZxImage\Service\PixelCanvas;
+use ZxImage\Service\PluginRuntime;
 
 class Grf implements PluginInterface
 {
-    use PluginConfigTrait;
-
     private const int PROFI_COLOR_FORMAT = 19;
+
+    private PluginRuntime $runtime;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
     }
 
     public function convert(): ?string
     {
-        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, null);
+        $reader = $this->runtime->fileLoader->openSource(
+            $this->runtime->sourceFilePath,
+            $this->runtime->sourceFileContents,
+            null,
+        );
         if ($reader === null) {
             return null;
         }
 
-        $this->width = $reader->readWord() ?? $this->width;
-        $this->height = $reader->readWord() ?? $this->height;
+        $this->runtime->width = $reader->readWord() ?? $this->runtime->width;
+        $this->runtime->height = $reader->readWord() ?? $this->runtime->height;
         $bpp = $reader->readByte() ?? 4;
         $reader->readByte(); // amod
         $reader->readByte(); // bps lo
@@ -50,81 +55,67 @@ class Grf implements PluginInterface
 
         $pixelsArray = [];
         $attributesArray = [];
-        $length = (int)($this->width * $this->height / $bpp);
+        $length = (int)($this->runtime->width * $this->runtime->height / $bpp);
         do {
             $pixelsArray[] = $reader->readByte();
             $attributesArray[] = $reader->readByte();
         } while ($length = $length - 2);
 
-        $pixelsData = $this->parseGrfPixels($pixelsArray, $attributesArray);
-        $colors = $this->parseGrfPalette($paletteBytes);
+        $pixelsData = (new GrfPixelParser())->parse($pixelsArray, $attributesArray, $this->runtime->width);
+        $colors = (new GrfPaletteParser())->parse($paletteBytes);
 
-        $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($pixelsData as $y => $row) {
-            foreach ($row as $x => $pixel) {
-                imagesetpixel($image, $x, $y, $colors[$pixel]);
-            }
-        }
+        $image = (new PixelCanvas())->draw($pixelsData, $colors, $this->runtime->width, $this->runtime->height);
+        $image = (new GrfAspectScaler())->scale($image);
 
-        $image = $this->resizeAspect($image);
+        $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
+        $image = $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
 
-        $colorTable = $this->paletteService->buildColorTable($this->paletteString);
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        $image = $this->imageProcessor->rotate($image, $this->rotation);
-
-        $this->resultMime = 'image/png';
-        return $this->imageEncoder->toPng($image);
+        $this->runtime->resultMime = 'image/png';
+        return $this->runtime->imageEncoder->toPng($image);
     }
 
-    private function parseGrfPixels(array $pixelsArray, array $attributesArray): array
+    public function setBorder(?int $border = null): void
     {
-        $x = 0;
-        $y = 0;
-        $pixelsData = [];
-
-        foreach ($pixelsArray as $key => $pixelByte) {
-            $attrByte = $attributesArray[$key];
-            $ink = (($attrByte >> 3) & 0x08) | ($attrByte & 0x07);
-            $paper = (($attrByte >> 4) & 0x08) | (($attrByte >> 3) & 0x07);
-            for ($number = 0; $number < 8; $number++) {
-                $pixelsData[$y][$x] = ($pixelByte & (0x80 >> $number)) ? $ink : $paper;
-                $x++;
-            }
-            if ($x >= $this->width) {
-                $x = 0;
-                $y++;
-            }
-        }
-        return $pixelsData;
+        $this->runtime->setBorder($border);
     }
 
-    private function parseGrfPalette(array $paletteBytes): array
+    public function setZoom(float $zoom): void
     {
-        $colors = [];
-        foreach ($paletteBytes as $byte) {
-            $green = (($byte >> 5) & 0x07) * 36;
-            $red = (($byte >> 2) & 0x07) * 36;
-            $blue = ($byte & 0x03) * 85;
-            $colors[] = $red * 0x010000 + $green * 0x0100 + $blue;
-        }
-        return $colors;
+        $this->runtime->setZoom($zoom);
     }
 
-    private function resizeAspect(GdImage $srcImage): GdImage
+    public function setRotation(int $rotation): void
     {
-        $srcWidth = imagesx($srcImage);
-        $srcHeight = imagesy($srcImage);
-        imagegammacorrect($srcImage, 2.2, 1.0);
+        $this->runtime->setRotation($rotation);
+    }
 
-        $dstWidth = $srcWidth;
-        $dstHeight = (int)($srcHeight * 1.6384);
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
 
-        $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
-        imagealphablending($dstImage, false);
-        imagesavealpha($dstImage, true);
-        imagecopyresized($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
-        imagegammacorrect($dstImage, 1.0, 2.2);
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
 
-        return $dstImage;
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
+
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 }

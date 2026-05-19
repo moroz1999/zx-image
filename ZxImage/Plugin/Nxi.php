@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Dto\IndexedPaletteEntry;
 use ZxImage\Service\IndexedScreenRenderer;
 use ZxImage\Service\PluginRuntime;
 
@@ -38,13 +39,13 @@ class Nxi implements PluginInterface
 
         $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
 
-        $paletteBytes = [];
+        $paletteEntries = [];
         for ($i = 0; $i < static::PALETTE_LENGTH; $i++) {
-            $paletteBytes[] = [$reader->readByte() ?? 0, $reader->readByte() ?? 0];
+            $paletteEntries[] = new IndexedPaletteEntry($reader->readByte() ?? 0, $reader->readByte() ?? 0);
         }
         $pixelsBytes = $reader->readBytes($this->runtime->width * $this->runtime->height);
 
-        $image = $this->renderer->render($pixelsBytes, $paletteBytes, $colorTable, $this->runtime);
+        $image = $this->renderer->render($pixelsBytes, $paletteEntries, $colorTable, $this->runtime);
 
         $this->runtime->resultMime = 'image/png';
         return $this->runtime->imageEncoder->toPng($image);

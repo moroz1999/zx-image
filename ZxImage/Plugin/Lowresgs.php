@@ -6,7 +6,7 @@ namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
 use ZxImage\Dto\DualRawScreen;
-use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Lowresgs\LowresgsLoader;
 use ZxImage\Service\GigascreenPipeline;
 use ZxImage\Service\PluginRuntime;
 
@@ -27,39 +27,9 @@ class Lowresgs implements PluginInterface
 
     public function convert(): ?string
     {
-        return $this->pipeline->convertWithDefaultRendering($this->runtime, fn(): ?DualRawScreen => $this->loadBits());
-    }
-
-    private function loadBits(): ?DualRawScreen
-    {
-        $reader = $this->runtime->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
-            $this->runtime->requiredFileSize,
-        );
-        if ($reader === null) {
-            return null;
-        }
-
-        $texture = [];
-        $attr0 = [];
-        $attr1 = [];
-        $length = 0;
-        while (($bin = $reader->readByte()) !== null) {
-            if ($length >= 84 && $length < 92) {
-                $texture[] = $bin;
-            } elseif ($length >= 92 && $length < 92 + 768) {
-                $attr0[] = $bin;
-            } elseif ($length >= 92 + 768) {
-                $attr1[] = $bin;
-            }
-            $length++;
-        }
-
-        $pixelsArray = $this->generatePixelsArray($texture);
-        return new DualRawScreen(
-            new RawScreen($pixelsArray, $attr0),
-            new RawScreen($pixelsArray, $attr1),
+        return $this->pipeline->convertWithDefaultRendering(
+            $this->runtime,
+            fn(): ?DualRawScreen => (new LowresgsLoader())->load($this->runtime),
         );
     }
 
@@ -106,20 +76,5 @@ class Lowresgs implements PluginInterface
     public function getResultMime(): ?string
     {
         return $this->runtime->getResultMime();
-    }
-
-    private function generatePixelsArray(array $texture): array
-    {
-        $pixelsArray = [];
-        for ($third = 0; $third < 3; $third++) {
-            $row = 0;
-            for ($y = 0; $y < 8; $y++) {
-                for ($x = 0; $x < 32 * 8; $x++) {
-                    $pixelsArray[] = $texture[$row];
-                }
-                $row++;
-            }
-        }
-        return $pixelsArray;
     }
 }
