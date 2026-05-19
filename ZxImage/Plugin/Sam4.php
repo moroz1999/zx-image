@@ -5,95 +5,101 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\SamCoupeScreenRenderer;
 
 class Sam4 implements PluginInterface
 {
-    use PluginConfigTrait;
-
     private const int PALETTE_LENGTH = 16;
     private const int BITS_PER_PIXEL = 4;
-    private const int BRIGHTNESS_MULTIPLIER = 36;
+
+    private PluginRuntime $runtime;
+    private SamCoupeScreenRenderer $renderer;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->width = 256;
-        $this->height = 192;
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime->width = 256;
+        $this->runtime->height = 192;
+        $this->renderer = new SamCoupeScreenRenderer();
     }
 
     public function convert(): ?string
     {
-        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, null);
+        $reader = $this->runtime->fileLoader->openSource(
+            $this->runtime->sourceFilePath,
+            $this->runtime->sourceFileContents,
+            null,
+        );
         if ($reader === null) {
             return null;
         }
 
-        $colorTable = $this->paletteService->buildColorTable($this->paletteString);
-        $config = $colorTable->config;
+        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
 
-        $pixelByteCount = (int)($this->width * $this->height / (8 / self::BITS_PER_PIXEL));
+        $pixelByteCount = (int)($this->runtime->width * $this->runtime->height / (8 / self::BITS_PER_PIXEL));
         $pixelsBytes = $reader->readBytes($pixelByteCount);
         $paletteBytes = $reader->readBytes(self::PALETTE_LENGTH);
 
-        $colors = $this->parseSamPalette($paletteBytes, $config->r11, $config->r12, $config->r13, $config->r21, $config->r22, $config->r23, $config->r31, $config->r32, $config->r33);
-        $pixelsData = $this->parsePixels($pixelsBytes);
+        $image = $this->renderer->render(
+            $pixelsBytes,
+            $paletteBytes,
+            self::BITS_PER_PIXEL,
+            false,
+            false,
+            $colorTable,
+            $this->runtime,
+        );
 
-        $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($pixelsData as $y => $row) {
-            foreach ($row as $x => $colorIndex) {
-                $color = $colors[$colorIndex];
-                imagesetpixel($image, $x, $y, $color);
-            }
-        }
-
-        $image = $this->imageProcessor->applyBorder($image, $this->border, $colorTable, $this->width, $this->height, $this->borderWidth, $this->borderHeight, $this->usesBorder);
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        $image = $this->imageProcessor->rotate($image, $this->rotation);
-
-        $this->resultMime = 'image/png';
-        return $this->imageEncoder->toPng($image);
+        $this->runtime->resultMime = 'image/png';
+        return $this->runtime->imageEncoder->toPng($image);
     }
 
-    private function parsePixels(array $pixelsBytes): array
+    public function setBorder(?int $border = null): void
     {
-        $x = 0;
-        $y = 0;
-        $pixelsData = [];
-        foreach ($pixelsBytes as $byte) {
-            $pixelsData[$y][$x] = ($byte >> 4) & 0x0F;
-            $x++;
-            $pixelsData[$y][$x] = $byte & 0x0F;
-            $x++;
-            if ($x >= $this->width) {
-                $x = 0;
-                $y++;
-            }
-        }
-        return $pixelsData;
+        $this->runtime->setBorder($border);
     }
 
-    private function parseSamPalette(array $paletteBytes, int $r11, int $r12, int $r13, int $r21, int $r22, int $r23, int $r31, int $r32, int $r33): array
+    public function setZoom(float $zoom): void
     {
-        $m = self::BRIGHTNESS_MULTIPLIER;
-        $colors = [];
-        foreach ($paletteBytes as $byte) {
-            $bright = ($byte >> 3) & 1;
-            $r = ((($byte >> 5) & 1) * 4 + (($byte >> 1) & 1) * 2 + $bright) * $m;
-            $g = ((($byte >> 6) & 1) * 4 + (($byte >> 2) & 1) * 2 + $bright) * $m;
-            $b = ((($byte >> 4) & 1) * 4 + ($byte & 1) * 2 + $bright) * $m;
+        $this->runtime->setZoom($zoom);
+    }
 
-            $red = (int)round(($r * $r11 + $g * $r12 + $b * $r13) / 0xFF);
-            $green = (int)round(($r * $r21 + $g * $r22 + $b * $r23) / 0xFF);
-            $blue = (int)round(($r * $r31 + $g * $r32 + $b * $r33) / 0xFF);
+    public function setRotation(int $rotation): void
+    {
+        $this->runtime->setRotation($rotation);
+    }
 
-            $colors[] = $red * 0x010000 + $green * 0x0100 + $blue;
-        }
-        return $colors;
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
+
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
+
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
+
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 }

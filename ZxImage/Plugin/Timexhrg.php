@@ -12,28 +12,51 @@ use ZxImage\Dto\DualRawScreen;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\RawScreen;
 use ZxImage\Plugin\Standard\PixelParser;
+use ZxImage\Service\GigascreenPipeline;
+use ZxImage\Service\PluginRuntime;
 
 class Timexhrg implements PluginInterface
 {
-    use GigascreenConvertTrait;
+    private PluginRuntime $runtime;
+    private GigascreenPipeline $pipeline;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->requiredFileSize = 12289 * 2;
-        $this->width = 512;
-        $this->height = 384;
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime->requiredFileSize = 12289 * 2;
+        $this->runtime->width = 512;
+        $this->runtime->height = 384;
+        $this->pipeline = new GigascreenPipeline();
     }
 
-    protected function loadBits(): ?DualRawScreen
+    public function convert(): ?string
     {
-        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, $this->requiredFileSize);
+        return $this->pipeline->convertUsing(
+            $this->runtime,
+            fn(): ?DualRawScreen => $this->loadBits(),
+            fn(RawScreen $rawScreen): ParsedScreen => $this->parseScreen($rawScreen),
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderImage(
+                $parsedScreen,
+                $colorTable,
+            ),
+            fn(ParsedScreen $first, ParsedScreen $second, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderMergedImage(
+                $first,
+                $second,
+                $colorTable,
+            ),
+        );
+    }
+
+    private function loadBits(): ?DualRawScreen
+    {
+        $reader = $this->runtime->fileLoader->openSource(
+            $this->runtime->sourceFilePath,
+            $this->runtime->sourceFileContents,
+            $this->runtime->requiredFileSize,
+        );
         if ($reader === null) {
             return null;
         }
@@ -60,18 +83,18 @@ class Timexhrg implements PluginInterface
         );
     }
 
-    protected function parseScreen(RawScreen $rawScreen): ParsedScreen
+    private function parseScreen(RawScreen $rawScreen): ParsedScreen
     {
         $attributes = $this->buildColorAttributeMap($rawScreen->attributesBytes[0] ?? 0);
-        $pixelsData = (new PixelParser($this->width))->parse($rawScreen->pixelsBytes);
+        $pixelsData = (new PixelParser($this->runtime->width))->parse($rawScreen->pixelsBytes);
         return new ParsedScreen($pixelsData, $attributes);
     }
 
-    protected function renderImage(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage
+    private function renderImage(ParsedScreen $parsedScreen, ColorTable $colorTable): GdImage
     {
         $inkColor = $parsedScreen->attributes->inkMap[0][0];
         $paperColor = $parsedScreen->attributes->paperMap[0][0];
-        $image = imagecreatetruecolor($this->width, $this->height);
+        $image = imagecreatetruecolor($this->runtime->width, $this->runtime->height);
 
         foreach ($parsedScreen->pixelsData as $rowY => $row) {
             $y = $rowY * 2;
@@ -83,24 +106,21 @@ class Timexhrg implements PluginInterface
             }
         }
 
-        $this->border = $paperColor;
-        $image = $this->imageProcessor->applyBorder($image, $this->border, $colorTable, $this->width, $this->height, $this->borderWidth, $this->borderHeight, $this->usesBorder);
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        return $this->imageProcessor->rotate($image, $this->rotation);
+        $this->runtime->border = $paperColor;
+        return $this->pipeline->finalizeImage($image, $colorTable, $this->runtime);
     }
 
-    protected function exportDataMerged(
+    private function renderMergedImage(
         ParsedScreen $parsedScreen1,
         ParsedScreen $parsedScreen2,
         ColorTable $colorTable,
-        bool $flashedImage,
     ): GdImage {
         $ink1 = $parsedScreen1->attributes->inkMap[0][0];
         $paper1 = $parsedScreen1->attributes->paperMap[0][0];
         $ink2 = $parsedScreen2->attributes->inkMap[0][0];
         $paper2 = $parsedScreen2->attributes->paperMap[0][0];
 
-        $image = imagecreatetruecolor($this->width, $this->height);
+        $image = imagecreatetruecolor($this->runtime->width, $this->runtime->height);
 
         foreach ($parsedScreen1->pixelsData as $rowY => $row) {
             $y = $rowY * 2;
@@ -114,9 +134,7 @@ class Timexhrg implements PluginInterface
             }
         }
 
-        $image = $this->imageProcessor->applyBorder($image, $this->border, $colorTable, $this->width, $this->height, $this->borderWidth, $this->borderHeight, $this->usesBorder);
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        return $this->imageProcessor->rotate($image, $this->rotation);
+        return $this->pipeline->finalizeImage($image, $colorTable, $this->runtime);
     }
 
     private function buildColorAttributeMap(int $byte): AttributeMap
@@ -134,12 +152,57 @@ class Timexhrg implements PluginInterface
         ];
         [$inkKey, $paperKey] = $colorPairs[$colorCode];
 
-        $rows = (int)($this->height / 8);
-        $cols = (int)($this->width / 8);
+        $rows = (int)($this->runtime->height / 8);
+        $cols = (int)($this->runtime->width / 8);
         return new AttributeMap(
             array_fill(0, $rows, array_fill(0, $cols, $inkKey)),
             array_fill(0, $rows, array_fill(0, $cols, $paperKey)),
             [],
         );
+    }
+
+    public function setBorder(?int $border = null): void
+    {
+        $this->runtime->setBorder($border);
+    }
+
+    public function setZoom(float $zoom): void
+    {
+        $this->runtime->setZoom($zoom);
+    }
+
+    public function setRotation(int $rotation): void
+    {
+        $this->runtime->setRotation($rotation);
+    }
+
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
+
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
+
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
+
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 }

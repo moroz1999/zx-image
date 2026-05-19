@@ -7,11 +7,11 @@ Implementation details for the ZX-Image library. Domain concepts are in [domain.
 ## Component Overview
 
 ```
-Converter  ──────────────────────────► Plugin (abstract)
+Converter  ──────────────────────────► PluginInterface implementation
   setType()                               loadBits()
   setPath() / setSourceFileContents()     parseScreen()
-  setBorder()                             exportData()
-  setZoom()                               makePngFromGd() / makeGifFromGd()
+  setBorder()                             renderImage()
+  setZoom()                               ImageEncoder
   setRotation()
   setPalette()
   setGigascreenMode()
@@ -33,35 +33,46 @@ Entry point and configuration holder. Responsibilities:
 
 ---
 
-## Plugin (`ZxImage/Plugin/Plugin.php`)
+## Plugins (`ZxImage/Plugin/`)
 
-Abstract base class for all format parsers. Implements the full rendering pipeline.
+Plugins implement `PluginInterface` directly. Shared behavior is being moved into services instead of a common abstract base class.
 
 ### Pipeline
 
-Each concrete plugin runs through three abstract methods in sequence:
+Most standard-like plugins run through three methods in sequence:
 
-1. **`loadBits(): ?array`** — opens the source (file or in-memory string via `php://memory`), reads raw bytes, returns structured arrays of binary strings
-2. **`parseScreen(array $data): array`** — decodes raw bit strings into pixel maps and attribute maps (inkMap, paperMap, flashMap)
-3. **`exportData(array $parsedData, bool $flashedImage): GdImage`** — draws a GD image from parsed data, calls `drawBorder`, `resizeImage`, `checkRotation`
+1. **`loadBits(): ?RawScreen`** — opens the source and reads raw unsigned bytes
+2. **`parseScreen(RawScreen $data): ParsedScreen`** — decodes bytes into pixel maps and attribute maps
+3. **`renderImage(ParsedScreen $parsedData, ...)`** — draws a GD image, applies border, resize, and rotation
 
-`convert()` orchestrates the pipeline and produces the final binary string via `makePngFromGd` or `makeGifFromGd`. Animated outputs call `convert()` multiple times with different `$flashedImage` flags and assemble frames with `GifCreator`.
+`StandardScreenPipeline` orchestrates the standard pipeline and produces the final PNG or GIF binary via `ImageEncoder`. `GigascreenPipeline` handles dual-screen mix, flicker, and interlace modes. Some container plugins implement a custom `convert()` while reusing the same DTOs and services.
+
+Indexed and SAM Coupe formats use narrower render services:
+- `IndexedScreenRenderer` draws linear 8-bit indexed pixels through the active palette correction matrix.
+- `SamCoupeScreenRenderer` decodes SAM mode 3/4 pixels and SAM palette bytes, then applies the shared image processor.
+
+### Runtime State
+
+`PluginRuntime` holds plugin configuration and shared services for composition-based plugins. It replaces trait-owned mutable state for migrated plugins.
 
 ### File Reading Primitives
 
-`makeHandle()` opens the source as a seekable stream. All reads go through:
+`FileLoader` opens the source as a seekable `BitReader`. All reads go through:
 - `readByte()` → one unsigned byte
 - `readWord()` → little-endian 16-bit integer
-- `read8BitString()` → byte as 8-char binary string (`'01001101'`)
-- `read8BitStrings(n)` → array of n such strings
-- `read16BitStrings(n, bigEndian)` → array of 16-char binary strings
 - `readString(n)` → raw string of n bytes
 - `readBytes(n)` → array of n unsigned bytes
 - `seek(offset)` → absolute seek
 
+### Character Screen Builder
+
+`ZxImage\Service\CharacterScreenBuilder` contains shared 8×8 character layout logic for token-based and CHR$ formats:
+- ZX-VRAM ordered byte streams for fixed 32-column text screens (`s80`, `s81`)
+- linear character-cell pixel maps for variable-size CHR$ screens
+
 ### `strictFileSize`
 
-When set on a plugin, `makeHandle()` checks that the source file size matches exactly. Mismatched files are rejected.
+When set on a plugin runtime or loader call, `FileLoader` checks that the source file size matches exactly. Mismatched files are rejected.
 
 ### Rendering Helpers
 
@@ -120,7 +131,7 @@ Abstract class with a single method `apply($image, $srcImage)`. Pre-filters rece
 
 ## Gigascreen Implementation
 
-The `Gigascreen` plugin (and subclasses: `Bsp`, `Multiartist`, `Chrd`, `Lowresgs`, `Stellar`, `Timexhrg`) implement multi-screen blending:
+Gigascreen-compatible plugins use `GigascreenPipeline` for multi-screen blending:
 
 - **`mix`**: calls `exportDataMerged()` — iterates pixels from both screens simultaneously and looks up the combined 8-bit color code in `$gigaColors`
 - **`flicker`**: renders each screen separately via `exportData()`, encodes as GIF palette images, assembles animated GIF with 2 cs per frame delay
@@ -183,41 +194,12 @@ Expiry sweep: triggered probabilistically. If `time() % cacheDeletionPeriod == 0
 
 ---
 
-## Plugin Class Hierarchy
+## Plugin Structure
 
-```
-Plugin (abstract)
-├── Standard                          — base ZX SCR renderer
-│   ├── Ulaplus                       — ULA+ 64-color palette
-│   ├── Flash                         — hardware flash-color modifier
-│   ├── Monochrome                    — no attributes, fixed ink/paper
-│   ├── Attributes                    — attributes-only (synthesized pixel grid)
-│   ├── Hidden                        — reveals hidden pixels (ink == paper → orange)
-│   ├── Multicolor  ──► Multicolor4   — attributeHeight 2 / 4
-│   ├── Mc                            — attributeHeight 1, linear pixel order
-│   ├── Mlt                           — attributeHeight 1, ZX non-linear pixel order
-│   ├── Timex81                       — attributeHeight 1, ZX non-linear attrs
-│   ├── Bsc  ──► Bmc4                 — embedded border pixel data
-│   ├── Nxi  ──► Sl2                  — indexed 256-color palette
-│   ├── Sam2                          — Sam Coupe mode 2 (ZX-compatible)
-│   ├── Sam3 (+ Sam trait)            — Sam Coupe mode 3, 2 bpp
-│   ├── Sam4 (+ Sam trait)            — Sam Coupe mode 4, 4 bpp
-│   ├── Specscii                      — ZX text from token stream + control codes
-│   ├── S81  ──► S80                  — ZX81/ZX80 text from token stream
-│   ├── Sca                           — multi-frame animation container
-│   ├── Grf                           — Profi GRF hi-res 16-color
-│   └── Gigascreen                    — two-screen blending base
-│       ├── Bsp                       — Border Screen by Trefi
-│       ├── Timexhrg                  — Timex hi-res gigascreen
-│       ├── Multiartist               — MGH format, multiple attribute modes
-│       ├── Chrd                      — CHR$ by Alone Coder
-│       ├── Lowresgs                  — gigascreen with texture-generated pixels
-│       └── Stellar                   — 4×4 block gigascreen, 64 colors
-├── Ssx                               — file-size-based type dispatcher
-├── SsxRaw                            — Sam Coupe 512×192 raw 8bpp
-├── Timexhr                           — Timex hi-res 512×192
-├── Tricolor                          — 3-screen RGB flicker
-├── Zxevo                             — ZX Evolution BMP (≤16 colors, quantized)
-├── Sxg                               — ZX Evolution SXG (16 or 256 colors)
-└── Atmega                            — ATM Turbo 2+ EGA 320×200
-```
+There is no active abstract plugin base class. Migrated standard-like plugins use:
+- `PluginRuntime` for configuration and service access
+- `StandardScreenPipeline` for default SCR loading/parsing/rendering
+- Narrow render services such as `IndexedScreenRenderer` or `SamCoupeScreenRenderer` when the format is not SCR-shaped
+- format-specific private methods only for the parts that differ
+
+Legacy `PluginConfigTrait` still exists for plugins that have not been migrated to `PluginRuntime` yet.

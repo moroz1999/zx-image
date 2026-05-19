@@ -9,7 +9,7 @@ ZX Spectrum multicolor modes with reduced attribute cell height.
 | `multicolor` | `ZxImage\Plugin\Multicolor` | 8×**2** px | 9216 bytes |
 | `multicolor4` | `ZxImage\Plugin\Multicolor4` | 8×**4** px | 7680 bytes |
 
-Both extend `Multicolor`, which extends `Standard`.
+Both use `StandardScreenPipeline` with different `attributeHeight` and file-size settings.
 
 ## File Layout
 
@@ -25,7 +25,7 @@ Both extend `Multicolor`, which extends `Standard`.
 
 ## Rendering
 
-Same as `standard` except `attributeHeight` is 2 or 4 instead of 8. Each pixel row references the attribute cell at `y / attributeHeight`. Flash behavior and animation are inherited from `Standard`.
+Same as `standard` except `attributeHeight` is 2 or 4 instead of 8. Each pixel row references the attribute cell at `y / attributeHeight`. Flash behavior and animation come from the shared standard pipeline.
 
 ## Output
 

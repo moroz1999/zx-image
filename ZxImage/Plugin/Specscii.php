@@ -4,27 +4,50 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use GdImage;
 use ZxImage\Converter;
+use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\RawScreen;
+use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\StandardScreenPipeline;
 
 class Specscii implements PluginInterface
 {
-    use StandardConvertTrait;
+    private PluginRuntime $runtime;
+    private StandardScreenPipeline $pipeline;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->pipeline = new StandardScreenPipeline();
     }
 
-    protected function loadBits(): ?RawScreen
+    public function convert(): ?string
     {
-        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, null);
+        return $this->pipeline->convertUsing(
+            $this->runtime,
+            fn(): ?RawScreen => $this->loadBits(),
+            fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreen($rawScreen, $this->runtime->width),
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->pipeline->renderImage(
+                $parsedScreen,
+                $colorTable,
+                $flashedImage,
+                $this->runtime,
+            ),
+        );
+    }
+
+    private function loadBits(): ?RawScreen
+    {
+        $reader = $this->runtime->fileLoader->openSource(
+            $this->runtime->sourceFilePath,
+            $this->runtime->sourceFileContents,
+            null,
+        );
         if ($reader === null) {
             return null;
         }
@@ -34,6 +57,51 @@ class Specscii implements PluginInterface
             $tokens[] = $byte;
         }
         return $this->parseTokens($tokens);
+    }
+
+    public function setBorder(?int $border = null): void
+    {
+        $this->runtime->setBorder($border);
+    }
+
+    public function setZoom(float $zoom): void
+    {
+        $this->runtime->setZoom($zoom);
+    }
+
+    public function setRotation(int $rotation): void
+    {
+        $this->runtime->setRotation($rotation);
+    }
+
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
+
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
+
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
+
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 
     private function parseTokens(array $tokens): RawScreen

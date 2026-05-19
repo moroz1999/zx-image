@@ -1,0 +1,101 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ZxImage\Service;
+
+use GdImage;
+use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\PaletteConfig;
+
+final readonly class IndexedScreenRenderer
+{
+    /**
+     * @param int[] $pixelsBytes
+     * @param array<int, array{int, int}> $paletteBytes
+     */
+    public function render(
+        array $pixelsBytes,
+        array $paletteBytes,
+        ColorTable $colorTable,
+        PluginRuntime $runtime,
+    ): GdImage {
+        $colors = $this->parsePalette($paletteBytes, $colorTable->config);
+        $pixelsData = $this->parseLinearPixels($pixelsBytes, $runtime->width);
+
+        $image = imagecreatetruecolor($runtime->width, $runtime->height);
+        foreach ($pixelsData as $y => $row) {
+            foreach ($row as $x => $pixel) {
+                imagesetpixel($image, $x, $y, $colors[$pixel]);
+            }
+        }
+
+        $image = $runtime->imageProcessor->applyBorder(
+            $image,
+            $runtime->border,
+            $colorTable,
+            $runtime->width,
+            $runtime->height,
+            $runtime->borderWidth,
+            $runtime->borderHeight,
+            $runtime->usesBorder,
+        );
+        $image = $runtime->imageProcessor->resize($image, $runtime->zoom, $runtime->preFilters, $runtime->postFilters);
+        return $runtime->imageProcessor->rotate($image, $runtime->rotation);
+    }
+
+    /**
+     * @param int[] $pixelsBytes
+     * @return int[][]
+     */
+    private function parseLinearPixels(array $pixelsBytes, int $width): array
+    {
+        $x = 0;
+        $y = 0;
+        $pixelsData = [];
+        foreach ($pixelsBytes as $byte) {
+            $pixelsData[$y][$x] = $byte;
+            $x++;
+            if ($x >= $width) {
+                $x = 0;
+                $y++;
+            }
+        }
+        return $pixelsData;
+    }
+
+    /**
+     * @param array<int, array{int, int}> $paletteBytes
+     * @return int[]
+     */
+    private function parsePalette(array $paletteBytes, PaletteConfig $config): array
+    {
+        $colors = [];
+        foreach ($paletteBytes as [$byte1, $byte2]) {
+            $r = $this->rgb3ToRgb8(($byte1 >> 5) & 0x07);
+            $g = $this->rgb3ToRgb8(($byte1 >> 2) & 0x07);
+            $b = $this->rgb3ToRgb8((($byte1 & 0x03) << 1) | ($byte2 & 0x01));
+
+            $red = (int)round(($r * $config->r11 + $g * $config->r12 + $b * $config->r13) / 0xFF);
+            $green = (int)round(($r * $config->r21 + $g * $config->r22 + $b * $config->r23) / 0xFF);
+            $blue = (int)round(($r * $config->r31 + $g * $config->r32 + $b * $config->r33) / 0xFF);
+
+            $colors[] = $red * 0x010000 + $green * 0x0100 + $blue;
+        }
+        return $colors;
+    }
+
+    private function rgb3ToRgb8(int $value): int
+    {
+        return match ($value) {
+            0 => 0,
+            1 => 36,
+            2 => 73,
+            3 => 109,
+            4 => 146,
+            5 => 182,
+            6 => 219,
+            7 => 255,
+        };
+    }
+}

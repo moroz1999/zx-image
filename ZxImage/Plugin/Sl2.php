@@ -5,24 +5,13 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Service\IndexedScreenRenderer;
+use ZxImage\Service\PluginRuntime;
 
 class Sl2 implements PluginInterface
 {
-    use PluginConfigTrait;
-
     private const int HEADER_SIZE = 128;
     private const int DATA_SIZE = 49152;
-
-    private const array RGB3_TO_RGB8 = [
-        0 => 0,
-        1 => 36,
-        2 => 73,
-        3 => 109,
-        4 => 146,
-        5 => 182,
-        6 => 219,
-        7 => 255,
-    ];
 
     private static array $defaultNextPalette = [
         '0000000000000000',
@@ -283,85 +272,97 @@ class Sl2 implements PluginInterface
         '1111111100000001',
     ];
 
+    private PluginRuntime $runtime;
+    private IndexedScreenRenderer $renderer;
+
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->renderer = new IndexedScreenRenderer();
     }
 
     public function convert(): ?string
     {
-        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, null);
+        $reader = $this->runtime->fileLoader->openSource(
+            $this->runtime->sourceFilePath,
+            $this->runtime->sourceFileContents,
+            null,
+        );
         if ($reader === null) {
             return null;
         }
 
-        $colorTable = $this->paletteService->buildColorTable($this->paletteString);
-        $config = $colorTable->config;
+        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
 
         $fileSize = $reader->getSize();
         if ($fileSize === self::DATA_SIZE + self::HEADER_SIZE) {
             $reader->seek(self::HEADER_SIZE);
         }
 
-        $pixelsBytes = $reader->readBytes($this->width * $this->height);
-        $paletteBytes = array_map(static function (string $s): array {
-            return [bindec(substr($s, 0, 8)), bindec(substr($s, 8, 8))];
+        $pixelsBytes = $reader->readBytes($this->runtime->width * $this->runtime->height);
+        $paletteBytes = $this->getDefaultPaletteBytes();
+
+        $image = $this->renderer->render($pixelsBytes, $paletteBytes, $colorTable, $this->runtime);
+
+        $this->runtime->resultMime = 'image/png';
+        return $this->runtime->imageEncoder->toPng($image);
+    }
+
+    /**
+     * @return array<int, array{int, int}>
+     */
+    private function getDefaultPaletteBytes(): array
+    {
+        return array_map(static function (string $row): array {
+            return [intval(bindec(substr($row, 0, 8))), intval(bindec(substr($row, 8, 8)))];
         }, self::$defaultNextPalette);
-
-        $colors = $this->parseNxiPalette($paletteBytes, $config->r11, $config->r12, $config->r13, $config->r21, $config->r22, $config->r23, $config->r31, $config->r32, $config->r33);
-        $pixelsData = $this->parseLinearPixels($pixelsBytes);
-
-        $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($pixelsData as $y => $row) {
-            foreach ($row as $x => $pixel) {
-                imagesetpixel($image, $x, $y, $colors[$pixel]);
-            }
-        }
-
-        $image = $this->imageProcessor->applyBorder($image, $this->border, $colorTable, $this->width, $this->height, $this->borderWidth, $this->borderHeight, $this->usesBorder);
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        $image = $this->imageProcessor->rotate($image, $this->rotation);
-
-        $this->resultMime = 'image/png';
-        return $this->imageEncoder->toPng($image);
     }
 
-    private function parseLinearPixels(array $pixelsBytes): array
+    public function setBorder(?int $border = null): void
     {
-        $x = 0;
-        $y = 0;
-        $pixelsData = [];
-        foreach ($pixelsBytes as $byte) {
-            $pixelsData[$y][$x] = $byte;
-            $x++;
-            if ($x >= $this->width) {
-                $x = 0;
-                $y++;
-            }
-        }
-        return $pixelsData;
+        $this->runtime->setBorder($border);
     }
 
-    private function parseNxiPalette(array $paletteBytes, int $r11, int $r12, int $r13, int $r21, int $r22, int $r23, int $r31, int $r32, int $r33): array
+    public function setZoom(float $zoom): void
     {
-        $colors = [];
-        foreach ($paletteBytes as [$byte1, $byte2]) {
-            $r = self::RGB3_TO_RGB8[($byte1 >> 5) & 0x07];
-            $g = self::RGB3_TO_RGB8[($byte1 >> 2) & 0x07];
-            $b = self::RGB3_TO_RGB8[(($byte1 & 0x03) << 1) | ($byte2 & 0x01)];
+        $this->runtime->setZoom($zoom);
+    }
 
-            $red = (int)round(($r * $r11 + $g * $r12 + $b * $r13) / 0xFF);
-            $green = (int)round(($r * $r21 + $g * $r22 + $b * $r23) / 0xFF);
-            $blue = (int)round(($r * $r31 + $g * $r32 + $b * $r33) / 0xFF);
+    public function setRotation(int $rotation): void
+    {
+        $this->runtime->setRotation($rotation);
+    }
 
-            $colors[] = $red * 0x010000 + $green * 0x0100 + $blue;
-        }
-        return $colors;
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
+
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
+
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
+
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 }

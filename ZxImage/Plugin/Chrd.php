@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use GdImage;
+use Override;
+use RuntimeException;
 use ZxImage\Converter;
 use ZxImage\Dto\AttributeMap;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Plugin\Standard\AttributeParser;
+use ZxImage\Plugin\Standard\PixelRenderer;
+use ZxImage\Service\BitReader;
+use ZxImage\Service\CharacterScreenBuilder;
 
 class Chrd implements PluginInterface
 {
@@ -30,6 +35,7 @@ class Chrd implements PluginInterface
         $this->initServices();
     }
 
+    #[Override]
     public function convert(): ?string
     {
         $chrdData = $this->loadChrdData();
@@ -76,40 +82,45 @@ class Chrd implements PluginInterface
         $this->width = $widthInChars * 8;
         $this->height = $heightInChars * 8;
 
+        if ($colorType !== self::COLOR_TYPE_STANDARD && $colorType !== self::COLOR_TYPE_GIGASCREEN) {
+            return null;
+        }
+
         $attributesArray1 = [];
         $attributesArray2 = [];
+        /** @var array<int, array<int, list<int>>> $characterRows1 */
+        $characterRows1 = [];
+        /** @var array<int, array<int, list<int>>> $characterRows2 */
+        $characterRows2 = [];
 
         for ($charY = 0; $charY < $heightInChars; $charY++) {
             for ($charX = 0; $charX < $widthInChars; $charX++) {
                 if ($colorType === self::COLOR_TYPE_STANDARD) {
-                    for ($i = 0; $i < 8; $i++) {
-                        $reader->readByte();
-                    }
+                    $characterRows1[$charY][$charX] = $this->readCharacterBytes($reader);
                     $attributesArray1[] = $reader->readByte() ?? 0;
-                } elseif ($colorType === self::COLOR_TYPE_GIGASCREEN) {
-                    for ($i = 0; $i < 8; $i++) {
-                        $reader->readByte();
-                    }
+                } else {
+                    $characterRows1[$charY][$charX] = $this->readCharacterBytes($reader);
                     $attributesArray1[] = $reader->readByte() ?? 0;
 
-                    for ($i = 0; $i < 8; $i++) {
-                        $reader->readByte();
-                    }
+                    $characterRows2[$charY][$charX] = $this->readCharacterBytes($reader);
                     $attributesArray2[] = $reader->readByte() ?? 0;
                 }
             }
         }
 
-        $zeroPixels = $this->buildZeroPixels();
+        $screenBuilder = new CharacterScreenBuilder();
         $attrParser = new AttributeParser($this->width);
         $attributes1 = $attrParser->parse($attributesArray1);
-        $screen1 = new ParsedScreen($zeroPixels, $attributes1);
+        $pixels1 = $screenBuilder->buildPixelsFromCharacterRows($characterRows1, $widthInChars, $heightInChars);
+        $screen1 = new ParsedScreen($pixels1, $attributes1);
 
         $attributes2 = new AttributeMap([], [], []);
+        $pixels2 = [];
         if ($colorType === self::COLOR_TYPE_GIGASCREEN) {
             $attributes2 = $attrParser->parse($attributesArray2);
+            $pixels2 = $screenBuilder->buildPixelsFromCharacterRows($characterRows2, $widthInChars, $heightInChars);
         }
-        $screen2 = new ParsedScreen($zeroPixels, $attributes2);
+        $screen2 = new ParsedScreen($pixels2, $attributes2);
 
         return [
             'colorType' => $colorType,
@@ -118,15 +129,17 @@ class Chrd implements PluginInterface
         ];
     }
 
-    private function buildZeroPixels(): array
+    /**
+     * @return list<int>
+     */
+    private function readCharacterBytes(BitReader $reader): array
     {
-        $pixelsData = [];
-        for ($y = 0; $y < $this->height; $y++) {
-            for ($x = 0; $x < $this->width; $x++) {
-                $pixelsData[$y][$x] = 0;
-            }
+        $bytes = [];
+        for ($i = 0; $i < 8; $i++) {
+            $bytes[] = $reader->readByte() ?? 0;
         }
-        return $pixelsData;
+
+        return $bytes;
     }
 
     private function renderStandard(ParsedScreen $screen, ColorTable $colorTable): string
@@ -146,25 +159,16 @@ class Chrd implements PluginInterface
 
     private function renderSingleImage(ParsedScreen $screen, ColorTable $colorTable, bool $flashedImage): GdImage
     {
-        $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($screen->pixelsData as $y => $row) {
-            foreach ($row as $x => $pixel) {
-                $mapX = (int)($x / $this->attributeWidth);
-                $mapY = (int)($y / $this->attributeHeight);
+        $image = (new PixelRenderer())->render(
+            $screen,
+            $flashedImage,
+            $colorTable->colors,
+            $this->width,
+            $this->height,
+            $this->attributeWidth,
+            $this->attributeHeight,
+        );
 
-                if ($flashedImage && isset($screen->attributes->flashMap[$mapY][$mapX])) {
-                    $zxColor = $pixel === 1
-                        ? $screen->attributes->paperMap[$mapY][$mapX]
-                        : $screen->attributes->inkMap[$mapY][$mapX];
-                } else {
-                    $zxColor = $pixel === 1
-                        ? $screen->attributes->inkMap[$mapY][$mapX]
-                        : $screen->attributes->paperMap[$mapY][$mapX];
-                }
-
-                imagesetpixel($image, $x, $y, $colorTable->colors[$zxColor]);
-            }
-        }
         $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
         return $this->imageProcessor->rotate($image, $this->rotation);
     }
@@ -250,8 +254,13 @@ class Chrd implements PluginInterface
     private function renderMergedImage(ParsedScreen $screen1, ParsedScreen $screen2, ColorTable $colorTable, bool $flashedImage): GdImage
     {
         $image = imagecreatetruecolor($this->width, $this->height);
-        foreach ($screen1->pixelsData as $y => $row) {
-            foreach ($row as $x => $pixel1) {
+        if ($image === false) {
+            throw new RuntimeException('Unable to create CHR$ image.');
+        }
+
+        for ($y = 0; $y < $this->height; $y++) {
+            for ($x = 0; $x < $this->width; $x++) {
+                $pixel1 = $screen1->pixelsData[$y][$x];
                 $mapX = (int)($x / $this->attributeWidth);
                 $mapY = (int)($y / $this->attributeHeight);
                 $pixel2 = $screen2->pixelsData[$y][$x];

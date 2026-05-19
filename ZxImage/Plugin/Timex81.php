@@ -4,49 +4,87 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use GdImage;
 use ZxImage\Converter;
+use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\RawScreen;
-use ZxImage\Plugin\Standard\AttributeParser;
-use ZxImage\Plugin\Standard\PixelParser;
+use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\StandardScreenPipeline;
 
 class Timex81 implements PluginInterface
 {
-    use StandardConvertTrait;
+    private PluginRuntime $runtime;
+    private StandardScreenPipeline $pipeline;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->attributeHeight = 1;
-        $this->requiredFileSize = 12288;
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime->attributeHeight = 1;
+        $this->runtime->requiredFileSize = 12288;
+        $this->pipeline = new StandardScreenPipeline();
     }
 
-    protected function parseScreen(RawScreen $rawScreen): ParsedScreen
+    public function convert(): ?string
     {
-        $zxyMapper = \Closure::fromCallable([$this, 'calculateZXY']);
-        $attributes = (new AttributeParser($this->width))->parse($rawScreen->attributesBytes, $zxyMapper);
-        $pixelsData = (new PixelParser($this->width))->parse($rawScreen->pixelsBytes);
-        return new ParsedScreen($pixelsData, $attributes);
+        return $this->pipeline->convertUsing(
+            $this->runtime,
+            fn(): ?RawScreen => $this->pipeline->loadBits($this->runtime),
+            fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreenWithZxAttributes($rawScreen, $this->runtime->width),
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->pipeline->renderImage(
+                $parsedScreen,
+                $colorTable,
+                $flashedImage,
+                $this->runtime,
+            ),
+        );
     }
 
-    private function calculateZXY(int $y): int
+    public function setBorder(?int $border = null): void
     {
-        $offset = 0;
-        if ($y > 127) {
-            $offset = 128;
-            $y -= 128;
-        } elseif ($y > 63) {
-            $offset = 64;
-            $y -= 64;
-        }
-        $rows = (int)($y / 8);
-        $rests = $y - $rows * 8;
-        return $offset + $rests * 8 + $rows;
+        $this->runtime->setBorder($border);
+    }
+
+    public function setZoom(float $zoom): void
+    {
+        $this->runtime->setZoom($zoom);
+    }
+
+    public function setRotation(int $rotation): void
+    {
+        $this->runtime->setRotation($rotation);
+    }
+
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
+
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
+
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
+
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 }

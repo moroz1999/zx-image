@@ -8,60 +8,96 @@ use GdImage;
 use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Standard\HiddenPixelRenderer;
+use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\StandardScreenPipeline;
 
 class Hidden implements PluginInterface
 {
-    use StandardConvertTrait;
+    private PluginRuntime $runtime;
+    private StandardScreenPipeline $pipeline;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->pipeline = new StandardScreenPipeline();
     }
 
-    protected function renderImage(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage
+    public function convert(): ?string
     {
-        $image = imagecreatetruecolor($this->width, $this->height);
-
-        foreach ($parsedScreen->pixelsData as $y => $row) {
-            foreach ($row as $x => $pixel) {
-                $mapX = (int)($x / $this->attributeWidth);
-                $mapY = (int)($y / $this->attributeHeight);
-
-                $inkKey = $parsedScreen->attributes->inkMap[$mapY][$mapX];
-                $paperKey = $parsedScreen->attributes->paperMap[$mapY][$mapX];
-                $isHidden = false;
-
-                if ($flashedImage && isset($parsedScreen->attributes->flashMap[$mapY][$mapX])) {
-                    $colorKey = $pixel === 1 ? $paperKey : $inkKey;
-                } elseif ($inkKey === $paperKey && $pixel === 1) {
-                    $isHidden = true;
-                    $colorKey = 0;
-                } else {
-                    $colorKey = $pixel === 1 ? $inkKey : $paperKey;
-                }
-
-                $color = $isHidden ? 0xFF8000 : $colorTable->colors[$colorKey];
-                imagesetpixel($image, $x, $y, $color);
-            }
-        }
-
-        $image = $this->imageProcessor->applyBorder(
-            $image,
-            $this->border,
-            $colorTable,
-            $this->width,
-            $this->height,
-            $this->borderWidth,
-            $this->borderHeight,
-            $this->usesBorder,
+        return $this->pipeline->convertUsing(
+            $this->runtime,
+            fn(): ?RawScreen => $this->pipeline->loadBits($this->runtime),
+            fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreen($rawScreen, $this->runtime->width),
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderImage(
+                $parsedScreen,
+                $colorTable,
+                $flashedImage,
+            ),
         );
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        return $this->imageProcessor->rotate($image, $this->rotation);
+    }
+
+    private function renderImage(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage
+    {
+        $image = (new HiddenPixelRenderer())->render(
+            $parsedScreen,
+            $colorTable,
+            $flashedImage,
+            $this->runtime->width,
+            $this->runtime->height,
+            $this->runtime->attributeWidth,
+            $this->runtime->attributeHeight,
+        );
+
+        return $this->pipeline->finalizeImage($image, $colorTable, $this->runtime);
+    }
+
+    public function setBorder(?int $border = null): void
+    {
+        $this->runtime->setBorder($border);
+    }
+
+    public function setZoom(float $zoom): void
+    {
+        $this->runtime->setZoom($zoom);
+    }
+
+    public function setRotation(int $rotation): void
+    {
+        $this->runtime->setRotation($rotation);
+    }
+
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
+
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
+
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
+
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 }

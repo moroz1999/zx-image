@@ -9,12 +9,17 @@ use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\RawScreen;
+use ZxImage\Plugin\Standard\BscBorderRenderer;
 use ZxImage\Plugin\Standard\AttributeParser;
 use ZxImage\Plugin\Standard\PixelParser;
+use ZxImage\Plugin\Standard\PixelRenderer;
+use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\StandardScreenPipeline;
 
 class Bsc implements PluginInterface
 {
-    use StandardConvertTrait;
+    private PluginRuntime $runtime;
+    private StandardScreenPipeline $pipeline;
 
     private const int ATTRIBUTES_LENGTH = 768;
     private const int FILE_SIZE = 11136;
@@ -24,18 +29,34 @@ class Bsc implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->borderWidth = 64;
-        $this->borderHeight = 56;
-        $this->requiredFileSize = self::FILE_SIZE;
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime->borderWidth = 64;
+        $this->runtime->borderHeight = 56;
+        $this->runtime->requiredFileSize = self::FILE_SIZE;
+        $this->pipeline = new StandardScreenPipeline();
     }
 
-    protected function loadBits(): ?RawScreen
+    public function convert(): ?string
     {
-        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, $this->requiredFileSize);
+        return $this->pipeline->convertUsing(
+            $this->runtime,
+            fn(): ?RawScreen => $this->loadBits(),
+            fn(RawScreen $rawScreen): ParsedScreen => $this->parseScreen($rawScreen),
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderImage(
+                $parsedScreen,
+                $colorTable,
+                $flashedImage,
+            ),
+        );
+    }
+
+    private function loadBits(): ?RawScreen
+    {
+        $reader = $this->runtime->fileLoader->openSource(
+            $this->runtime->sourceFilePath,
+            $this->runtime->sourceFileContents,
+            $this->runtime->requiredFileSize,
+        );
         if ($reader === null) {
             return null;
         }
@@ -49,71 +70,81 @@ class Bsc implements PluginInterface
         return new RawScreen($pixelsBytes, $attributesBytes, $borderBytes);
     }
 
-    protected function parseScreen(RawScreen $rawScreen): ParsedScreen
+    private function parseScreen(RawScreen $rawScreen): ParsedScreen
     {
-        $attributes = (new AttributeParser($this->width))->parse($rawScreen->attributesBytes);
-        $pixelsData = (new PixelParser($this->width))->parse($rawScreen->pixelsBytes);
+        $attributes = (new AttributeParser($this->runtime->width))->parse($rawScreen->attributesBytes);
+        $pixelsData = (new PixelParser($this->runtime->width))->parse($rawScreen->pixelsBytes);
         return new ParsedScreen($pixelsData, $attributes, [], $rawScreen->borderBytes);
     }
 
-    protected function renderImage(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage
+    private function renderImage(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage
     {
-        $renderer = new \ZxImage\Plugin\Standard\PixelRenderer();
-        $image = $renderer->render(
+        $image = (new PixelRenderer())->render(
             $parsedScreen,
             $flashedImage,
             $colorTable->colors,
-            $this->width,
-            $this->height,
-            $this->attributeWidth,
-            $this->attributeHeight,
+            $this->runtime->width,
+            $this->runtime->height,
+            $this->runtime->attributeWidth,
+            $this->runtime->attributeHeight,
         );
 
-        $image = $this->applyBscBorder($image, $parsedScreen, $colorTable);
-        $image = $this->imageProcessor->resize($image, $this->zoom, $this->preFilters, $this->postFilters);
-        return $this->imageProcessor->rotate($image, $this->rotation);
+        $image = (new BscBorderRenderer())->render(
+            $image,
+            $parsedScreen,
+            $colorTable,
+            $this->runtime->border,
+            $this->runtime->width,
+            $this->runtime->height,
+            $this->runtime->borderWidth,
+            $this->runtime->borderHeight,
+        );
+        $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
+        return $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
     }
 
-    private function applyBscBorder(GdImage $centerImage, ParsedScreen $parsedScreen, ColorTable $colorTable): GdImage
+    public function setBorder(?int $border = null): void
     {
-        if ($this->border === null) {
-            return $centerImage;
-        }
+        $this->runtime->setBorder($border);
+    }
 
-        $resultImage = imagecreatetruecolor(
-            $this->width + $this->borderWidth * 2,
-            $this->height + $this->borderHeight * 2,
-        );
+    public function setZoom(float $zoom): void
+    {
+        $this->runtime->setZoom($zoom);
+    }
 
-        $x = 0;
-        $y = 0;
+    public function setRotation(int $rotation): void
+    {
+        $this->runtime->setRotation($rotation);
+    }
 
-        foreach ($parsedScreen->borderData as $byte) {
-            $leftColor = $byte & 0x07;
-            $color = $colorTable->colors[$leftColor];
-            for ($i = 0; $i < 8; $i++) {
-                imagesetpixel($resultImage, $x + $i, $y, $color);
-            }
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
 
-            $x += 8;
-            $rightColor = ($byte >> 3) & 0x07;
-            $color = $colorTable->colors[$rightColor];
-            for ($i = 0; $i < 8; $i++) {
-                imagesetpixel($resultImage, $x + $i, $y, $color);
-            }
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
 
-            $x += 8;
-            if ($y >= ($this->borderHeight + 8) && $y < ($this->height + $this->borderHeight + 8) && $x === $this->borderWidth) {
-                $x += $this->width;
-            }
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
 
-            if ($x >= $this->width + $this->borderWidth * 2) {
-                $x = 0;
-                $y++;
-            }
-        }
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
 
-        imagecopy($resultImage, $centerImage, $this->borderWidth, $this->borderHeight + 8, 0, 0, $this->width, $this->height);
-        return $resultImage;
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
     }
 }

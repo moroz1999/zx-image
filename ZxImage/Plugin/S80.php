@@ -4,30 +4,96 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use GdImage;
 use ZxImage\Converter;
+use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\RawScreen;
-use ZxImage\Plugin\Standard\AttributeParser;
-use ZxImage\Plugin\Standard\PixelParser;
+use ZxImage\Service\CharacterScreenBuilder;
+use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\StandardScreenPipeline;
 
 class S80 implements PluginInterface
 {
-    use StandardConvertTrait;
+    private PluginRuntime $runtime;
+    private StandardScreenPipeline $pipeline;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->sourceFilePath = $sourceFilePath;
-        $this->sourceFileContents = $sourceFileContents;
-        $this->converter = $converter;
-        $this->initServices();
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->pipeline = new StandardScreenPipeline();
     }
 
-    protected function loadBits(): ?RawScreen
+    public function convert(): ?string
     {
-        $reader = $this->fileLoader->openSource($this->sourceFilePath, $this->sourceFileContents, $this->requiredFileSize);
+        return $this->pipeline->convertUsing(
+            $this->runtime,
+            fn(): ?RawScreen => $this->loadBits(),
+            fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreen($rawScreen, $this->runtime->width),
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->pipeline->renderImage(
+                $parsedScreen,
+                $colorTable,
+                $flashedImage,
+                $this->runtime,
+            ),
+        );
+    }
+
+    public function setBorder(?int $border = null): void
+    {
+        $this->runtime->setBorder($border);
+    }
+
+    public function setZoom(float $zoom): void
+    {
+        $this->runtime->setZoom($zoom);
+    }
+
+    public function setRotation(int $rotation): void
+    {
+        $this->runtime->setRotation($rotation);
+    }
+
+    public function setGigascreenMode(string $mode): void
+    {
+        $this->runtime->setGigascreenMode($mode);
+    }
+
+    public function setPalette(string $palette): void
+    {
+        $this->runtime->setPalette($palette);
+    }
+
+    public function setPreFilters(array $filters): void
+    {
+        $this->runtime->setPreFilters($filters);
+    }
+
+    public function setPostFilters(array $filters): void
+    {
+        $this->runtime->setPostFilters($filters);
+    }
+
+    public function setBasePath(string $basePath): void
+    {
+        $this->runtime->setBasePath($basePath);
+    }
+
+    public function getResultMime(): ?string
+    {
+        return $this->runtime->getResultMime();
+    }
+
+    private function loadBits(): ?RawScreen
+    {
+        $reader = $this->runtime->fileLoader->openSource(
+            $this->runtime->sourceFilePath,
+            $this->runtime->sourceFileContents,
+            $this->runtime->requiredFileSize,
+        );
         if ($reader === null) {
             return null;
         }
@@ -37,53 +103,18 @@ class S80 implements PluginInterface
             $tokens[] = $byte;
         }
 
-        [$pixelsBytes, $attributesBytes] = $this->parseTokens($tokens);
-        return new RawScreen($pixelsBytes, $attributesBytes);
-    }
-
-    protected function parseScreen(RawScreen $rawScreen): ParsedScreen
-    {
-        $pixelsData = (new PixelParser($this->width))->parse($rawScreen->pixelsBytes, fn($y) => $y);
-        $attributes = (new AttributeParser($this->width))->parse($rawScreen->attributesBytes);
-        return new ParsedScreen($pixelsData, $attributes);
-    }
-
-    private function parseTokens(array $tokens): array
-    {
-        $pixelsArray = [];
-        $attributesArray = [];
-        $currentAttribute = 0x38;
-        $attrX = 0;
-        $attrY = 0;
-
-        foreach ($tokens as $token) {
-            $charData = Zx80FontData::getChar($token);
-            $attributesArray[$attrY * 32 + $attrX] = $currentAttribute;
-            foreach ($charData as $row => $pixels) {
-                $base = 0;
-                if ($attrY > 15) {
-                    $base = 32 * 8 * 16;
-                } elseif ($attrY > 7) {
-                    $base = 32 * 8 * 8;
-                }
-                $pixelKey = $base + $attrY * 32 + $row * 256 + $attrX;
-                $pixelsArray[$pixelKey] = $pixels;
-            }
-            $attrX++;
-            if ($attrX === 32) {
-                $attrX = 0;
-                $attrY++;
-            }
-        }
-
-        ksort($pixelsArray);
-        ksort($attributesArray);
-        return [array_values($pixelsArray), array_values($attributesArray)];
+        return (new CharacterScreenBuilder())->buildRawScreenFromTokens(
+            $tokens,
+            fn(int $token): array => Zx80FontData::getChar($token),
+            0x38,
+            32,
+        );
     }
 }
 
 class Zx80FontData
 {
+    /** @var list<list<string>> */
     private static array $data = [
         [
             '00000000',
@@ -1367,14 +1398,26 @@ class Zx80FontData
         ],
     ];
 
+    /**
+     * @return list<int>
+     */
     public static function getChar(int $number): array
     {
         if ($number > 0 && $number < 64) {
-            return array_map('bindec', self::$data[$number]);
+            return self::convertRows(self::$data[$number]);
         }
         if ($number > 127 && $number < 192) {
-            return array_map('bindec', self::$data[$number - 64]);
+            return self::convertRows(self::$data[$number - 64]);
         }
-        return array_map('bindec', self::$data[0]);
+        return self::convertRows(self::$data[0]);
+    }
+
+    /**
+     * @param list<string> $rows
+     * @return list<int>
+     */
+    private static function convertRows(array $rows): array
+    {
+        return array_map(static fn(string $row): int => intval(bindec($row)), $rows);
     }
 }

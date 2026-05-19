@@ -9,7 +9,7 @@ Three structural problems:
 
 Incremental: one plugin at a time. `composer test` after each plugin. Legacy methods marked `@deprecated`, removed when no callers remain.
 
-Tests: 72 integration SHA256 hash comparisons in `tests/ConverterFixtureTest.php` — pixel output must not change.
+Tests: 71 integration SHA256 hash comparisons in `tests/ConverterFixtureTest.php` — pixel output must not change.
 
 ---
 
@@ -81,14 +81,32 @@ Each step: update `loadBits()` to use `BitReader` (raw bytes), update `parseScre
 - [x] `Sxg`
 - [x] `Zxevo`
 - [x] `Ssx` / `SsxRaw`
+- [x] Extract shared character-screen layout into `ZxImage\Service\CharacterScreenBuilder`
+- [x] Fix `chrd`, `s80`, and `s81` fixture regressions after byte-based parser migration
+- [x] Remove unused legacy `Plugin` abstract base, `Configurable` interface, and `Sam` trait
+- [x] Introduce `PluginRuntime` and `StandardScreenPipeline` for composition-based standard rendering
+- [x] Migrate `Standard`, `Attributes`, `Multicolor`, `Multicolor4`, `S80`, and `S81` off `StandardConvertTrait`
+- [x] Migrate `Flash`, `Hidden`, `Mc`, `Mlt`, `Timex81`, `Sam2`, `Ulaplus`, `Specscii`, `Bsc`, and `Bmc4` off `StandardConvertTrait`
+- [x] Remove `StandardConvertTrait`
+- [x] Extract special renderers: `FlashPixelRenderer`, `HiddenPixelRenderer`, `BscBorderRenderer`
+- [x] Introduce `GigascreenPipeline` for mix/flicker/interlace rendering
+- [x] Migrate `Gigascreen`, `Lowresgs`, `Stellar`, and `Timexhrg` off `GigascreenConvertTrait`
+- [x] Remove `GigascreenConvertTrait`
+- [x] Migrate `Monochrome` off `PluginConfigTrait`
+- [x] Introduce `IndexedScreenRenderer` for indexed 256-color formats
+- [x] Migrate `Nxi` and `Sl2` off `PluginConfigTrait`
+- [x] Introduce `SamCoupeScreenRenderer` for SAM Coupe mode 3/4 rendering
+- [x] Migrate `Sam3` and `Sam4` off `PluginConfigTrait`
+- [x] Migrate `Ssx` routing plugin off `PluginConfigTrait`
+- [x] Migrate `Zxevo` BMP import plugin off `PluginConfigTrait`
 
 ---
 
 ## Phase 4 — Cleanup
 
-- [x] Remove deprecated `read8BitString*` / `read16BitString*` from `Plugin.php` (verify no callers with grep)
+- [x] Remove deprecated `read8BitString*` / `read16BitString*` with the legacy base plugin layer
 - [x] Remove deprecated abstract method variants if replaced
-- [ ] Run `composer psalm` and fix all issues
+- [ ] Run `composer psalm` and fix all issues — currently blocked by broad pre-existing Psalm debt and stale baseline entries
 - [x] Final `composer test` — all 71 fixtures green
 
 ---
@@ -97,8 +115,12 @@ Each step: update `loadBits()` to use `BitReader` (raw bytes), update `parseScre
 
 | File | Role |
 |------|------|
-| `ZxImage/Plugin/Plugin.php` | Base class — color tables, read methods, pipeline |
-| `ZxImage/Plugin/Standard.php` | Core renderer — pixel/attribute parsing, exportData |
+| `ZxImage/Service/PluginRuntime.php` | Runtime configuration and shared service holder for migrated plugins |
+| `ZxImage/Service/StandardScreenPipeline.php` | Standard SCR loading/parsing/rendering pipeline |
+| `ZxImage/Service/GigascreenPipeline.php` | Dual-screen gigascreen rendering pipeline |
+| `ZxImage/Service/IndexedScreenRenderer.php` | Indexed 256-color image renderer |
+| `ZxImage/Service/SamCoupeScreenRenderer.php` | SAM Coupe mode 3/4 renderer |
+| `ZxImage/Plugin/Standard.php` | Standard SCR plugin adapter |
 | `ZxImage/Plugin/Gigascreen.php` | Dual-screen base — exportDataMerged, interlace |
 | `ZxImage/Converter.php` | Entry point — palette parsing, cache key |
 | `tests/ConverterFixtureTest.php` | Integration tests |
@@ -111,3 +133,12 @@ New files:
 - `ZxImage/Plugin/Standard/AttributeParser.php`
 - `ZxImage/Plugin/Standard/PixelParser.php`
 - `ZxImage/Plugin/Standard/PixelRenderer.php`
+- `ZxImage/Plugin/Standard/FlashPixelRenderer.php`
+- `ZxImage/Plugin/Standard/HiddenPixelRenderer.php`
+- `ZxImage/Plugin/Standard/BscBorderRenderer.php`
+- `ZxImage/Service/CharacterScreenBuilder.php`
+- `ZxImage/Service/PluginRuntime.php`
+- `ZxImage/Service/StandardScreenPipeline.php`
+- `ZxImage/Service/GigascreenPipeline.php`
+- `ZxImage/Service/IndexedScreenRenderer.php`
+- `ZxImage/Service/SamCoupeScreenRenderer.php`
