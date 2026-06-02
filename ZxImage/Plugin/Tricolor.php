@@ -6,13 +6,16 @@ namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
 use ZxImage\Dto\AttributeMap;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Standard\PixelParser;
 use ZxImage\Plugin\Tricolor\TricolorMixer;
 use ZxImage\Service\PluginRuntime;
 use ZxImage\Service\StandardScreenPipeline;
 
-class Tricolor implements PluginInterface
+class Tricolor implements FramePluginInterface
 {
     private const int REQUIRED_FILE_SIZE = 18432;
 
@@ -23,12 +26,17 @@ class Tricolor implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents);
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        $reader = $this->runtime->fileLoader->openSource(
+        $this->runtime->applyRenderSettings($settings);
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        $reader = $this->runtime->services->fileLoader->openSource(
             $this->runtime->sourceFilePath,
             $this->runtime->sourceFileContents,
             self::REQUIRED_FILE_SIZE,
@@ -37,7 +45,7 @@ class Tricolor implements PluginInterface
             return null;
         }
 
-        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
+        $colorTable = $this->runtime->services->paletteService->buildColorTable($this->runtime->renderSettings->paletteString);
         $pipeline = new StandardScreenPipeline();
 
         $screenColors = [
@@ -61,67 +69,30 @@ class Tricolor implements PluginInterface
             $screens[] = new ParsedScreen($pixelsData, $attributes);
         }
 
-        if ($this->runtime->gigascreenMode === 'flicker') {
-            $gifImages = [];
+        if ($this->runtime->renderSettings->gigascreenMode === 'flicker') {
+            $frames = [];
             foreach ($screens as $screen) {
-                $image = $pipeline->renderImage($screen, $colorTable, false, $this->runtime);
-                $gifImages[] = $this->runtime->imageEncoder->toPaletteGif($image);
+                $frames[] = new Frame($pipeline->renderFrame($screen, $colorTable, false, $this->runtime), 2);
             }
-            $this->runtime->resultMime = 'image/gif';
-            return $this->runtime->imageEncoder->toAnimatedGif($gifImages, [2, 2, 2]);
+
+            return new FrameSet(
+                $frames,
+                $this->runtime->renderSettings,
+                $this->runtime->getRenderGeometry(),
+                $colorTable,
+            );
         }
 
         $resources = [];
         foreach ($screens as $screen) {
-            $resources[] = $pipeline->renderImage($screen, $colorTable, false, $this->runtime);
+            $resources[] = $pipeline->renderFrame($screen, $colorTable, false, $this->runtime);
         }
 
-        $this->runtime->resultMime = 'image/png';
-        return $this->runtime->imageEncoder->toPng((new TricolorMixer())->mix($resources));
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return new FrameSet(
+            [new Frame((new TricolorMixer())->mix($resources))],
+            $this->runtime->renderSettings,
+            $this->runtime->getRenderGeometry(),
+            $colorTable,
+        );
     }
 }

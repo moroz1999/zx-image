@@ -20,7 +20,7 @@ final readonly class MghBorderRenderer
             return $result;
         }
 
-        return $runtime->imageProcessor->applyBorder(
+        return $runtime->services->imageProcessor->applyBorder(
             $center,
             $border1,
             $colorTable,

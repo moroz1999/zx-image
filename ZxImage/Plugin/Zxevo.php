@@ -6,35 +6,48 @@ namespace ZxImage\Plugin;
 
 use GdImage;
 use ZxImage\Converter;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
+use ZxImage\Dto\RenderSettings;
+use ZxImage\Service\PluginServices;
 
-class Zxevo implements PluginInterface
+class Zxevo implements FramePluginInterface
 {
-    private PluginRuntime $runtime;
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
-        $this->runtime->width = 320;
-        $this->runtime->height = 200;
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = new PluginGeometry(width: 320, height: 200, usesBorder: false);
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        if ($this->runtime->sourceFilePath === null || !file_exists($this->runtime->sourceFilePath)) {
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        if ($this->input->sourceFilePath === null || !file_exists($this->input->sourceFilePath)) {
             return null;
         }
 
-        $sizes = getimagesize($this->runtime->sourceFilePath);
+        $sizes = getimagesize($this->input->sourceFilePath);
         if ($sizes !== false) {
-            $this->runtime->width = $sizes[0];
-            $this->runtime->height = $sizes[1];
+            $this->geometry = $this->geometry->withDimensions($sizes[0], $sizes[1]);
         }
 
-        $gdObject = imagecreatefrombmp($this->runtime->sourceFilePath);
+        $gdObject = imagecreatefrombmp($this->input->sourceFilePath);
         if ($gdObject === false) {
             return null;
         }
@@ -45,9 +58,14 @@ class Zxevo implements PluginInterface
         }
 
         $image = $this->adjustImage($gdObject);
+        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
 
-        $this->runtime->resultMime = 'image/png';
-        return $this->runtime->imageEncoder->toPng($image);
+        return new FrameSet(
+            [new Frame($image)],
+            $this->renderSettings,
+            $this->geometry->toRenderGeometry(),
+            $colorTable,
+        );
     }
 
     private function adjustImage(GdImage $image): GdImage
@@ -61,57 +79,6 @@ class Zxevo implements PluginInterface
             imagecolorset($image, $i, $color['red'], $color['green'], $color['blue']);
         }
 
-        $image = $this->runtime->imageProcessor->resize(
-            $image,
-            $this->runtime->zoom,
-            $this->runtime->preFilters,
-            $this->runtime->postFilters,
-        );
-        return $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return $image;
     }
 }

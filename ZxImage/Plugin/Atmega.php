@@ -5,40 +5,56 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Atmega\AtmegaPaletteParser;
 use ZxImage\Plugin\Atmega\AtmegaPixelParser;
 use ZxImage\Service\PixelCanvas;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
-class Atmega implements PluginInterface
+class Atmega implements FramePluginInterface
 {
     private const int PIXEL_PAGE_SIZE = 8000;
     private const int FILE_SIZE_WITH_GAPS = 32896;
+    private const int WIDTH = 320;
+    private const int HEIGHT = 200;
 
-    private PluginRuntime $runtime;
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
-        $this->runtime->width = 320;
-        $this->runtime->height = 200;
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = (new PluginGeometry())->withDimensions(self::WIDTH, self::HEIGHT);
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        $reader = $this->runtime->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        $reader = $this->services->fileLoader->openSource(
+            $this->input->sourceFilePath,
+            $this->input->sourceFileContents,
             null,
         );
         if ($reader === null) {
             return null;
         }
 
-        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
+        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
         $fileSize = $reader->getSize();
 
         $pixelsArray = [];
@@ -72,69 +88,20 @@ class Atmega implements PluginInterface
         ];
 
         $colors = (new AtmegaPaletteParser())->parse($paletteBytes, $colorTable->config);
-        $pixelsData = (new AtmegaPixelParser())->parse($pixelsArray, $this->runtime->width);
+        $pixelsData = (new AtmegaPixelParser())->parse($pixelsArray, $this->geometry->width);
 
-        $image = (new PixelCanvas())->draw($pixelsData, $colors, $this->runtime->width, $this->runtime->height);
-
-        $image = $this->runtime->imageProcessor->applyBorder(
-            $image,
-            $this->runtime->border,
-            $colorTable,
-            $this->runtime->width,
-            $this->runtime->height,
-            $this->runtime->borderWidth,
-            $this->runtime->borderHeight,
-            $this->runtime->usesBorder,
+        $image = (new PixelCanvas())->draw(
+            $pixelsData,
+            $colors,
+            $this->geometry->width,
+            $this->geometry->height,
         );
-        $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
-        $image = $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
 
-        $this->runtime->resultMime = 'image/png';
-        return $this->runtime->imageEncoder->toPng($image);
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return new FrameSet(
+            [new Frame($image)],
+            $this->renderSettings,
+            $this->geometry->toRenderGeometry(),
+            $colorTable,
+        );
     }
 }

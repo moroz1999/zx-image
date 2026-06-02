@@ -7,15 +7,22 @@ namespace ZxImage\Plugin;
 use GdImage;
 use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RawScreen;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Standard\HiddenPixelRenderer;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 use ZxImage\Service\StandardScreenPipeline;
 
-class Hidden implements PluginInterface
+class Hidden implements FramePluginInterface
 {
-    private PluginRuntime $runtime;
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
     private StandardScreenPipeline $pipeline;
 
     public function __construct(
@@ -23,81 +30,45 @@ class Hidden implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = new PluginGeometry();
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
         $this->pipeline = new StandardScreenPipeline();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        return $this->pipeline->convertUsing(
-            $this->runtime,
-            fn(): ?RawScreen => $this->pipeline->loadBits($this->runtime),
-            fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreen($rawScreen, $this->runtime->width),
-            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderImage(
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        return $this->pipeline->buildFrameSetUsing(
+            null,
+            fn(): ?RawScreen => $this->pipeline->loadBitsFor($this->input, $this->geometry, $this->services),
+            fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreen($rawScreen, $this->geometry->width),
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderFrame(
                 $parsedScreen,
                 $colorTable,
                 $flashedImage,
             ),
+            $this->renderSettings,
+            $this->services,
+            $this->geometry,
         );
     }
 
-    private function renderImage(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage
+    private function renderFrame(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage
     {
-        $image = (new HiddenPixelRenderer())->render(
+        return (new HiddenPixelRenderer())->render(
             $parsedScreen,
             $colorTable,
             $flashedImage,
-            $this->runtime->width,
-            $this->runtime->height,
-            $this->runtime->attributeWidth,
-            $this->runtime->attributeHeight,
+            $this->geometry->width,
+            $this->geometry->height,
+            $this->geometry->attributeWidth,
+            $this->geometry->attributeHeight,
         );
-
-        return $this->pipeline->finalizeImage($image, $colorTable, $this->runtime);
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
     }
 }

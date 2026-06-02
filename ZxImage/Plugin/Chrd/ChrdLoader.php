@@ -19,7 +19,7 @@ final readonly class ChrdLoader
 
     public function load(PluginRuntime $runtime): ?ChrdData
     {
-        $reader = $runtime->fileLoader->openSource($runtime->sourceFilePath, $runtime->sourceFileContents, null);
+        $reader = $runtime->services->fileLoader->openSource($runtime->sourceFilePath, $runtime->sourceFileContents, null);
         if ($reader === null) {
             return null;
         }

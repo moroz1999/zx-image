@@ -63,8 +63,8 @@ final class ConverterFixtureTest extends TestCase
     {
         yield 'standard' => [new ConversionFixture(type: 'standard', sourceFileName: 'example.scr', expectedFileName: 'standard.png')];
         yield 'ulaplus' => [new ConversionFixture(type: 'ulaplus', sourceFileName: 'ulaplus.scr', expectedFileName: 'ulaplus.png')];
-        yield 'flash' => [new ConversionFixture(type: 'flash', sourceFileName: 'hwflash.scr', expectedFileName: 'flash.gif')];
-        yield 'monochrome' => [new ConversionFixture(type: 'monochrome', sourceFileName: 'monochrome.scr', expectedFileName: 'monochrome.gif')];
+        yield 'flash' => [new ConversionFixture(type: 'flash', sourceFileName: 'hwflash.scr', expectedFileName: 'flash.png')];
+        yield 'monochrome' => [new ConversionFixture(type: 'monochrome', sourceFileName: 'monochrome.scr', expectedFileName: 'monochrome.png')];
         yield 'tricolor' => [new ConversionFixture(type: 'tricolor', sourceFileName: 'example.3', expectedFileName: 'tricolor.png')];
         yield 'multicolor' => [new ConversionFixture(type: 'multicolor', sourceFileName: 'example.ifl', expectedFileName: 'multicolor.png')];
         yield 'multicolor4' => [new ConversionFixture(type: 'multicolor4', sourceFileName: 'example.mc4', expectedFileName: 'multicolor4.png')];

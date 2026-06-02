@@ -7,15 +7,22 @@ namespace ZxImage\Plugin;
 use GdImage;
 use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RawScreen;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\S81\S81Loader;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 use ZxImage\Service\StandardScreenPipeline;
 
-class S81 implements PluginInterface
+class S81 implements FramePluginInterface
 {
-    private PluginRuntime $runtime;
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
     private StandardScreenPipeline $pipeline;
 
     public function __construct(
@@ -23,67 +30,33 @@ class S81 implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = new PluginGeometry();
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
         $this->pipeline = new StandardScreenPipeline();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        return $this->pipeline->convertUsing(
-            $this->runtime,
-            fn(): ?RawScreen => (new S81Loader())->load($this->runtime),
-            fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreen($rawScreen, $this->runtime->width),
-            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->pipeline->renderImage(
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        return $this->pipeline->buildFrameSetUsing(
+            null,
+            fn(): ?RawScreen => (new S81Loader())->loadFrom($this->input, $this->geometry, $this->services),
+            fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreen($rawScreen, $this->geometry->width),
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->pipeline->renderFrame(
                 $parsedScreen,
                 $colorTable,
                 $flashedImage,
-                $this->runtime,
+                $this->geometry,
             ),
+            $this->renderSettings,
+            $this->services,
+            $this->geometry,
         );
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
     }
 }

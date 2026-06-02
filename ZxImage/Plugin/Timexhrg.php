@@ -7,119 +7,155 @@ namespace ZxImage\Plugin;
 use GdImage;
 use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
-use ZxImage\Dto\DualRawScreen;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RawScreen;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Standard\PixelParser;
 use ZxImage\Plugin\Timexhr\TimexhrAttributeBuilder;
 use ZxImage\Plugin\Timexhrg\TimexhrgLoader;
 use ZxImage\Plugin\Timexhrg\TimexhrgPixelRenderer;
-use ZxImage\Service\GigascreenPipeline;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
-class Timexhrg implements PluginInterface
+class Timexhrg implements FramePluginInterface
 {
-    private PluginRuntime $runtime;
-    private GigascreenPipeline $pipeline;
+    private const int REQUIRED_FILE_SIZE = 24578;
+    private const int WIDTH = 512;
+    private const int HEIGHT = 384;
+
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
-        $this->runtime->requiredFileSize = 12289 * 2;
-        $this->runtime->width = 512;
-        $this->runtime->height = 384;
-        $this->pipeline = new GigascreenPipeline();
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = (new PluginGeometry(requiredFileSize: self::REQUIRED_FILE_SIZE))
+            ->withDimensions(self::WIDTH, self::HEIGHT);
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        $dualRawScreen = (new TimexhrgLoader())->loadFrom($this->input, $this->geometry, $this->services);
+        if ($dualRawScreen === null) {
+            return null;
+        }
+
+        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
+        $parsedScreen1 = $this->parseRawScreen($dualRawScreen->first);
+        $parsedScreen2 = $this->parseRawScreen($dualRawScreen->second);
         $renderer = new TimexhrgPixelRenderer();
-        return $this->pipeline->convertUsing(
-            $this->runtime,
-            fn(): ?DualRawScreen => (new TimexhrgLoader())->load($this->runtime),
-            fn(RawScreen $rawScreen): ParsedScreen => new ParsedScreen(
-                (new PixelParser($this->runtime->width))->parse($rawScreen->pixelsBytes),
-                (new TimexhrAttributeBuilder())->build($rawScreen->attributesBytes[0] ?? 0, $this->runtime->width, $this->runtime->height),
-            ),
-            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderSingle(
-                $parsedScreen,
-                $colorTable,
-                $renderer,
-            ),
-            fn(ParsedScreen $first, ParsedScreen $second, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderMerged(
-                $first,
-                $second,
-                $colorTable,
-                $renderer,
+
+        if ($this->isFlickerMode()) {
+            return $this->buildFlickerFrameSet($parsedScreen1, $parsedScreen2, $colorTable, $renderer);
+        }
+
+        return new FrameSet(
+            [new Frame($this->renderMergedFrame($parsedScreen1, $parsedScreen2, $colorTable, $renderer))],
+            $this->renderSettings,
+            $this->geometry->toRenderGeometry(),
+            $colorTable,
+        );
+    }
+
+    private function parseRawScreen(RawScreen $rawScreen): ParsedScreen
+    {
+        return new ParsedScreen(
+            (new PixelParser($this->geometry->width))->parse($rawScreen->pixelsBytes),
+            (new TimexhrAttributeBuilder())->build(
+                $rawScreen->attributesBytes[0] ?? 0,
+                $this->geometry->width,
+                $this->geometry->height,
             ),
         );
     }
 
-    private function renderSingle(
+    private function buildFlickerFrameSet(
+        ParsedScreen $parsedScreen1,
+        ParsedScreen $parsedScreen2,
+        ColorTable $colorTable,
+        TimexhrgPixelRenderer $renderer,
+    ): FrameSet {
+        return new FrameSet(
+            [
+                new Frame(
+                    $this->renderSingleFrame($parsedScreen1, $colorTable, $renderer),
+                    2,
+                    $this->getFrameRenderSettings($parsedScreen1),
+                ),
+                new Frame(
+                    $this->renderSingleFrame($parsedScreen2, $colorTable, $renderer),
+                    2,
+                    $this->getFrameRenderSettings($parsedScreen2),
+                ),
+            ],
+            $this->renderSettings,
+            $this->geometry->toRenderGeometry(),
+            $colorTable,
+            $this->getInterlaceLineHeight(),
+        );
+    }
+
+    private function renderSingleFrame(
         ParsedScreen $parsedScreen,
         ColorTable $colorTable,
         TimexhrgPixelRenderer $renderer,
     ): GdImage {
-        $image = $renderer->renderSingle($parsedScreen, $colorTable, $this->runtime->width, $this->runtime->height);
-        $this->runtime->border = $parsedScreen->attributes->paperMap[0][0];
-        return $this->pipeline->finalizeImage($image, $colorTable, $this->runtime);
+        return $renderer->renderSingle($parsedScreen, $colorTable, $this->geometry->width, $this->geometry->height);
     }
 
-    private function renderMerged(
+    private function renderMergedFrame(
         ParsedScreen $parsedScreen1,
         ParsedScreen $parsedScreen2,
         ColorTable $colorTable,
         TimexhrgPixelRenderer $renderer,
     ): GdImage {
-        $image = $renderer->renderMerged($parsedScreen1, $parsedScreen2, $colorTable, $this->runtime->width, $this->runtime->height);
-        return $this->pipeline->finalizeImage($image, $colorTable, $this->runtime);
+        return $renderer->renderMerged(
+            $parsedScreen1,
+            $parsedScreen2,
+            $colorTable,
+            $this->geometry->width,
+            $this->geometry->height,
+        );
     }
 
-    public function setBorder(?int $border = null): void
+    private function getFrameRenderSettings(ParsedScreen $parsedScreen): RenderSettings
     {
-        $this->runtime->setBorder($border);
+        return $this->renderSettings->withBorder($parsedScreen->attributes->paperMap[0][0]);
     }
 
-    public function setZoom(float $zoom): void
+    private function isFlickerMode(): bool
     {
-        $this->runtime->setZoom($zoom);
+        return $this->renderSettings->gigascreenMode === 'flicker'
+            || $this->renderSettings->gigascreenMode === 'interlace1'
+            || $this->renderSettings->gigascreenMode === 'interlace2';
     }
 
-    public function setRotation(int $rotation): void
+    private function getInterlaceLineHeight(): ?int
     {
-        $this->runtime->setRotation($rotation);
+        if ($this->renderSettings->gigascreenMode === 'interlace1') {
+            return 1;
+        }
+
+        if ($this->renderSettings->gigascreenMode === 'interlace2') {
+            return 2;
+        }
+
+        return null;
     }
 
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
-    }
 }

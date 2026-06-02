@@ -7,17 +7,20 @@ namespace ZxImage\Plugin;
 use GdImage;
 use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\RawScreen;
+use ZxImage\Dto\RenderGeometry;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Bmc4\Bmc4Loader;
-use ZxImage\Plugin\Standard\BscBorderRenderer;
 use ZxImage\Plugin\Standard\AttributeParser;
+use ZxImage\Plugin\Standard\BscBorderRenderer;
 use ZxImage\Plugin\Standard\PixelParser;
 use ZxImage\Plugin\Standard\PixelRenderer;
 use ZxImage\Service\PluginRuntime;
 use ZxImage\Service\StandardScreenPipeline;
 
-class Bmc4 implements PluginInterface
+class Bmc4 implements FramePluginInterface
 {
     private PluginRuntime $runtime;
     private StandardScreenPipeline $pipeline;
@@ -29,7 +32,7 @@ class Bmc4 implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents);
         $this->runtime->borderWidth = 64;
         $this->runtime->borderHeight = 56;
         $this->runtime->attributeHeight = 4;
@@ -37,9 +40,14 @@ class Bmc4 implements PluginInterface
         $this->pipeline = new StandardScreenPipeline();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        return $this->pipeline->convertUsing(
+        $this->runtime->applyRenderSettings($settings);
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        $frameSet = $this->pipeline->buildFrameSetUsing(
             $this->runtime,
             fn(): ?RawScreen => (new Bmc4Loader())->load($this->runtime),
             fn(RawScreen $rawScreen): ParsedScreen => new ParsedScreen(
@@ -48,15 +56,27 @@ class Bmc4 implements PluginInterface
                 [],
                 $rawScreen->borderBytes,
             ),
-            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderImage(
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderFrame(
                 $parsedScreen,
                 $colorTable,
                 $flashedImage,
             ),
         );
+
+        if ($frameSet === null) {
+            return null;
+        }
+
+        return new FrameSet(
+            $frameSet->frames,
+            $frameSet->renderSettings,
+            $this->getFrameGeometry(),
+            $frameSet->colorTable,
+            $frameSet->interlaceLineHeight,
+        );
     }
 
-    private function renderImage(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage
+    private function renderFrame(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage
     {
         $image = (new PixelRenderer())->render(
             $parsedScreen,
@@ -68,62 +88,30 @@ class Bmc4 implements PluginInterface
             $this->runtime->attributeHeight,
         );
 
-        $image = (new BscBorderRenderer())->render(
+        return (new BscBorderRenderer())->render(
             $image,
             $parsedScreen,
             $colorTable,
-            $this->runtime->border,
+            $this->runtime->renderSettings->border,
             $this->runtime->width,
             $this->runtime->height,
             $this->runtime->borderWidth,
             $this->runtime->borderHeight,
         );
-        $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
-        return $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
     }
 
-    public function setBorder(?int $border = null): void
+    private function getFrameGeometry(): RenderGeometry
     {
-        $this->runtime->setBorder($border);
-    }
+        if ($this->runtime->renderSettings->border === null) {
+            return new RenderGeometry($this->runtime->width, $this->runtime->height, 0, 0, false);
+        }
 
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return new RenderGeometry(
+            $this->runtime->width + $this->runtime->borderWidth * 2,
+            $this->runtime->height + $this->runtime->borderHeight * 2,
+            0,
+            0,
+            false,
+        );
     }
 }

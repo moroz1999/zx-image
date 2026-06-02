@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ZxImage;
 
-use ZxImage\Plugin\PluginInterface;
+use ZxImage\Dto\RenderSettings;
+use ZxImage\Plugin\FramePluginInterface;
+use ZxImage\Service\OutputRenderer;
 
 class Converter
 {
@@ -258,18 +260,27 @@ class Converter
         }
         $className = __NAMESPACE__ . '\\Plugin\\' . ucfirst($className);
         if (class_exists($className)) {
-            /** @var PluginInterface $converter */
             $converter = new $className($this->sourceFilePath, $this->sourceFileContents, $this);
-            $converter->setBasePath($this->basePath);
-            $converter->setBorder($this->border);
-            $converter->setPalette($this->palette);
-            $converter->setZoom($this->zoom);
-            $converter->setRotation($this->rotation);
-            $converter->setGigascreenMode($this->gigascreenMode);
-            $converter->setPreFilters($this->preFilters);
-            $converter->setPostFilters($this->postFilters);
-            if ($result = $converter->convert()) {
-                $this->resultMime = $converter->getResultMime();
+            if (!$converter instanceof FramePluginInterface) {
+                return null;
+            }
+
+            $converter->configure(new RenderSettings(
+                $this->border,
+                $this->zoom,
+                $this->rotation,
+                $this->gigascreenMode,
+                $this->palette,
+                $this->preFilters,
+                $this->postFilters,
+                $this->basePath,
+            ));
+
+            $frameSet = $converter->convertFrames();
+            if ($frameSet !== null) {
+                $renderedImage = (new OutputRenderer())->render($frameSet);
+                $result = $renderedImage->binary;
+                $this->resultMime = $renderedImage->mime;
             }
         }
         return $result;

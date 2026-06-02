@@ -6,13 +6,23 @@ namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
 use ZxImage\Dto\DualRawScreen;
+use ZxImage\Dto\FrameSet;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Stellar\StellarLoader;
 use ZxImage\Service\GigascreenPipeline;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
-class Stellar implements PluginInterface
+class Stellar implements FramePluginInterface
 {
-    private PluginRuntime $runtime;
+    private const int REQUIRED_FILE_SIZE = 3072;
+    private const int ATTRIBUTE_HEIGHT = 4;
+
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
     private GigascreenPipeline $pipeline;
 
     public function __construct(
@@ -20,62 +30,26 @@ class Stellar implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
-        $this->runtime->requiredFileSize = 3072;
-        $this->runtime->attributeHeight = 4;
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = (new PluginGeometry(requiredFileSize: self::REQUIRED_FILE_SIZE))
+            ->withAttributeHeight(self::ATTRIBUTE_HEIGHT);
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
         $this->pipeline = new GigascreenPipeline();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        return $this->pipeline->convertWithDefaultRendering(
-            $this->runtime,
-            fn(): ?DualRawScreen => (new StellarLoader())->load($this->runtime),
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        return $this->pipeline->buildFrameSetWithDefaultRenderingFor(
+            $this->geometry,
+            $this->renderSettings,
+            $this->services,
+            fn(): ?DualRawScreen => (new StellarLoader())->loadFrom($this->input, $this->geometry, $this->services),
         );
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
     }
 }

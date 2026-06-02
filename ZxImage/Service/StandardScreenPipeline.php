@@ -6,62 +6,146 @@ namespace ZxImage\Service;
 
 use GdImage;
 use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\RawScreen;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Standard\AttributeParser;
 use ZxImage\Plugin\Standard\PixelParser;
 use ZxImage\Plugin\Standard\PixelRenderer;
 
 final readonly class StandardScreenPipeline
 {
-    public function convert(PluginRuntime $runtime): ?string
+    public function buildFrameSet(PluginRuntime $runtime): ?FrameSet
     {
-        return $this->convertUsing(
-            $runtime,
-            fn(): ?RawScreen => $this->loadBits($runtime),
-            fn(RawScreen $rawScreen): ParsedScreen => $this->parseScreen($rawScreen, $runtime->width),
-            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderImage(
+        return $this->buildFrameSetFor(
+            new PluginInput($runtime->sourceFilePath, $runtime->sourceFileContents),
+            new PluginGeometry(
+                $runtime->width,
+                $runtime->height,
+                $runtime->attributeWidth,
+                $runtime->attributeHeight,
+                $runtime->borderWidth,
+                $runtime->borderHeight,
+                $runtime->usesBorder,
+                $runtime->requiredFileSize,
+            ),
+            $runtime->renderSettings,
+            $runtime->services,
+        );
+    }
+
+    public function buildFrameSetFor(
+        PluginInput $input,
+        PluginGeometry $geometry,
+        RenderSettings $renderSettings,
+        PluginServices $services,
+    ): ?FrameSet {
+        return $this->buildFrameSetUsing(
+            null,
+            fn(): ?RawScreen => $this->loadBitsFor($input, $geometry, $services),
+            fn(RawScreen $rawScreen): ParsedScreen => $this->parseScreen($rawScreen, $geometry->width),
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderFrame(
                 $parsedScreen,
                 $colorTable,
                 $flashedImage,
-                $runtime,
+                $geometry,
             ),
+            $renderSettings,
+            $services,
+            $geometry,
         );
     }
 
     /**
      * @param callable(): ?RawScreen $loadBits
      * @param callable(RawScreen): ParsedScreen $parseScreen
-     * @param callable(ParsedScreen, ColorTable, bool): GdImage $renderImage
+     * @param callable(ParsedScreen, ColorTable, bool): GdImage $renderFrame
      */
-    public function convertUsing(
-        PluginRuntime $runtime,
+    public function buildFrameSetUsing(
+        ?PluginRuntime $runtime,
         callable $loadBits,
         callable $parseScreen,
-        callable $renderImage,
-    ): ?string
+        callable $renderFrame,
+        ?RenderSettings $renderSettings = null,
+        ?PluginServices $services = null,
+        ?PluginGeometry $geometry = null,
+    ): ?FrameSet
     {
         $rawScreen = $loadBits();
         if ($rawScreen === null) {
             return null;
         }
 
-        $colorTable = $runtime->paletteService->buildColorTable($runtime->paletteString);
+        if ($runtime !== null) {
+            $renderSettings ??= $runtime->renderSettings;
+            $services ??= $runtime->services;
+            $geometry ??= new PluginGeometry(
+                $runtime->width,
+                $runtime->height,
+                $runtime->attributeWidth,
+                $runtime->attributeHeight,
+                $runtime->borderWidth,
+                $runtime->borderHeight,
+                $runtime->usesBorder,
+                $runtime->requiredFileSize,
+            );
+        }
+
+        if ($renderSettings === null || $services === null || $geometry === null) {
+            return null;
+        }
+
+        $colorTable = $services->paletteService->buildColorTable($renderSettings->paletteString);
         $parsedScreen = $parseScreen($rawScreen);
         $hasFlash = count($parsedScreen->attributes->flashMap) > 0;
 
         if ($hasFlash) {
-            return $this->buildFlashAnimation($parsedScreen, $colorTable, $runtime, $renderImage);
+            return new FrameSet(
+                [
+                    new Frame($renderFrame($parsedScreen, $colorTable, false), 32),
+                    new Frame($renderFrame($parsedScreen, $colorTable, true), 32),
+                ],
+                $renderSettings,
+                $geometry->toRenderGeometry(),
+                $colorTable,
+            );
         }
 
-        $image = $renderImage($parsedScreen, $colorTable, false);
-        $runtime->resultMime = 'image/png';
-        return $runtime->imageEncoder->toPng($image);
+        return new FrameSet(
+            [new Frame($renderFrame($parsedScreen, $colorTable, false))],
+            $renderSettings,
+            $geometry->toRenderGeometry(),
+            $colorTable,
+        );
+    }
+
+    public function loadBitsFor(PluginInput $input, PluginGeometry $geometry, PluginServices $services): ?RawScreen
+    {
+        $reader = $services->fileLoader->openSource(
+            $input->sourceFilePath,
+            $input->sourceFileContents,
+            $geometry->requiredFileSize,
+        );
+        if ($reader === null) {
+            return null;
+        }
+
+        $pixelsBytes = $reader->readBytes(6144);
+        $attributesBytes = [];
+        while (($byte = $reader->readByte()) !== null) {
+            $attributesBytes[] = $byte;
+        }
+
+        return new RawScreen($pixelsBytes, $attributesBytes);
     }
 
     public function loadBits(PluginRuntime $runtime): ?RawScreen
     {
-        $reader = $runtime->fileLoader->openSource(
+        $reader = $runtime->services->fileLoader->openSource(
             $runtime->sourceFilePath,
             $runtime->sourceFileContents,
             $runtime->requiredFileSize,
@@ -102,13 +186,13 @@ final readonly class StandardScreenPipeline
         return new ParsedScreen($pixelsData, $attributes);
     }
 
-    public function renderImage(
+    public function renderFrame(
         ParsedScreen $parsedScreen,
         ColorTable $colorTable,
         bool $flashedImage,
-        PluginRuntime $runtime,
+        PluginRuntime|PluginGeometry $runtime,
     ): GdImage {
-        $image = (new PixelRenderer())->render(
+        return (new PixelRenderer())->render(
             $parsedScreen,
             $flashedImage,
             $colorTable->colors,
@@ -117,37 +201,6 @@ final readonly class StandardScreenPipeline
             $runtime->attributeWidth,
             $runtime->attributeHeight,
         );
-
-        return $this->finalizeImage($image, $colorTable, $runtime);
-    }
-
-    public function finalizeImage(GdImage $image, ColorTable $colorTable, PluginRuntime $runtime): GdImage
-    {
-        $image = $runtime->imageProcessor->applyBorder(
-            $image,
-            $runtime->border,
-            $colorTable,
-            $runtime->width,
-            $runtime->height,
-            $runtime->borderWidth,
-            $runtime->borderHeight,
-            $runtime->usesBorder,
-        );
-
-        $image = $runtime->imageProcessor->resize($image, $runtime->zoom, $runtime->preFilters, $runtime->postFilters);
-        return $runtime->imageProcessor->rotate($image, $runtime->rotation);
-    }
-
-    private function buildFlashAnimation(
-        ParsedScreen $parsedScreen,
-        ColorTable $colorTable,
-        PluginRuntime $runtime,
-        callable $renderImage,
-    ): string {
-        $frame1 = $runtime->imageEncoder->toPaletteGif($renderImage($parsedScreen, $colorTable, false));
-        $frame2 = $runtime->imageEncoder->toPaletteGif($renderImage($parsedScreen, $colorTable, true));
-        $runtime->resultMime = 'image/gif';
-        return $runtime->imageEncoder->toAnimatedGif([$frame1, $frame2], [32, 32]);
     }
 
     private function calculateZxY(int $y): int

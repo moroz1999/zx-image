@@ -5,27 +5,45 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Sxg\SxgPaletteParser;
 use ZxImage\Plugin\Sxg\SxgPixelParser;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
-class Sxg implements PluginInterface
+class Sxg implements FramePluginInterface
 {
-    private PluginRuntime $runtime;
+    private const int FORMAT_256 = 8;
+
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = new PluginGeometry(usesBorder: false);
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        $reader = $this->runtime->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        $reader = $this->services->fileLoader->openSource(
+            $this->input->sourceFilePath,
+            $this->input->sourceFileContents,
             null,
         );
         if ($reader === null) {
@@ -42,8 +60,10 @@ class Sxg implements PluginInterface
         $reader->readByte(); // background
         $reader->readByte(); // packed
         $sxgFormat = $reader->readByte() ?? self::FORMAT_256;
-        $this->runtime->width = $reader->readWord() ?? $this->runtime->width;
-        $this->runtime->height = $reader->readWord() ?? $this->runtime->height;
+        $this->geometry = $this->geometry->withDimensions(
+            $reader->readWord() ?? $this->geometry->width,
+            $reader->readWord() ?? $this->geometry->height,
+        );
         $paletteShift = $reader->readWord() ?? 0;
         $pixelsShift = $reader->readWord() ?? 0;
 
@@ -58,9 +78,9 @@ class Sxg implements PluginInterface
         }
 
         $colors = (new SxgPaletteParser())->parse($paletteWords);
-        $pixelsData = (new SxgPixelParser())->parse($pixelsBytes, $sxgFormat, $this->runtime->width);
+        $pixelsData = (new SxgPixelParser())->parse($pixelsBytes, $sxgFormat, $this->geometry->width);
 
-        $image = imagecreatetruecolor($this->runtime->width, $this->runtime->height);
+        $image = imagecreatetruecolor($this->geometry->width, $this->geometry->height);
         foreach ($pixelsData as $y => $row) {
             foreach ($row as $x => $pixel) {
                 if (isset($colors[$pixel])) {
@@ -69,55 +89,13 @@ class Sxg implements PluginInterface
             }
         }
 
-        $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
-        $image = $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
+        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
 
-        $this->runtime->resultMime = 'image/png';
-        return $this->runtime->imageEncoder->toPng($image);
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return new FrameSet(
+            [new Frame($image)],
+            $this->renderSettings,
+            $this->geometry->toRenderGeometry(),
+            $colorTable,
+        );
     }
 }

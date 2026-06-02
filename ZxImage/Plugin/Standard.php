@@ -5,12 +5,19 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Dto\FrameSet;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
+use ZxImage\Dto\RenderSettings;
+use ZxImage\Service\PluginServices;
 use ZxImage\Service\StandardScreenPipeline;
 
-class Standard implements PluginInterface
+class Standard implements FramePluginInterface
 {
-    private PluginRuntime $runtime;
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
     private StandardScreenPipeline $pipeline;
 
     public function __construct(
@@ -18,57 +25,25 @@ class Standard implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = new PluginGeometry();
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
         $this->pipeline = new StandardScreenPipeline();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        return $this->pipeline->convert($this->runtime);
+        $this->renderSettings = $settings;
     }
 
-    public function setBorder(?int $border = null): void
+    public function convertFrames(): ?FrameSet
     {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return $this->pipeline->buildFrameSetFor(
+            $this->input,
+            $this->geometry,
+            $this->renderSettings,
+            $this->services,
+        );
     }
 }

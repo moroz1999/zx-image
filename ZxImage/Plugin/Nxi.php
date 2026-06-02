@@ -5,15 +5,23 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\IndexedPaletteEntry;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Service\IndexedScreenRenderer;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
-class Nxi implements PluginInterface
+class Nxi implements FramePluginInterface
 {
     protected const int PALETTE_LENGTH = 256;
 
-    private PluginRuntime $runtime;
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
     private IndexedScreenRenderer $renderer;
 
     public function __construct(
@@ -21,78 +29,50 @@ class Nxi implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
-        $this->runtime->requiredFileSize = 49664;
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = (new PluginGeometry())->withRequiredFileSize(49664);
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
         $this->renderer = new IndexedScreenRenderer();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        $reader = $this->runtime->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
-            $this->runtime->requiredFileSize,
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        $reader = $this->services->fileLoader->openSource(
+            $this->input->sourceFilePath,
+            $this->input->sourceFileContents,
+            $this->geometry->requiredFileSize,
         );
         if ($reader === null) {
             return null;
         }
 
-        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
+        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
 
         $paletteEntries = [];
         for ($i = 0; $i < static::PALETTE_LENGTH; $i++) {
             $paletteEntries[] = new IndexedPaletteEntry($reader->readByte() ?? 0, $reader->readByte() ?? 0);
         }
-        $pixelsBytes = $reader->readBytes($this->runtime->width * $this->runtime->height);
+        $pixelsBytes = $reader->readBytes($this->geometry->width * $this->geometry->height);
 
-        $image = $this->renderer->render($pixelsBytes, $paletteEntries, $colorTable, $this->runtime);
+        $image = $this->renderer->renderFrame(
+            $pixelsBytes,
+            $paletteEntries,
+            $colorTable,
+            $this->geometry->width,
+            $this->geometry->height,
+        );
 
-        $this->runtime->resultMime = 'image/png';
-        return $this->runtime->imageEncoder->toPng($image);
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return new FrameSet(
+            [new Frame($image)],
+            $this->renderSettings,
+            $this->geometry->toRenderGeometry(),
+            $colorTable,
+        );
     }
 }

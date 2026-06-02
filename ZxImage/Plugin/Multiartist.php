@@ -7,16 +7,19 @@ namespace ZxImage\Plugin;
 use GdImage;
 use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\MghBorders;
 use ZxImage\Dto\MghDimensions;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\RenderGeometry;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Multiartist\MghAttributeParser;
 use ZxImage\Plugin\Multiartist\MghBorderRenderer;
 use ZxImage\Plugin\Standard\PixelParser;
 use ZxImage\Service\GigascreenPipeline;
 use ZxImage\Service\PluginRuntime;
 
-class Multiartist implements PluginInterface
+class Multiartist implements FramePluginInterface
 {
     private const int MGH_MODE_1 = 1;
     private const int MGH_MODE_2 = 2;
@@ -30,12 +33,17 @@ class Multiartist implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents);
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        $reader = $this->runtime->fileLoader->openSource(
+        $this->runtime->applyRenderSettings($settings);
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        $reader = $this->runtime->services->fileLoader->openSource(
             $this->runtime->sourceFilePath,
             $this->runtime->sourceFileContents,
             null,
@@ -84,13 +92,13 @@ class Multiartist implements PluginInterface
             $attrParser->parse($mghMode, $attributesBytes2, $outerAttributesBytes2, $this->runtime->width),
         );
 
-        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
+        $colorTable = $this->runtime->services->paletteService->buildColorTable($this->runtime->renderSettings->paletteString);
         return $this->buildResult($screen1, $screen2, $borders, $colorTable);
     }
 
     private function parseBorders(string $header): MghBorders
     {
-        if ($this->runtime->border !== null) {
+        if ($this->runtime->renderSettings->border !== null) {
             return new MghBorders(ord(substr($header, 5, 1)), ord(substr($header, 6, 1)));
         }
         return new MghBorders(null, null);
@@ -106,7 +114,7 @@ class Multiartist implements PluginInterface
         };
     }
 
-    private function buildResult(ParsedScreen $screen1, ParsedScreen $screen2, MghBorders $borders, ColorTable $colorTable): string
+    private function buildResult(ParsedScreen $screen1, ParsedScreen $screen2, MghBorders $borders, ColorTable $colorTable): FrameSet
     {
         $pipeline = new GigascreenPipeline();
         $borderRenderer = new MghBorderRenderer();
@@ -130,13 +138,12 @@ class Multiartist implements PluginInterface
                     imagesetpixel($center, $x, $y, $ct->colors[$zxColor]);
                 }
             }
-            $image = $this->runtime->imageProcessor->applyBorder(
+            $image = $this->runtime->services->imageProcessor->applyBorder(
                 $center, $borderIndex, $ct,
                 $this->runtime->width, $this->runtime->height,
                 $this->runtime->borderWidth, $this->runtime->borderHeight, $this->runtime->usesBorder,
             );
-            $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
-            return $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
+            return $image;
         };
 
         $renderMerged = function (ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashedImage) use ($borders, $borderRenderer): GdImage {
@@ -160,55 +167,26 @@ class Multiartist implements PluginInterface
                 }
             }
             $image = $borderRenderer->apply($center, $borders->border1, $borders->border2, $ct, $this->runtime);
-            $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
-            return $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
+            return $image;
         };
 
-        return $pipeline->buildFromParsedScreens($screen1, $screen2, $colorTable, $this->runtime, $renderSingle1, $renderMerged);
+        $frameSet = $pipeline->buildFrameSetFromParsedScreens($screen1, $screen2, $colorTable, $this->runtime, $renderSingle1, $renderMerged);
+
+        return new FrameSet(
+            $frameSet->frames,
+            $frameSet->renderSettings,
+            $this->getFrameGeometry($borders),
+            $frameSet->colorTable,
+            $frameSet->interlaceLineHeight,
+        );
     }
 
-    public function setBorder(?int $border = null): void
+    private function getFrameGeometry(MghBorders $borders): RenderGeometry
     {
-        $this->runtime->setBorder($border);
-    }
+        if ($borders->border1 !== null && $borders->border2 !== null) {
+            return new RenderGeometry(320, 240, 0, 0, false);
+        }
 
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return new RenderGeometry($this->runtime->width, $this->runtime->height, 0, 0, false);
     }
 }

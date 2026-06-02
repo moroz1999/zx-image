@@ -5,13 +5,21 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Standard\FlashPixelRenderer;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 use ZxImage\Service\StandardScreenPipeline;
 
-class Flash implements PluginInterface
+class Flash implements FramePluginInterface
 {
-    private PluginRuntime $runtime;
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
     private StandardScreenPipeline $pipeline;
 
     public function __construct(
@@ -19,75 +27,41 @@ class Flash implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = new PluginGeometry();
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
         $this->pipeline = new StandardScreenPipeline();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        $rawScreen = $this->pipeline->loadBits($this->runtime);
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        $rawScreen = $this->pipeline->loadBitsFor($this->input, $this->geometry, $this->services);
         if ($rawScreen === null) {
             return null;
         }
 
-        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
-        $parsedScreen = $this->pipeline->parseScreen($rawScreen, $this->runtime->width);
+        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
+        $parsedScreen = $this->pipeline->parseScreen($rawScreen, $this->geometry->width);
         $image = (new FlashPixelRenderer())->render(
             $parsedScreen,
             $colorTable,
-            $this->runtime->width,
-            $this->runtime->height,
-            $this->runtime->attributeWidth,
-            $this->runtime->attributeHeight,
+            $this->geometry->width,
+            $this->geometry->height,
+            $this->geometry->attributeWidth,
+            $this->geometry->attributeHeight,
         );
-        $image = $this->pipeline->finalizeImage($image, $colorTable, $this->runtime);
 
-        $this->runtime->resultMime = 'image/gif';
-        return $this->runtime->imageEncoder->toGif($image);
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return new FrameSet(
+            [new Frame($image)],
+            $this->renderSettings,
+            $this->geometry->toRenderGeometry(),
+            $colorTable,
+        );
     }
 }

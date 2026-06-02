@@ -45,7 +45,7 @@ Most standard-like plugins run through three methods in sequence:
 2. **`parseScreen(RawScreen $data): ParsedScreen`** — decodes bytes into pixel maps and attribute maps
 3. **`renderImage(ParsedScreen $parsedData, ...)`** — draws a GD image, applies border, resize, and rotation
 
-`StandardScreenPipeline` orchestrates the standard pipeline and produces the final PNG or GIF binary via `ImageEncoder`. `GigascreenPipeline` handles dual-screen mix, flicker, and interlace modes. Some container plugins implement a custom `convert()` while reusing the same DTOs and services.
+`StandardScreenPipeline` can build a `FrameSet` for the standard SCR path. `OutputRenderer` turns `FrameSet` DTOs into final PNG/GIF binaries and returns `RenderedImage` with MIME. The older `convert()` path still exists for plugins that have not been migrated to frame output yet. `GigascreenPipeline` handles dual-screen mix, flicker, and interlace modes. Some container plugins implement a custom `convert()` while reusing the same DTOs and services.
 
 Indexed and SAM Coupe formats use narrower render services:
 - `IndexedScreenRenderer` draws linear 8-bit indexed pixels through the active palette correction matrix.
@@ -53,7 +53,27 @@ Indexed and SAM Coupe formats use narrower render services:
 
 ### Runtime State
 
-`PluginRuntime` holds plugin configuration and shared services for composition-based plugins. It replaces trait-owned mutable state for migrated plugins.
+`RenderSettings` is the immutable rendering configuration DTO. `Converter` builds it once and currently passes it to each plugin through `PluginInterface::configure()`. This keeps filters, zoom, rotation, border, palette, and gigascreen mode grouped for the future common renderer.
+
+`PluginInput` holds source input. `PluginGeometry` holds format dimensions, attribute cell size, border dimensions, and required file size. Newer plugins pass these DTOs to pipeline services instead of using `PluginRuntime`.
+
+`PluginRuntime` is legacy transitional state for plugins that have not yet been moved to explicit DTOs.
+
+`PluginServices` holds shared stateless services used by plugins and pipelines:
+- `FileLoader`
+- `PaletteService`
+- `ImageProcessor`
+- `ImageEncoder`
+
+### Frame Output
+
+Migrated plugins implement `FramePluginInterface` and return `FrameSet`:
+- `Frame` holds a GD image and an optional delay in centiseconds.
+- `Frame` can override render settings when a format needs per-frame render metadata, such as frame-specific border color.
+- `FrameSet` groups frames with `RenderSettings`, `RenderGeometry`, and `ColorTable`.
+- `FrameSet` can request interlace mixing for animated pairs after final frame processing.
+- `OutputRenderer` applies border, resize, filters, rotation, optional interlace mixing, and encoding.
+- `RenderedImage` carries the final binary and MIME.
 
 ### File Reading Primitives
 
@@ -197,9 +217,9 @@ Expiry sweep: triggered probabilistically. If `time() % cacheDeletionPeriod == 0
 ## Plugin Structure
 
 There is no active abstract plugin base class. Migrated standard-like plugins use:
-- `PluginRuntime` for configuration and service access
+- `RenderSettings` for converter-provided rendering settings
+- `PluginRuntime` for source input, format geometry, and result state
+- `PluginServices` for shared loader, palette, processing, and encoding services
 - `StandardScreenPipeline` for default SCR loading/parsing/rendering
 - Narrow render services such as `IndexedScreenRenderer` or `SamCoupeScreenRenderer` when the format is not SCR-shaped
 - format-specific private methods only for the parts that differ
-
-Legacy `PluginConfigTrait` still exists for plugins that have not been migrated to `PluginRuntime` yet.

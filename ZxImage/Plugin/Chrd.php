@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
+use GdImage;
 use Override;
 use ZxImage\Converter;
 use ZxImage\Dto\ChrdData;
 use ZxImage\Dto\ColorTable;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Chrd\ChrdLoader;
 use ZxImage\Plugin\Standard\PixelRenderer;
 use ZxImage\Service\GigascreenPipeline;
 use ZxImage\Service\PluginRuntime;
 
-class Chrd implements PluginInterface
+class Chrd implements FramePluginInterface
 {
     private const int COLOR_TYPE_STANDARD = 9;
     private const int COLOR_TYPE_GIGASCREEN = 18;
@@ -26,49 +30,63 @@ class Chrd implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents);
         $this->runtime->usesBorder = false;
     }
 
+    public function configure(RenderSettings $settings): void
+    {
+        $this->runtime->applyRenderSettings($settings);
+    }
+
     #[Override]
-    public function convert(): ?string
+    public function convertFrames(): ?FrameSet
     {
         $chrdData = (new ChrdLoader())->load($this->runtime);
         if ($chrdData === null) {
             return null;
         }
 
-        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
+        $colorTable = $this->runtime->services->paletteService->buildColorTable($this->runtime->renderSettings->paletteString);
 
         if ($chrdData->colorType === self::COLOR_TYPE_STANDARD) {
-            return $this->renderStandard($chrdData->screen1, $colorTable);
+            return $this->buildStandardFrameSet($chrdData->screen1, $colorTable);
         }
 
         if ($chrdData->colorType === self::COLOR_TYPE_GIGASCREEN) {
-            return $this->renderGigascreen($chrdData->screen1, $chrdData->screen2, $colorTable);
+            return $this->buildGigascreenFrameSet($chrdData->screen1, $chrdData->screen2, $colorTable);
         }
 
         return null;
     }
 
-    private function renderStandard(ParsedScreen $screen, ColorTable $colorTable): string
+    private function buildStandardFrameSet(ParsedScreen $screen, ColorTable $colorTable): FrameSet
     {
         $hasFlash = count($screen->attributes->flashMap) > 0;
 
         if ($hasFlash) {
-            $frame1 = $this->runtime->imageEncoder->toPaletteGif($this->renderSingleImage($screen, $colorTable, false));
-            $frame2 = $this->runtime->imageEncoder->toPaletteGif($this->renderSingleImage($screen, $colorTable, true));
-            $this->runtime->resultMime = 'image/gif';
-            return $this->runtime->imageEncoder->toAnimatedGif([$frame1, $frame2], [32, 32]);
+            return new FrameSet(
+                [
+                    new Frame($this->renderSingleFrame($screen, $colorTable, false), 32),
+                    new Frame($this->renderSingleFrame($screen, $colorTable, true), 32),
+                ],
+                $this->runtime->renderSettings,
+                $this->runtime->getRenderGeometry(),
+                $colorTable,
+            );
         }
 
-        $this->runtime->resultMime = 'image/png';
-        return $this->runtime->imageEncoder->toPng($this->renderSingleImage($screen, $colorTable, false));
+        return new FrameSet(
+            [new Frame($this->renderSingleFrame($screen, $colorTable, false))],
+            $this->runtime->renderSettings,
+            $this->runtime->getRenderGeometry(),
+            $colorTable,
+        );
     }
 
-    private function renderSingleImage(ParsedScreen $screen, ColorTable $colorTable, bool $flashedImage): \GdImage
+    private function renderSingleFrame(ParsedScreen $screen, ColorTable $colorTable, bool $flashedImage): GdImage
     {
-        $image = (new PixelRenderer())->render(
+        return (new PixelRenderer())->render(
             $screen,
             $flashedImage,
             $colorTable->colors,
@@ -77,62 +95,14 @@ class Chrd implements PluginInterface
             $this->runtime->attributeWidth,
             $this->runtime->attributeHeight,
         );
-
-        $image = $this->runtime->imageProcessor->resize($image, $this->runtime->zoom, $this->runtime->preFilters, $this->runtime->postFilters);
-        return $this->runtime->imageProcessor->rotate($image, $this->runtime->rotation);
     }
 
-    private function renderGigascreen(ParsedScreen $screen1, ParsedScreen $screen2, ColorTable $colorTable): string
+    private function buildGigascreenFrameSet(ParsedScreen $screen1, ParsedScreen $screen2, ColorTable $colorTable): FrameSet
     {
         $pipeline = new GigascreenPipeline();
-        $renderSingle = fn(ParsedScreen $screen, ColorTable $ct, bool $flashed): \GdImage => $this->renderSingleImage($screen, $ct, $flashed);
-        $renderMerged = fn(ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashed): \GdImage => $pipeline->renderMergedImage($s1, $s2, $ct, $flashed, $this->runtime);
+        $renderSingle = fn(ParsedScreen $screen, ColorTable $ct, bool $flashed): GdImage => $this->renderSingleFrame($screen, $ct, $flashed);
+        $renderMerged = fn(ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashed): GdImage => $pipeline->renderMergedFrame($s1, $s2, $ct, $flashed, $this->runtime);
 
-        return $pipeline->buildFromParsedScreens($screen1, $screen2, $colorTable, $this->runtime, $renderSingle, $renderMerged);
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return $pipeline->buildFrameSetFromParsedScreens($screen1, $screen2, $colorTable, $this->runtime, $renderSingle, $renderMerged);
     }
 }

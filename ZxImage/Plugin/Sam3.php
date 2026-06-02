@@ -5,15 +5,23 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
+use ZxImage\Dto\RenderSettings;
+use ZxImage\Service\PluginServices;
 use ZxImage\Service\SamCoupeScreenRenderer;
 
-class Sam3 implements PluginInterface
+class Sam3 implements FramePluginInterface
 {
     private const int PALETTE_LENGTH = 4;
     private const int BITS_PER_PIXEL = 2;
 
-    private PluginRuntime $runtime;
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
     private SamCoupeScreenRenderer $renderer;
 
     public function __construct(
@@ -21,85 +29,51 @@ class Sam3 implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
-        $this->runtime->width = 512;
-        $this->runtime->height = 384;
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = new PluginGeometry(width: 512, height: 384);
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
         $this->renderer = new SamCoupeScreenRenderer();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        $reader = $this->runtime->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        $reader = $this->services->fileLoader->openSource(
+            $this->input->sourceFilePath,
+            $this->input->sourceFileContents,
             null,
         );
         if ($reader === null) {
             return null;
         }
 
-        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
+        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
 
-        $pixelByteCount = (int)($this->runtime->width * $this->runtime->height / 2 / (8 / self::BITS_PER_PIXEL));
+        $pixelByteCount = (int)($this->geometry->width * $this->geometry->height / 2 / (8 / self::BITS_PER_PIXEL));
         $pixelsBytes = $reader->readBytes($pixelByteCount);
         $paletteBytes = $reader->readBytes(self::PALETTE_LENGTH);
 
-        $image = $this->renderer->render(
+        $image = $this->renderer->renderFrame(
             $pixelsBytes,
             $paletteBytes,
             self::BITS_PER_PIXEL,
             true,
             true,
             $colorTable,
-            $this->runtime,
+            $this->geometry->width,
+            $this->geometry->height,
         );
 
-        $this->runtime->resultMime = 'image/png';
-        return $this->runtime->imageEncoder->toPng($image);
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return new FrameSet(
+            [new Frame($image)],
+            $this->renderSettings,
+            $this->geometry->toRenderGeometry(),
+            $colorTable,
+        );
     }
 }

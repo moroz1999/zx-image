@@ -16,7 +16,7 @@ final readonly class Bmc4Loader
 
     public function load(PluginRuntime $runtime): ?RawScreen
     {
-        $reader = $runtime->fileLoader->openSource(
+        $reader = $runtime->services->fileLoader->openSource(
             $runtime->sourceFilePath,
             $runtime->sourceFileContents,
             $runtime->requiredFileSize,

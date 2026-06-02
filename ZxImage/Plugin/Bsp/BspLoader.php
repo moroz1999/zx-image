@@ -18,7 +18,7 @@ final readonly class BspLoader
 
     public function load(PluginRuntime $runtime): ?BspData
     {
-        $reader = $runtime->fileLoader->openSource($runtime->sourceFilePath, $runtime->sourceFileContents, null);
+        $reader = $runtime->services->fileLoader->openSource($runtime->sourceFilePath, $runtime->sourceFileContents, null);
         if ($reader === null) {
             return null;
         }

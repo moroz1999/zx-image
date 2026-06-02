@@ -7,8 +7,12 @@ namespace ZxImage\Service;
 use GdImage;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\DualRawScreen;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\RawScreen;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Standard\AttributeParser;
 use ZxImage\Plugin\Standard\PixelParser;
 use ZxImage\Plugin\Standard\PixelRenderer;
@@ -18,19 +22,19 @@ final readonly class GigascreenPipeline
     /**
      * @param callable(): ?DualRawScreen $loadBits
      */
-    public function convertWithDefaultRendering(PluginRuntime $runtime, callable $loadBits): ?string
+    public function buildFrameSetWithDefaultRendering(PluginRuntime $runtime, callable $loadBits): ?FrameSet
     {
-        return $this->convertUsing(
+        return $this->buildFrameSetUsing(
             $runtime,
             $loadBits,
             fn(RawScreen $rawScreen): ParsedScreen => $this->parseScreen($rawScreen, $runtime),
-            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderImage(
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderFrame(
                 $parsedScreen,
                 $colorTable,
                 $flashedImage,
                 $runtime,
             ),
-            fn(ParsedScreen $first, ParsedScreen $second, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderMergedImage(
+            fn(ParsedScreen $first, ParsedScreen $second, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderMergedFrame(
                 $first,
                 $second,
                 $colorTable,
@@ -42,74 +46,175 @@ final readonly class GigascreenPipeline
 
     /**
      * @param callable(): ?DualRawScreen $loadBits
-     * @param callable(RawScreen): ParsedScreen $parseScreen
-     * @param callable(ParsedScreen, ColorTable, bool): GdImage $renderImage
-     * @param callable(ParsedScreen, ParsedScreen, ColorTable, bool): GdImage $renderMergedImage
      */
-    public function convertUsing(
-        PluginRuntime $runtime,
+    public function buildFrameSetWithDefaultRenderingFor(
+        PluginGeometry $geometry,
+        RenderSettings $renderSettings,
+        PluginServices $services,
+        callable $loadBits,
+    ): ?FrameSet {
+        return $this->buildFrameSetUsing(
+            null,
+            $loadBits,
+            fn(RawScreen $rawScreen): ParsedScreen => $this->parseScreen($rawScreen, $geometry),
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderFrame(
+                $parsedScreen,
+                $colorTable,
+                $flashedImage,
+                $geometry,
+            ),
+            fn(ParsedScreen $first, ParsedScreen $second, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderMergedFrame(
+                $first,
+                $second,
+                $colorTable,
+                $flashedImage,
+                $geometry,
+            ),
+            $renderSettings,
+            $services,
+            $geometry,
+        );
+    }
+
+    /**
+     * @param callable(): ?DualRawScreen $loadBits
+     * @param callable(RawScreen): ParsedScreen $parseScreen
+     * @param callable(ParsedScreen, ColorTable, bool): GdImage $renderFrame
+     * @param callable(ParsedScreen, ParsedScreen, ColorTable, bool): GdImage $renderMergedFrame
+     */
+    public function buildFrameSetUsing(
+        ?PluginRuntime $runtime,
         callable $loadBits,
         callable $parseScreen,
-        callable $renderImage,
-        callable $renderMergedImage,
-    ): ?string {
+        callable $renderFrame,
+        callable $renderMergedFrame,
+        ?RenderSettings $renderSettings = null,
+        ?PluginServices $services = null,
+        ?PluginGeometry $geometry = null,
+    ): ?FrameSet {
         $dualRawScreen = $loadBits();
         if ($dualRawScreen === null) {
             return null;
         }
 
-        $colorTable = $runtime->paletteService->buildColorTable($runtime->paletteString);
+        if ($runtime !== null) {
+            $renderSettings ??= $runtime->renderSettings;
+            $services ??= $runtime->services;
+            $geometry ??= new PluginGeometry(
+                $runtime->width,
+                $runtime->height,
+                $runtime->attributeWidth,
+                $runtime->attributeHeight,
+                $runtime->borderWidth,
+                $runtime->borderHeight,
+                $runtime->usesBorder,
+                $runtime->requiredFileSize,
+            );
+        }
+
+        if ($renderSettings === null || $services === null || $geometry === null) {
+            return null;
+        }
+
+        $colorTable = $services->paletteService->buildColorTable($renderSettings->paletteString);
         $parsedScreen1 = $parseScreen($dualRawScreen->first);
         $parsedScreen2 = $parseScreen($dualRawScreen->second);
 
-        $isFlickerMode = $runtime->gigascreenMode === 'flicker'
-            || $runtime->gigascreenMode === 'interlace1'
-            || $runtime->gigascreenMode === 'interlace2';
+        $isFlickerMode = $renderSettings->gigascreenMode === 'flicker'
+            || $renderSettings->gigascreenMode === 'interlace1'
+            || $renderSettings->gigascreenMode === 'interlace2';
 
         if ($isFlickerMode) {
-            return $this->buildFlickerAnimation($parsedScreen1, $parsedScreen2, $colorTable, $runtime, $renderImage);
+            return $this->buildFlickerFrameSet(
+                $parsedScreen1,
+                $parsedScreen2,
+                $colorTable,
+                $renderSettings,
+                $geometry,
+                $renderFrame,
+            );
         }
 
-        return $this->buildMixedResult($parsedScreen1, $parsedScreen2, $colorTable, $runtime, $renderMergedImage);
+        return $this->buildMixedFrameSet(
+            $parsedScreen1,
+            $parsedScreen2,
+            $colorTable,
+            $renderSettings,
+            $geometry,
+            $renderMergedFrame,
+        );
     }
 
     /**
-     * @param callable(ParsedScreen, ColorTable, bool): GdImage $renderImage
-     * @param callable(ParsedScreen, ParsedScreen, ColorTable, bool): GdImage $renderMergedImage
+     * @param callable(ParsedScreen, ColorTable, bool): GdImage $renderFrame
+     * @param callable(ParsedScreen, ParsedScreen, ColorTable, bool): GdImage $renderMergedFrame
      */
-    public function buildFromParsedScreens(
+    public function buildFrameSetFromParsedScreens(
         ParsedScreen $parsedScreen1,
         ParsedScreen $parsedScreen2,
         ColorTable $colorTable,
-        PluginRuntime $runtime,
-        callable $renderImage,
-        callable $renderMergedImage,
-    ): string {
-        $isFlickerMode = $runtime->gigascreenMode === 'flicker'
-            || $runtime->gigascreenMode === 'interlace1'
-            || $runtime->gigascreenMode === 'interlace2';
-
-        if ($isFlickerMode) {
-            return $this->buildFlickerAnimation($parsedScreen1, $parsedScreen2, $colorTable, $runtime, $renderImage);
+        ?PluginRuntime $runtime,
+        callable $renderFrame,
+        callable $renderMergedFrame,
+        ?RenderSettings $renderSettings = null,
+        ?PluginGeometry $geometry = null,
+    ): FrameSet {
+        if ($runtime !== null) {
+            $renderSettings ??= $runtime->renderSettings;
+            $geometry ??= new PluginGeometry(
+                $runtime->width,
+                $runtime->height,
+                $runtime->attributeWidth,
+                $runtime->attributeHeight,
+                $runtime->borderWidth,
+                $runtime->borderHeight,
+                $runtime->usesBorder,
+                $runtime->requiredFileSize,
+            );
         }
 
-        return $this->buildMixedResult($parsedScreen1, $parsedScreen2, $colorTable, $runtime, $renderMergedImage);
+        $renderSettings ??= new RenderSettings();
+        $geometry ??= new PluginGeometry();
+
+        $isFlickerMode = $renderSettings->gigascreenMode === 'flicker'
+            || $renderSettings->gigascreenMode === 'interlace1'
+            || $renderSettings->gigascreenMode === 'interlace2';
+
+        if ($isFlickerMode) {
+            return $this->buildFlickerFrameSet(
+                $parsedScreen1,
+                $parsedScreen2,
+                $colorTable,
+                $renderSettings,
+                $geometry,
+                $renderFrame,
+            );
+        }
+
+        return $this->buildMixedFrameSet(
+            $parsedScreen1,
+            $parsedScreen2,
+            $colorTable,
+            $renderSettings,
+            $geometry,
+            $renderMergedFrame,
+        );
     }
 
-    public function parseScreen(RawScreen $rawScreen, PluginRuntime $runtime): ParsedScreen
+    public function parseScreen(RawScreen $rawScreen, PluginRuntime|PluginGeometry $runtime): ParsedScreen
     {
         $attributes = (new AttributeParser($runtime->width))->parse($rawScreen->attributesBytes);
         $pixelsData = (new PixelParser($runtime->width))->parse($rawScreen->pixelsBytes);
         return new ParsedScreen($pixelsData, $attributes);
     }
 
-    public function renderImage(
+    public function renderFrame(
         ParsedScreen $parsedScreen,
         ColorTable $colorTable,
         bool $flashedImage,
-        PluginRuntime $runtime,
+        PluginRuntime|PluginGeometry $runtime,
     ): GdImage {
-        $image = (new PixelRenderer())->render(
+        return (new PixelRenderer())->render(
             $parsedScreen,
             $flashedImage,
             $colorTable->colors,
@@ -118,16 +223,14 @@ final readonly class GigascreenPipeline
             $runtime->attributeWidth,
             $runtime->attributeHeight,
         );
-
-        return $this->finalizeImage($image, $colorTable, $runtime);
     }
 
-    public function renderMergedImage(
+    public function renderMergedFrame(
         ParsedScreen $parsedScreen1,
         ParsedScreen $parsedScreen2,
         ColorTable $colorTable,
         bool $flashedImage,
-        PluginRuntime $runtime,
+        PluginRuntime|PluginGeometry $runtime,
     ): GdImage {
         $image = imagecreatetruecolor($runtime->width, $runtime->height);
 
@@ -161,102 +264,94 @@ final readonly class GigascreenPipeline
             }
         }
 
-        return $this->finalizeImage($image, $colorTable, $runtime);
+        return $image;
     }
 
-    public function finalizeImage(GdImage $image, ColorTable $colorTable, PluginRuntime $runtime): GdImage
-    {
-        $image = $runtime->imageProcessor->applyBorder(
-            $image,
-            $runtime->border,
-            $colorTable,
-            $runtime->width,
-            $runtime->height,
-            $runtime->borderWidth,
-            $runtime->borderHeight,
-            $runtime->usesBorder,
-        );
-        $image = $runtime->imageProcessor->resize($image, $runtime->zoom, $runtime->preFilters, $runtime->postFilters);
-        return $runtime->imageProcessor->rotate($image, $runtime->rotation);
-    }
-
-    private function buildFlickerAnimation(
+    private function buildFlickerFrameSet(
         ParsedScreen $parsedScreen1,
         ParsedScreen $parsedScreen2,
         ColorTable $colorTable,
-        PluginRuntime $runtime,
-        callable $renderImage,
-    ): string {
+        RenderSettings $renderSettings,
+        PluginGeometry $geometry,
+        callable $renderFrame,
+    ): FrameSet {
         $hasFlash = count($parsedScreen1->attributes->flashMap) > 0
             || count($parsedScreen2->attributes->flashMap) > 0;
 
+        $frames = [];
         if ($hasFlash) {
-            $image1 = $renderImage($parsedScreen1, $colorTable, false);
-            $image2 = $renderImage($parsedScreen2, $colorTable, false);
-            $image1f = $renderImage($parsedScreen1, $colorTable, true);
-            $image2f = $renderImage($parsedScreen2, $colorTable, true);
-
-            $this->applyInterlace($image1, $image2, $runtime);
-            $this->applyInterlace($image1f, $image2f, $runtime);
-
-            $frame1 = $runtime->imageEncoder->toPaletteGif($image1);
-            $frame2 = $runtime->imageEncoder->toPaletteGif($image2);
-            $frame1f = $runtime->imageEncoder->toPaletteGif($image1f);
-            $frame2f = $runtime->imageEncoder->toPaletteGif($image2f);
-
-            $gifImages = [];
-            $delays = [];
             for ($i = 0; $i < 32; $i++) {
-                $gifImages[] = $i < 16
-                    ? (($i & 1) ? $frame1 : $frame2)
-                    : (($i & 1) ? $frame1f : $frame2f);
-                $delays[] = 2;
+                $flashedImage = $i >= 16;
+                $screen = ($i & 1) === 1 ? $parsedScreen1 : $parsedScreen2;
+                $image = $renderFrame($screen, $colorTable, $flashedImage);
+                $frames[] = new Frame($image, 2, $renderSettings);
             }
         } else {
-            $image1 = $renderImage($parsedScreen1, $colorTable, false);
-            $image2 = $renderImage($parsedScreen2, $colorTable, false);
-
-            $this->applyInterlace($image1, $image2, $runtime);
-
-            $gifImages = [
-                $runtime->imageEncoder->toPaletteGif($image1),
-                $runtime->imageEncoder->toPaletteGif($image2),
-            ];
-            $delays = [2, 2];
+            $image1 = $renderFrame($parsedScreen1, $colorTable, false);
+            $frames[] = new Frame($image1, 2, $renderSettings);
+            $image2 = $renderFrame($parsedScreen2, $colorTable, false);
+            $frames[] = new Frame($image2, 2, $renderSettings);
         }
 
-        $runtime->resultMime = 'image/gif';
-        return $runtime->imageEncoder->toAnimatedGif($gifImages, $delays);
+        return new FrameSet(
+            $frames,
+            $renderSettings,
+            $geometry->toRenderGeometry(),
+            $colorTable,
+            $this->getInterlaceLineHeight($renderSettings),
+        );
     }
 
-    private function buildMixedResult(
+    private function buildMixedFrameSet(
         ParsedScreen $parsedScreen1,
         ParsedScreen $parsedScreen2,
         ColorTable $colorTable,
-        PluginRuntime $runtime,
-        callable $renderMergedImage,
-    ): string {
+        RenderSettings $renderSettings,
+        PluginGeometry $geometry,
+        callable $renderMergedFrame,
+    ): FrameSet {
         $hasFlash = count($parsedScreen1->attributes->flashMap) > 0
             || count($parsedScreen2->attributes->flashMap) > 0;
 
         if ($hasFlash) {
-            $frame1 = $runtime->imageEncoder->toPaletteGif($renderMergedImage($parsedScreen1, $parsedScreen2, $colorTable, false));
-            $frame2 = $runtime->imageEncoder->toPaletteGif($renderMergedImage($parsedScreen1, $parsedScreen2, $colorTable, true));
-            $runtime->resultMime = 'image/gif';
-            return $runtime->imageEncoder->toAnimatedGif([$frame1, $frame2], [32, 32]);
+            $image1 = $renderMergedFrame($parsedScreen1, $parsedScreen2, $colorTable, false);
+            $settings1 = $renderSettings;
+            $image2 = $renderMergedFrame($parsedScreen1, $parsedScreen2, $colorTable, true);
+            $settings2 = $renderSettings;
+
+            return new FrameSet(
+                [
+                    new Frame($image1, 32, $settings1),
+                    new Frame($image2, 32, $settings2),
+                ],
+                $renderSettings,
+                $geometry->toRenderGeometry(),
+                $colorTable,
+            );
         }
 
-        $image = $renderMergedImage($parsedScreen1, $parsedScreen2, $colorTable, false);
-        $runtime->resultMime = 'image/png';
-        return $runtime->imageEncoder->toPng($image);
+        $image = $renderMergedFrame($parsedScreen1, $parsedScreen2, $colorTable, false);
+        $settings = $renderSettings;
+
+        return new FrameSet(
+            [new Frame($image, 0, $settings)],
+            $renderSettings,
+            $geometry->toRenderGeometry(),
+            $colorTable,
+        );
     }
 
-    private function applyInterlace(GdImage $image1, GdImage $image2, PluginRuntime $runtime): void
+    private function getInterlaceLineHeight(RenderSettings $renderSettings): ?int
     {
-        if ($runtime->gigascreenMode === 'interlace1') {
-            $runtime->imageProcessor->interlaceMix($image1, $image2, 1, $runtime->zoom);
-        } elseif ($runtime->gigascreenMode === 'interlace2') {
-            $runtime->imageProcessor->interlaceMix($image1, $image2, 2, $runtime->zoom);
+        if ($renderSettings->gigascreenMode === 'interlace1') {
+            return 1;
         }
+
+        if ($renderSettings->gigascreenMode === 'interlace2') {
+            return 2;
+        }
+
+        return null;
     }
+
 }

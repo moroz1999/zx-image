@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace ZxImage\Plugin\Lowresgs;
 
 use ZxImage\Dto\DualRawScreen;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RawScreen;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
 final readonly class LowresgsLoader
 {
@@ -15,12 +17,15 @@ final readonly class LowresgsLoader
     private const int ATTR_OFFSET = 92;
     private const int ATTR_LENGTH = 768;
 
-    public function load(PluginRuntime $runtime): ?DualRawScreen
-    {
-        $reader = $runtime->fileLoader->openSource(
-            $runtime->sourceFilePath,
-            $runtime->sourceFileContents,
-            $runtime->requiredFileSize,
+    public function loadFrom(
+        PluginInput $input,
+        PluginGeometry $geometry,
+        PluginServices $services,
+    ): ?DualRawScreen {
+        $reader = $services->fileLoader->openSource(
+            $input->sourceFilePath,
+            $input->sourceFileContents,
+            $geometry->requiredFileSize,
         );
         if ($reader === null) {
             return null;

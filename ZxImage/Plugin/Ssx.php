@@ -5,99 +5,68 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Dto\FrameSet;
+use ZxImage\Dto\PluginInput;
+use ZxImage\Dto\RenderSettings;
+use ZxImage\Service\PluginServices;
 
-class Ssx implements PluginInterface
+class Ssx implements FramePluginInterface
 {
-    private PluginRuntime $runtime;
+    private PluginInput $input;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        $reader = $this->runtime->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        $reader = $this->services->fileLoader->openSource(
+            $this->input->sourceFilePath,
+            $this->input->sourceFileContents,
             null,
         );
         if ($reader === null) {
             return null;
         }
 
-        $converter = $this->runtime->converter;
-        if ($converter === null) {
+        $fileSize = $reader->getSize();
+
+        $type = null;
+        if ($fileSize === 6928) {
+            $type = Standard::class;
+        } elseif ($fileSize === 12304) {
+            $type = Mc::class;
+        } elseif ($fileSize === 24580) {
+            $type = Sam3::class;
+        } elseif ($fileSize === 24592) {
+            $type = Sam4::class;
+        } elseif ($fileSize === 98304) {
+            $type = SsxRaw::class;
+        }
+
+        if ($type === null) {
             return null;
         }
 
-        $fileSize = $reader->getSize();
-
-        if ($fileSize === 6928) {
-            $converter->setType('standard');
-        } elseif ($fileSize === 12304) {
-            $converter->setType('mc');
-        } elseif ($fileSize === 24580) {
-            $converter->setType('sam3');
-        } elseif ($fileSize === 24592) {
-            $converter->setType('sam4');
-        } elseif ($fileSize === 98304) {
-            $converter->setType('ssxRaw');
+        $plugin = new $type($this->input->sourceFilePath, $this->input->sourceFileContents);
+        if (!$plugin instanceof FramePluginInterface) {
+            return null;
         }
 
-        $binary = $converter->getBinary();
-        if ($binary !== null) {
-            $this->runtime->resultMime = $converter->getResultMime();
-        }
-        return $binary;
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        $plugin->configure($this->renderSettings);
+        return $plugin->convertFrames();
     }
 }

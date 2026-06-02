@@ -5,19 +5,25 @@ declare(strict_types=1);
 namespace ZxImage\Plugin\Timexhrg;
 
 use ZxImage\Dto\DualRawScreen;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RawScreen;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
 final readonly class TimexhrgLoader
 {
     private const int PLANE_SIZE = 6144;
 
-    public function load(PluginRuntime $runtime): ?DualRawScreen
+    public function loadFrom(
+        PluginInput $input,
+        PluginGeometry $geometry,
+        PluginServices $services,
+    ): ?DualRawScreen
     {
-        $reader = $runtime->fileLoader->openSource(
-            $runtime->sourceFilePath,
-            $runtime->sourceFileContents,
-            $runtime->requiredFileSize,
+        $reader = $services->fileLoader->openSource(
+            $input->sourceFilePath,
+            $input->sourceFileContents,
+            $geometry->requiredFileSize,
         );
         if ($reader === null) {
             return null;

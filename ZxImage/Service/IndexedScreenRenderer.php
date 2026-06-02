@@ -21,19 +21,17 @@ final readonly class IndexedScreenRenderer
         ColorTable $colorTable,
         PluginRuntime $runtime,
     ): GdImage {
-        $colors = $this->parsePalette($paletteEntries, $colorTable->config);
-        $pixelsData = $this->parseLinearPixels($pixelsBytes, $runtime->width);
+        $image = $this->renderFrame(
+            $pixelsBytes,
+            $paletteEntries,
+            $colorTable,
+            $runtime->width,
+            $runtime->height,
+        );
 
-        $image = imagecreatetruecolor($runtime->width, $runtime->height);
-        foreach ($pixelsData as $y => $row) {
-            foreach ($row as $x => $pixel) {
-                imagesetpixel($image, $x, $y, $colors[$pixel]);
-            }
-        }
-
-        $image = $runtime->imageProcessor->applyBorder(
+        $image = $runtime->services->imageProcessor->applyBorder(
             $image,
-            $runtime->border,
+            $runtime->renderSettings->border,
             $colorTable,
             $runtime->width,
             $runtime->height,
@@ -41,8 +39,32 @@ final readonly class IndexedScreenRenderer
             $runtime->borderHeight,
             $runtime->usesBorder,
         );
-        $image = $runtime->imageProcessor->resize($image, $runtime->zoom, $runtime->preFilters, $runtime->postFilters);
-        return $runtime->imageProcessor->rotate($image, $runtime->rotation);
+        $image = $runtime->services->imageProcessor->resize($image, $runtime->renderSettings->zoom, $runtime->renderSettings->preFilters, $runtime->renderSettings->postFilters);
+        return $runtime->services->imageProcessor->rotate($image, $runtime->renderSettings->rotation);
+    }
+
+    /**
+     * @param int[] $pixelsBytes
+     * @param IndexedPaletteEntry[] $paletteEntries
+     */
+    public function renderFrame(
+        array $pixelsBytes,
+        array $paletteEntries,
+        ColorTable $colorTable,
+        int $width,
+        int $height,
+    ): GdImage {
+        $colors = $this->parsePalette($paletteEntries, $colorTable->config);
+        $pixelsData = $this->parseLinearPixels($pixelsBytes, $width);
+
+        $image = imagecreatetruecolor($width, $height);
+        foreach ($pixelsData as $y => $row) {
+            foreach ($row as $x => $pixel) {
+                imagesetpixel($image, $x, $y, $colors[$pixel]);
+            }
+        }
+
+        return $image;
     }
 
     /**

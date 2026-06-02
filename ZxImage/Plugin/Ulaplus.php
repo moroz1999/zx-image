@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Standard\PixelParser;
 use ZxImage\Plugin\Ulaplus\UlaplusAttributeParser;
 use ZxImage\Plugin\Ulaplus\UlaplusLoader;
@@ -14,7 +17,7 @@ use ZxImage\Plugin\Ulaplus\UlaplusPixelRenderer;
 use ZxImage\Service\PluginRuntime;
 use ZxImage\Service\StandardScreenPipeline;
 
-class Ulaplus implements PluginInterface
+class Ulaplus implements FramePluginInterface
 {
     private PluginRuntime $runtime;
     private StandardScreenPipeline $pipeline;
@@ -24,19 +27,24 @@ class Ulaplus implements PluginInterface
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
+        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents);
         $this->runtime->requiredFileSize = 6976;
         $this->pipeline = new StandardScreenPipeline();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
+    {
+        $this->runtime->applyRenderSettings($settings);
+    }
+
+    public function convertFrames(): ?FrameSet
     {
         $rawScreen = (new UlaplusLoader())->load($this->runtime);
         if ($rawScreen === null) {
             return null;
         }
 
-        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
+        $colorTable = $this->runtime->services->paletteService->buildColorTable($this->runtime->renderSettings->paletteString);
         $attributes = (new UlaplusAttributeParser())->parse($rawScreen->attributesBytes, $this->runtime->width);
         $pixelsData = (new PixelParser($this->runtime->width))->parse($rawScreen->pixelsBytes);
         $colorOverrides = (new UlaplusPaletteParser())->parse($rawScreen->borderBytes, $colorTable->config);
@@ -50,53 +58,11 @@ class Ulaplus implements PluginInterface
             $this->runtime->attributeHeight,
         );
 
-        $image = $this->pipeline->finalizeImage($image, $colorTable, $this->runtime);
-        $this->runtime->resultMime = 'image/png';
-        return $this->runtime->imageEncoder->toPng($image);
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return new FrameSet(
+            [new Frame($image)],
+            $this->runtime->renderSettings,
+            $this->runtime->getRenderGeometry(),
+            $colorTable,
+        );
     }
 }

@@ -4,26 +4,12 @@ declare(strict_types=1);
 
 namespace ZxImage\Service;
 
-use ZxImage\Converter;
+use ZxImage\Dto\RenderGeometry;
+use ZxImage\Dto\RenderSettings;
 
 final class PluginRuntime
 {
-    public FileLoader $fileLoader;
-    public PaletteService $paletteService;
-    public ImageProcessor $imageProcessor;
-    public ImageEncoder $imageEncoder;
-
-    public ?int $border = null;
-    public float $zoom = 1.0;
-    public int $rotation = 0;
-    public string $gigascreenMode = 'mix';
-    /** @var string[] */
-    public array $preFilters = [];
-    /** @var string[] */
-    public array $postFilters = [];
-    public string $basePath = '';
-    public string $paletteString = '';
-    public ?string $resultMime = null;
+    public RenderSettings $renderSettings;
 
     public int $width = 256;
     public int $height = 192;
@@ -37,64 +23,30 @@ final class PluginRuntime
     public function __construct(
         public ?string $sourceFilePath = null,
         public ?string $sourceFileContents = null,
-        public ?Converter $converter = null,
+        public PluginServices $services = new PluginServices(),
+        ?RenderSettings $renderSettings = null,
     ) {
-        $this->fileLoader = new FileLoader();
-        $this->paletteService = new PaletteService();
-        $this->imageProcessor = new ImageProcessor();
-        $this->imageEncoder = new ImageEncoder();
+        $this->renderSettings = $renderSettings ?? new RenderSettings();
     }
 
-    public function setBorder(?int $border = null): void
+    public function applyRenderSettings(RenderSettings $renderSettings): void
     {
-        $this->border = $border;
+        $this->renderSettings = $renderSettings;
     }
 
-    public function setZoom(float $zoom): void
+    public function overrideBorder(?int $border): void
     {
-        $this->zoom = $zoom;
+        $this->renderSettings = $this->renderSettings->withBorder($border);
     }
 
-    public function setRotation(int $rotation): void
+    public function getRenderGeometry(): RenderGeometry
     {
-        $this->rotation = $rotation;
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        if ($mode === 'flicker' || $mode === 'interlace2' || $mode === 'interlace1') {
-            $this->gigascreenMode = $mode;
-        }
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->paletteString = $palette;
-    }
-
-    /**
-     * @param string[] $filters
-     */
-    public function setPreFilters(array $filters): void
-    {
-        $this->preFilters = $filters;
-    }
-
-    /**
-     * @param string[] $filters
-     */
-    public function setPostFilters(array $filters): void
-    {
-        $this->postFilters = $filters;
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->basePath = $basePath;
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->resultMime;
+        return new RenderGeometry(
+            $this->width,
+            $this->height,
+            $this->borderWidth,
+            $this->borderHeight,
+            $this->usesBorder,
+        );
     }
 }

@@ -5,17 +5,22 @@ declare(strict_types=1);
 namespace ZxImage\Plugin\Stellar;
 
 use ZxImage\Dto\DualRawScreen;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RawScreen;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
 final readonly class StellarLoader
 {
-    public function load(PluginRuntime $runtime): ?DualRawScreen
-    {
-        $reader = $runtime->fileLoader->openSource(
-            $runtime->sourceFilePath,
-            $runtime->sourceFileContents,
-            $runtime->requiredFileSize,
+    public function loadFrom(
+        PluginInput $input,
+        PluginGeometry $geometry,
+        PluginServices $services,
+    ): ?DualRawScreen {
+        $reader = $services->fileLoader->openSource(
+            $input->sourceFilePath,
+            $input->sourceFileContents,
+            $geometry->requiredFileSize,
         );
         if ($reader === null) {
             return null;
@@ -35,7 +40,7 @@ final readonly class StellarLoader
             $attr1[] = $b3;
         }
 
-        $pixelsArray = $this->generatePixelsArray($runtime->width, $runtime->height);
+        $pixelsArray = $this->generatePixelsArray($geometry->width, $geometry->height);
         return new DualRawScreen(
             new RawScreen($pixelsArray, $attr0),
             new RawScreen($pixelsArray, $attr1),

@@ -6,42 +6,54 @@ namespace ZxImage\Plugin;
 
 use ZxImage\Converter;
 use ZxImage\Dto\AttributeMap;
+use ZxImage\Dto\Frame;
+use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
+use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Monochrome\MonochromeLoader;
 use ZxImage\Plugin\Standard\PixelParser;
 use ZxImage\Plugin\Standard\PixelRenderer;
-use ZxImage\Service\PluginRuntime;
-use ZxImage\Service\StandardScreenPipeline;
+use ZxImage\Service\PluginServices;
 
-class Monochrome implements PluginInterface
+class Monochrome implements FramePluginInterface
 {
     private const int INK_KEY = 15;
     private const int PAPER_KEY = 8;
 
-    private PluginRuntime $runtime;
-    private StandardScreenPipeline $pipeline;
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents, $converter);
-        $this->runtime->requiredFileSize = 6144;
-        $this->pipeline = new StandardScreenPipeline();
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = (new PluginGeometry())->withRequiredFileSize(6144);
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
     }
 
-    public function convert(): ?string
+    public function configure(RenderSettings $settings): void
     {
-        $rawScreen = (new MonochromeLoader())->load($this->runtime);
+        $this->renderSettings = $settings;
+    }
+
+    public function convertFrames(): ?FrameSet
+    {
+        $rawScreen = (new MonochromeLoader())->loadFrom($this->input, $this->geometry, $this->services);
         if ($rawScreen === null) {
             return null;
         }
 
-        $colorTable = $this->runtime->paletteService->buildColorTable($this->runtime->paletteString);
-        $pixelsData = (new PixelParser($this->runtime->width))->parse($rawScreen->pixelsBytes);
-        $rows = (int)($this->runtime->height / 8);
-        $cols = (int)($this->runtime->width / 8);
+        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
+        $pixelsData = (new PixelParser($this->geometry->width))->parse($rawScreen->pixelsBytes);
+        $rows = (int)($this->geometry->height / 8);
+        $cols = (int)($this->geometry->width / 8);
         $attributes = new AttributeMap(
             array_fill(0, $rows, array_fill(0, $cols, self::INK_KEY)),
             array_fill(0, $rows, array_fill(0, $cols, self::PAPER_KEY)),
@@ -53,60 +65,17 @@ class Monochrome implements PluginInterface
             $parsedScreen,
             false,
             $colorTable->colors,
-            $this->runtime->width,
-            $this->runtime->height,
-            $this->runtime->attributeWidth,
-            $this->runtime->attributeHeight,
+            $this->geometry->width,
+            $this->geometry->height,
+            $this->geometry->attributeWidth,
+            $this->geometry->attributeHeight,
         );
 
-        $image = $this->pipeline->finalizeImage($image, $colorTable, $this->runtime);
-
-        $this->runtime->resultMime = 'image/gif';
-        return $this->runtime->imageEncoder->toGif($image);
-    }
-
-    public function setBorder(?int $border = null): void
-    {
-        $this->runtime->setBorder($border);
-    }
-
-    public function setZoom(float $zoom): void
-    {
-        $this->runtime->setZoom($zoom);
-    }
-
-    public function setRotation(int $rotation): void
-    {
-        $this->runtime->setRotation($rotation);
-    }
-
-    public function setGigascreenMode(string $mode): void
-    {
-        $this->runtime->setGigascreenMode($mode);
-    }
-
-    public function setPalette(string $palette): void
-    {
-        $this->runtime->setPalette($palette);
-    }
-
-    public function setPreFilters(array $filters): void
-    {
-        $this->runtime->setPreFilters($filters);
-    }
-
-    public function setPostFilters(array $filters): void
-    {
-        $this->runtime->setPostFilters($filters);
-    }
-
-    public function setBasePath(string $basePath): void
-    {
-        $this->runtime->setBasePath($basePath);
-    }
-
-    public function getResultMime(): ?string
-    {
-        return $this->runtime->getResultMime();
+        return new FrameSet(
+            [new Frame($image)],
+            $this->renderSettings,
+            $this->geometry->toRenderGeometry(),
+            $colorTable,
+        );
     }
 }
