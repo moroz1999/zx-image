@@ -4,20 +4,26 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin\Bsc;
 
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RawScreen;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
 final readonly class BscLoader
 {
     private const int PIXELS_SIZE = 6144;
     private const int ATTRIBUTES_SIZE = 768;
 
-    public function load(PluginRuntime $runtime): ?RawScreen
+    public function loadFrom(
+        PluginInput $input,
+        PluginGeometry $geometry,
+        PluginServices $services,
+    ): ?RawScreen
     {
-        $reader = $runtime->services->fileLoader->openSource(
-            $runtime->sourceFilePath,
-            $runtime->sourceFileContents,
-            $runtime->requiredFileSize,
+        $reader = $services->fileLoader->openSource(
+            $input->sourceFilePath,
+            $input->sourceFileContents,
+            $geometry->requiredFileSize,
         );
         if ($reader === null) {
             return null;

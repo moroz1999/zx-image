@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin\Bsp;
 
-use ZxImage\Dto\BspData;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Plugin\Standard\AttributeParser;
 use ZxImage\Plugin\Standard\PixelParser;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
 final readonly class BspLoader
 {
@@ -16,9 +17,13 @@ final readonly class BspLoader
     private const int OFFSET_WORD_SIZE = 2;
     private const int SCREEN_SIZE = 6912;
 
-    public function load(PluginRuntime $runtime): ?BspData
+    public function loadFrom(
+        PluginInput $input,
+        PluginGeometry $geometry,
+        PluginServices $services,
+    ): ?BspData
     {
-        $reader = $runtime->services->fileLoader->openSource($runtime->sourceFilePath, $runtime->sourceFileContents, null);
+        $reader = $services->fileLoader->openSource($input->sourceFilePath, $input->sourceFileContents, null);
         if ($reader === null) {
             return null;
         }
@@ -72,16 +77,34 @@ final readonly class BspLoader
             if ($hasGigaData) {
                 $firstBorderLength = $secondBorderDataOffset - self::SCREEN_SIZE * 2 - self::HEADER_SIZE - self::OFFSET_WORD_SIZE;
                 $secondBorderLength = $fileSize - $secondBorderDataOffset;
-                $borderData1 = $borderParser->parse($reader->readBytes($firstBorderLength), $runtime->width, $runtime->height, $runtime->borderWidth, $runtime->borderHeight);
-                $borderData2 = $borderParser->parse($reader->readBytes($secondBorderLength), $runtime->width, $runtime->height, $runtime->borderWidth, $runtime->borderHeight);
+                $borderData1 = $borderParser->parse(
+                    $reader->readBytes($firstBorderLength),
+                    $geometry->width,
+                    $geometry->height,
+                    $geometry->borderWidth,
+                    $geometry->borderHeight,
+                );
+                $borderData2 = $borderParser->parse(
+                    $reader->readBytes($secondBorderLength),
+                    $geometry->width,
+                    $geometry->height,
+                    $geometry->borderWidth,
+                    $geometry->borderHeight,
+                );
             } else {
                 $firstBorderLength = $fileSize - self::SCREEN_SIZE - self::HEADER_SIZE;
-                $borderData1 = $borderParser->parse($reader->readBytes($firstBorderLength), $runtime->width, $runtime->height, $runtime->borderWidth, $runtime->borderHeight);
+                $borderData1 = $borderParser->parse(
+                    $reader->readBytes($firstBorderLength),
+                    $geometry->width,
+                    $geometry->height,
+                    $geometry->borderWidth,
+                    $geometry->borderHeight,
+                );
             }
         }
 
-        $attrParser = new AttributeParser($runtime->width);
-        $pixelParser = new PixelParser($runtime->width);
+        $attrParser = new AttributeParser($geometry->width);
+        $pixelParser = new PixelParser($geometry->width);
 
         $screen1 = new ParsedScreen(
             $pixelParser->parse($pixelsBytes1),

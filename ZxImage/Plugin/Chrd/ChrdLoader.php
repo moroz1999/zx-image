@@ -5,21 +5,26 @@ declare(strict_types=1);
 namespace ZxImage\Plugin\Chrd;
 
 use ZxImage\Dto\AttributeMap;
-use ZxImage\Dto\ChrdData;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Plugin\Standard\AttributeParser;
 use ZxImage\Service\BitReader;
 use ZxImage\Service\CharacterScreenBuilder;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
 final readonly class ChrdLoader
 {
     private const int COLOR_TYPE_STANDARD = 9;
     private const int COLOR_TYPE_GIGASCREEN = 18;
 
-    public function load(PluginRuntime $runtime): ?ChrdData
+    public function loadFrom(
+        PluginInput $input,
+        PluginGeometry $geometry,
+        PluginServices $services,
+    ): ?ChrdData
     {
-        $reader = $runtime->services->fileLoader->openSource($runtime->sourceFilePath, $runtime->sourceFileContents, null);
+        $reader = $services->fileLoader->openSource($input->sourceFilePath, $input->sourceFileContents, null);
         if ($reader === null) {
             return null;
         }
@@ -41,8 +46,7 @@ final readonly class ChrdLoader
             return null;
         }
 
-        $runtime->width = $widthInChars * 8;
-        $runtime->height = $heightInChars * 8;
+        $geometry = $geometry->withDimensions($widthInChars * 8, $heightInChars * 8);
 
         $attributesArray1 = [];
         $attributesArray2 = [];
@@ -64,7 +68,7 @@ final readonly class ChrdLoader
         }
 
         $screenBuilder = new CharacterScreenBuilder();
-        $attrParser = new AttributeParser($runtime->width);
+        $attrParser = new AttributeParser($geometry->width);
 
         $screen1 = new ParsedScreen(
             $screenBuilder->buildPixelsFromCharacterRows($characterRows1, $widthInChars, $heightInChars),
@@ -79,7 +83,7 @@ final readonly class ChrdLoader
         }
         $screen2 = new ParsedScreen($pixels2, $attributes2);
 
-        return new ChrdData($colorType, $screen1, $screen2);
+        return new ChrdData($colorType, $geometry, $screen1, $screen2);
     }
 
     /**

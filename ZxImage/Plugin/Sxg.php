@@ -12,6 +12,7 @@ use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Sxg\SxgPaletteParser;
 use ZxImage\Plugin\Sxg\SxgPixelParser;
+use ZxImage\Plugin\Sxg\SxgRenderer;
 use ZxImage\Service\PluginServices;
 
 class Sxg implements FramePluginInterface
@@ -79,15 +80,7 @@ class Sxg implements FramePluginInterface
 
         $colors = (new SxgPaletteParser())->parse($paletteWords);
         $pixelsData = (new SxgPixelParser())->parse($pixelsBytes, $sxgFormat, $this->geometry->width);
-
-        $image = imagecreatetruecolor($this->geometry->width, $this->geometry->height);
-        foreach ($pixelsData as $y => $row) {
-            foreach ($row as $x => $pixel) {
-                if (isset($colors[$pixel])) {
-                    imagesetpixel($image, $x, $y, $colors[$pixel]);
-                }
-            }
-        }
+        $image = (new SxgRenderer())->render($pixelsData, $colors, $this->geometry->width, $this->geometry->height);
 
         $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
 

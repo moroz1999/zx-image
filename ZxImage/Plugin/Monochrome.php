@@ -13,8 +13,8 @@ use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Monochrome\MonochromeLoader;
+use ZxImage\Plugin\Monochrome\MonochromeRenderer;
 use ZxImage\Plugin\Standard\PixelParser;
-use ZxImage\Plugin\Standard\PixelRenderer;
 use ZxImage\Service\PluginServices;
 
 class Monochrome implements FramePluginInterface
@@ -60,16 +60,7 @@ class Monochrome implements FramePluginInterface
             [],
         );
         $parsedScreen = new ParsedScreen($pixelsData, $attributes);
-
-        $image = (new PixelRenderer())->render(
-            $parsedScreen,
-            false,
-            $colorTable->colors,
-            $this->geometry->width,
-            $this->geometry->height,
-            $this->geometry->attributeWidth,
-            $this->geometry->attributeHeight,
-        );
+        $image = (new MonochromeRenderer())->render($parsedScreen, $colorTable, $this->geometry);
 
         return new FrameSet(
             [new Frame($image)],

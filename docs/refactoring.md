@@ -1,7 +1,13 @@
-рефакторим плагины.
-1. сейчас там есть PluginRuntime, нарушающий SRP. Надо его переделать во вменяемое.
-2. каждый плагин - это оркестратор, а реализация его функционала выносится в сервисы.
-3. никаких array shape, не нужно наследование, только композиция и dto.
-4. каждый плагин сунь в свою папку и неймспейс. там же - его сервисы (за исключением общих)
-5. в плагинах дохрена сеттеров. зачем? конвертер должен сделать один DTO со всеми настройками и совать в каждый плагин, а тот уже внутри дербанит этот DTO на части и сует сервисам.
-6. общая канва - плагин грузит файл через лоадер на нужные куски. плагин парсит файл как ему удобнее. плагин рендерит кадры возвращает их. конвертер суёт их в рендерер (+ дто настроек рендера), а тот уже делает результат (png для одиночных, gif для анимации)
+# Refactoring
+
+## Plugin Runtime Removal
+
+`PluginRuntime` has been removed. Plugins now orchestrate conversion through explicit DTOs and services:
+- `PluginInput` carries source path or in-memory contents.
+- `PluginGeometry` carries format dimensions, attribute dimensions, border dimensions, and strict file size.
+- `RenderSettings` carries converter-provided rendering options.
+- `PluginServices` carries shared loaders, palette handling, image processing, and encoding services.
+
+Plugins return `FrameSet` DTOs containing GD frames and delays. `OutputRenderer` is responsible for final PNG or GIF encoding and MIME selection.
+
+Plugin-specific DTOs belong next to the plugin that owns them.

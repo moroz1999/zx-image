@@ -4,46 +4,58 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use GdImage;
 use ZxImage\Converter;
-use ZxImage\Dto\BspData;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderGeometry;
 use ZxImage\Dto\RenderSettings;
-use ZxImage\Plugin\Bsp\BspBorderRenderer;
+use ZxImage\Plugin\Bsp\BspData;
 use ZxImage\Plugin\Bsp\BspLoader;
+use ZxImage\Plugin\Bsp\BspRenderer;
 use ZxImage\Service\GigascreenPipeline;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
 class Bsp implements FramePluginInterface
 {
-    private PluginRuntime $runtime;
+    private const int BORDER_WIDTH = 64;
+    private const int BORDER_HEIGHT = 64;
+    private const int BORDER_HEIGHT_BOTTOM = 48;
+
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents);
-        $this->runtime->borderWidth = 64;
-        $this->runtime->borderHeight = 64;
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = new PluginGeometry(
+            borderWidth: self::BORDER_WIDTH,
+            borderHeight: self::BORDER_HEIGHT,
+        );
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
     }
 
     public function configure(RenderSettings $settings): void
     {
-        $this->runtime->applyRenderSettings($settings);
+        $this->renderSettings = $settings;
     }
 
     public function convertFrames(): ?FrameSet
     {
-        $bspData = (new BspLoader())->load($this->runtime);
+        $bspData = (new BspLoader())->loadFrom($this->input, $this->geometry, $this->services);
         if ($bspData === null) {
             return null;
         }
 
-        $colorTable = $this->runtime->services->paletteService->buildColorTable($this->runtime->renderSettings->paletteString);
+        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
         $pipeline = new GigascreenPipeline();
         $frameSet = $this->buildFrameSet($bspData, $colorTable, $pipeline);
 
@@ -61,62 +73,41 @@ class Bsp implements FramePluginInterface
         ColorTable $colorTable,
         GigascreenPipeline $pipeline,
     ): FrameSet {
-        $borderRenderer = new BspBorderRenderer();
+        $renderer = new BspRenderer();
 
-        $renderSingle = function (ParsedScreen $screen, ColorTable $ct, bool $flashedImage) use ($bspData, $borderRenderer): GdImage {
-            $borderIndex = $screen === $bspData->screen1 ? $bspData->border1 : $bspData->border2;
-            $center = imagecreatetruecolor($this->runtime->width, $this->runtime->height);
-            foreach ($screen->pixelsData as $y => $row) {
-                foreach ($row as $x => $pixel) {
-                    $mapX = (int)($x / $this->runtime->attributeWidth);
-                    $mapY = (int)($y / $this->runtime->attributeHeight);
-                    if ($flashedImage && isset($screen->attributes->flashMap[$mapY][$mapX])) {
-                        $zxColor = $pixel === 1
-                            ? $screen->attributes->paperMap[$mapY][$mapX]
-                            : $screen->attributes->inkMap[$mapY][$mapX];
-                    } else {
-                        $zxColor = $pixel === 1
-                            ? $screen->attributes->inkMap[$mapY][$mapX]
-                            : $screen->attributes->paperMap[$mapY][$mapX];
-                    }
-                    imagesetpixel($center, $x, $y, $ct->colors[$zxColor]);
-                }
-            }
-            return $borderRenderer->applySingle($center, $screen, $bspData->hasBorderData, $borderIndex, $ct, $this->runtime->width, $this->runtime->height, $this->runtime->borderWidth, $this->runtime->borderHeight);
-        };
+        $renderSingle = fn(ParsedScreen $screen, ColorTable $ct, bool $flashedImage) => $renderer->renderSingle(
+            $bspData,
+            $screen,
+            $ct,
+            $flashedImage,
+            $this->geometry,
+        );
 
-        $renderMerged = function (ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashedImage) use ($bspData, $borderRenderer): GdImage {
-            $center = imagecreatetruecolor($this->runtime->width, $this->runtime->height);
-            foreach ($s1->pixelsData as $y => $row) {
-                foreach ($row as $x => $pixel1) {
-                    $mapX = (int)($x / $this->runtime->attributeWidth);
-                    $mapY = (int)($y / $this->runtime->attributeHeight);
-                    $pixel2 = $s2->pixelsData[$y][$x];
-                    if ($flashedImage && isset($s1->attributes->flashMap[$mapY][$mapX])) {
-                        $color1 = $pixel1 === 1 ? $s1->attributes->paperMap[$mapY][$mapX] : $s1->attributes->inkMap[$mapY][$mapX];
-                    } else {
-                        $color1 = $pixel1 === 1 ? $s1->attributes->inkMap[$mapY][$mapX] : $s1->attributes->paperMap[$mapY][$mapX];
-                    }
-                    if ($flashedImage && isset($s2->attributes->flashMap[$mapY][$mapX])) {
-                        $color2 = $pixel2 === 1 ? $s2->attributes->paperMap[$mapY][$mapX] : $s2->attributes->inkMap[$mapY][$mapX];
-                    } else {
-                        $color2 = $pixel2 === 1 ? $s2->attributes->inkMap[$mapY][$mapX] : $s2->attributes->paperMap[$mapY][$mapX];
-                    }
-                    imagesetpixel($center, $x, $y, $ct->gigaColors[($color1 << 4) | $color2]);
-                }
-            }
-            $screen2Arg = $bspData->hasGigaData ? $s2 : null;
-            return $borderRenderer->applyMerged($center, $s1, $screen2Arg, $bspData->hasBorderData, $bspData->border1, $bspData->border2, $ct, $this->runtime->width, $this->runtime->height, $this->runtime->borderWidth, $this->runtime->borderHeight);
-        };
+        $renderMerged = fn(ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashedImage) => $renderer->renderMerged(
+            $bspData,
+            $s1,
+            $s2,
+            $ct,
+            $flashedImage,
+            $this->geometry,
+        );
 
-        return $pipeline->buildFrameSetFromParsedScreens($bspData->screen1, $bspData->screen2, $colorTable, $this->runtime, $renderSingle, $renderMerged);
+        return $pipeline->buildFrameSetFromParsedScreens(
+            $bspData->screen1,
+            $bspData->screen2,
+            $colorTable,
+            $renderSingle,
+            $renderMerged,
+            $this->renderSettings,
+            $this->geometry,
+        );
     }
 
     private function getFrameGeometry(): RenderGeometry
     {
         return new RenderGeometry(
-            $this->runtime->width + $this->runtime->borderWidth * 2,
-            $this->runtime->height + $this->runtime->borderHeight + 48,
+            $this->geometry->width + $this->geometry->borderWidth * 2,
+            $this->geometry->height + $this->geometry->borderHeight + self::BORDER_HEIGHT_BOTTOM,
             0,
             0,
             false,

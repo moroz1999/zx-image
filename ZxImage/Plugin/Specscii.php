@@ -45,7 +45,6 @@ class Specscii implements FramePluginInterface
     public function convertFrames(): ?FrameSet
     {
         return $this->pipeline->buildFrameSetUsing(
-            null,
             fn(): ?RawScreen => (new SpecsciiLoader())->loadFrom($this->input, $this->services),
             fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreen($rawScreen, $this->geometry->width),
             fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->pipeline->renderFrame(

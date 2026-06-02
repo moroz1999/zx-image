@@ -22,31 +22,6 @@ final readonly class GigascreenPipeline
     /**
      * @param callable(): ?DualRawScreen $loadBits
      */
-    public function buildFrameSetWithDefaultRendering(PluginRuntime $runtime, callable $loadBits): ?FrameSet
-    {
-        return $this->buildFrameSetUsing(
-            $runtime,
-            $loadBits,
-            fn(RawScreen $rawScreen): ParsedScreen => $this->parseScreen($rawScreen, $runtime),
-            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderFrame(
-                $parsedScreen,
-                $colorTable,
-                $flashedImage,
-                $runtime,
-            ),
-            fn(ParsedScreen $first, ParsedScreen $second, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderMergedFrame(
-                $first,
-                $second,
-                $colorTable,
-                $flashedImage,
-                $runtime,
-            ),
-        );
-    }
-
-    /**
-     * @param callable(): ?DualRawScreen $loadBits
-     */
     public function buildFrameSetWithDefaultRenderingFor(
         PluginGeometry $geometry,
         RenderSettings $renderSettings,
@@ -54,7 +29,6 @@ final readonly class GigascreenPipeline
         callable $loadBits,
     ): ?FrameSet {
         return $this->buildFrameSetUsing(
-            null,
             $loadBits,
             fn(RawScreen $rawScreen): ParsedScreen => $this->parseScreen($rawScreen, $geometry),
             fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderFrame(
@@ -83,36 +57,16 @@ final readonly class GigascreenPipeline
      * @param callable(ParsedScreen, ParsedScreen, ColorTable, bool): GdImage $renderMergedFrame
      */
     public function buildFrameSetUsing(
-        ?PluginRuntime $runtime,
         callable $loadBits,
         callable $parseScreen,
         callable $renderFrame,
         callable $renderMergedFrame,
-        ?RenderSettings $renderSettings = null,
-        ?PluginServices $services = null,
-        ?PluginGeometry $geometry = null,
+        RenderSettings $renderSettings,
+        PluginServices $services,
+        PluginGeometry $geometry,
     ): ?FrameSet {
         $dualRawScreen = $loadBits();
         if ($dualRawScreen === null) {
-            return null;
-        }
-
-        if ($runtime !== null) {
-            $renderSettings ??= $runtime->renderSettings;
-            $services ??= $runtime->services;
-            $geometry ??= new PluginGeometry(
-                $runtime->width,
-                $runtime->height,
-                $runtime->attributeWidth,
-                $runtime->attributeHeight,
-                $runtime->borderWidth,
-                $runtime->borderHeight,
-                $runtime->usesBorder,
-                $runtime->requiredFileSize,
-            );
-        }
-
-        if ($renderSettings === null || $services === null || $geometry === null) {
             return null;
         }
 
@@ -153,29 +107,11 @@ final readonly class GigascreenPipeline
         ParsedScreen $parsedScreen1,
         ParsedScreen $parsedScreen2,
         ColorTable $colorTable,
-        ?PluginRuntime $runtime,
         callable $renderFrame,
         callable $renderMergedFrame,
-        ?RenderSettings $renderSettings = null,
-        ?PluginGeometry $geometry = null,
+        RenderSettings $renderSettings,
+        PluginGeometry $geometry,
     ): FrameSet {
-        if ($runtime !== null) {
-            $renderSettings ??= $runtime->renderSettings;
-            $geometry ??= new PluginGeometry(
-                $runtime->width,
-                $runtime->height,
-                $runtime->attributeWidth,
-                $runtime->attributeHeight,
-                $runtime->borderWidth,
-                $runtime->borderHeight,
-                $runtime->usesBorder,
-                $runtime->requiredFileSize,
-            );
-        }
-
-        $renderSettings ??= new RenderSettings();
-        $geometry ??= new PluginGeometry();
-
         $isFlickerMode = $renderSettings->gigascreenMode === 'flicker'
             || $renderSettings->gigascreenMode === 'interlace1'
             || $renderSettings->gigascreenMode === 'interlace2';
@@ -201,7 +137,7 @@ final readonly class GigascreenPipeline
         );
     }
 
-    public function parseScreen(RawScreen $rawScreen, PluginRuntime|PluginGeometry $runtime): ParsedScreen
+    public function parseScreen(RawScreen $rawScreen, PluginGeometry $runtime): ParsedScreen
     {
         $attributes = (new AttributeParser($runtime->width))->parse($rawScreen->attributesBytes);
         $pixelsData = (new PixelParser($runtime->width))->parse($rawScreen->pixelsBytes);
@@ -212,7 +148,7 @@ final readonly class GigascreenPipeline
         ParsedScreen $parsedScreen,
         ColorTable $colorTable,
         bool $flashedImage,
-        PluginRuntime|PluginGeometry $runtime,
+        PluginGeometry $runtime,
     ): GdImage {
         return (new PixelRenderer())->render(
             $parsedScreen,
@@ -230,7 +166,7 @@ final readonly class GigascreenPipeline
         ParsedScreen $parsedScreen2,
         ColorTable $colorTable,
         bool $flashedImage,
-        PluginRuntime|PluginGeometry $runtime,
+        PluginGeometry $runtime,
     ): GdImage {
         $image = imagecreatetruecolor($runtime->width, $runtime->height);
 

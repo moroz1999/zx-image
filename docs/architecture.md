@@ -7,16 +7,16 @@ Implementation details for the ZX-Image library. Domain concepts are in [domain.
 ## Component Overview
 
 ```
-Converter  ──────────────────────────► PluginInterface implementation
-  setType()                               loadBits()
-  setPath() / setSourceFileContents()     parseScreen()
-  setBorder()                             renderImage()
-  setZoom()                               ImageEncoder
+Converter  ──────────────────────────► FramePluginInterface implementation
+  setType()                               convertFrames(): ?FrameSet
+  setPath() / setSourceFileContents()     plugin-local loaders/parsers/renderers
+  setBorder()                             Frame DTOs with GD images and delays
+  setZoom()                               OutputRenderer
   setRotation()
   setPalette()
   setGigascreenMode()
   addPreFilter() / addPostFilter()
-  getBinary()  ──► generateBinary()  ──► Plugin::convert()
+  getBinary()  ──► generateBinary()  ──► OutputRenderer::render()
 ```
 
 ---
@@ -35,17 +35,17 @@ Entry point and configuration holder. Responsibilities:
 
 ## Plugins (`ZxImage/Plugin/`)
 
-Plugins implement `PluginInterface` directly. Shared behavior is being moved into services instead of a common abstract base class.
+Plugins implement `FramePluginInterface` directly. Shared behavior lives in services instead of a common abstract base class.
 
 ### Pipeline
 
-Most standard-like plugins run through three methods in sequence:
+Most standard-like plugins run through three steps:
 
-1. **`loadBits(): ?RawScreen`** — opens the source and reads raw unsigned bytes
-2. **`parseScreen(RawScreen $data): ParsedScreen`** — decodes bytes into pixel maps and attribute maps
-3. **`renderImage(ParsedScreen $parsedData, ...)`** — draws a GD image, applies border, resize, and rotation
+1. Load source bytes into plugin-specific DTOs or common screen DTOs.
+2. Parse bytes into pixel maps, attribute maps, palette data, or plugin-local data.
+3. Render one or more GD frame images and return a `FrameSet`.
 
-`StandardScreenPipeline` can build a `FrameSet` for the standard SCR path. `OutputRenderer` turns `FrameSet` DTOs into final PNG/GIF binaries and returns `RenderedImage` with MIME. The older `convert()` path still exists for plugins that have not been migrated to frame output yet. `GigascreenPipeline` handles dual-screen mix, flicker, and interlace modes. Some container plugins implement a custom `convert()` while reusing the same DTOs and services.
+`StandardScreenPipeline` can build a `FrameSet` for the standard SCR path. `OutputRenderer` turns `FrameSet` DTOs into final PNG/GIF binaries and returns `RenderedImage` with MIME. `GigascreenPipeline` handles dual-screen mix, flicker, and interlace modes.
 
 Indexed and SAM Coupe formats use narrower render services:
 - `IndexedScreenRenderer` draws linear 8-bit indexed pixels through the active palette correction matrix.
@@ -53,11 +53,9 @@ Indexed and SAM Coupe formats use narrower render services:
 
 ### Runtime State
 
-`RenderSettings` is the immutable rendering configuration DTO. `Converter` builds it once and currently passes it to each plugin through `PluginInterface::configure()`. This keeps filters, zoom, rotation, border, palette, and gigascreen mode grouped for the future common renderer.
+`RenderSettings` is the immutable rendering configuration DTO. `Converter` builds it once and passes it to each plugin through `FramePluginInterface::configure()`. This keeps filters, zoom, rotation, border, palette, and gigascreen mode grouped for the common renderer.
 
-`PluginInput` holds source input. `PluginGeometry` holds format dimensions, attribute cell size, border dimensions, and required file size. Newer plugins pass these DTOs to pipeline services instead of using `PluginRuntime`.
-
-`PluginRuntime` is legacy transitional state for plugins that have not yet been moved to explicit DTOs.
+`PluginInput` holds source input. `PluginGeometry` holds format dimensions, attribute cell size, border dimensions, and required file size. Plugins pass these DTOs to pipeline services and plugin-local loaders.
 
 `PluginServices` holds shared stateless services used by plugins and pipelines:
 - `FileLoader`
@@ -92,7 +90,7 @@ Migrated plugins implement `FramePluginInterface` and return `FrameSet`:
 
 ### `strictFileSize`
 
-When set on a plugin runtime or loader call, `FileLoader` checks that the source file size matches exactly. Mismatched files are rejected.
+When set on `PluginGeometry` and passed to a loader call, `FileLoader` checks that the source file size matches exactly. Mismatched files are rejected.
 
 ### Rendering Helpers
 
@@ -153,21 +151,21 @@ Abstract class with a single method `apply($image, $srcImage)`. Pre-filters rece
 
 Gigascreen-compatible plugins use `GigascreenPipeline` for multi-screen blending:
 
-- **`mix`**: calls `exportDataMerged()` — iterates pixels from both screens simultaneously and looks up the combined 8-bit color code in `$gigaColors`
-- **`flicker`**: renders each screen separately via `exportData()`, encodes as GIF palette images, assembles animated GIF with 2 cs per frame delay
-- **`interlace1` / `interlace2`**: same as flicker, but additionally calls `interlaceMix()` to swap rows between the two GD images (1-row or 2-row pitch) before GIF encoding
+- **`mix`**: renders one merged GD frame by iterating pixels from both screens and looking up the combined 8-bit color code in `$gigaColors`.
+- **`flicker`**: returns alternating GD frames with 2 cs delay.
+- **`interlace1` / `interlace2`**: returns alternating GD frames and marks the `FrameSet` for 1-row or 2-row interlace mixing in `OutputRenderer`.
 
-Flash + gigascreen: 32 GIF frames cycle through (screen1 normal, screen2 normal, screen1 flashed, screen2 flashed).
+Flash + gigascreen: 32 GD frames cycle through screen1/screen2 normal and flashed states. `OutputRenderer` decides whether the final binary is PNG or GIF.
 
 ---
 
 ## Flash Animation
 
 Detected by checking `flashMap` in parsed attribute data. If any cell has flash=1:
-1. `exportData($parsedData, false)` renders the normal frame
-2. `exportData($parsedData, true)` renders the flipped frame (ink↔paper swapped for flash cells)
-3. Both are converted to paletted GIF images via `getRightPaletteGif()`
-4. `buildAnimatedGif()` assembles them with 32 cs delay each (≈1.6 Hz)
+1. The plugin renders the normal GD frame.
+2. The plugin renders the flipped GD frame with ink and paper swapped for flash cells.
+3. The plugin returns both frames in a `FrameSet` with 32 cs delay each (about 1.6 Hz).
+4. `OutputRenderer` encodes the final animated GIF.
 
 ---
 
@@ -218,8 +216,9 @@ Expiry sweep: triggered probabilistically. If `time() % cacheDeletionPeriod == 0
 
 There is no active abstract plugin base class. Migrated standard-like plugins use:
 - `RenderSettings` for converter-provided rendering settings
-- `PluginRuntime` for source input, format geometry, and result state
+- `PluginInput` for source input
+- `PluginGeometry` for format geometry and strict file size
 - `PluginServices` for shared loader, palette, processing, and encoding services
 - `StandardScreenPipeline` for default SCR loading/parsing/rendering
 - Narrow render services such as `IndexedScreenRenderer` or `SamCoupeScreenRenderer` when the format is not SCR-shaped
-- format-specific private methods only for the parts that differ
+- plugin-local DTOs, loaders, parsers, and renderers for format-specific behavior

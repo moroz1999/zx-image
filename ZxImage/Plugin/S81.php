@@ -45,7 +45,6 @@ class S81 implements FramePluginInterface
     public function convertFrames(): ?FrameSet
     {
         return $this->pipeline->buildFrameSetUsing(
-            null,
             fn(): ?RawScreen => (new S81Loader())->loadFrom($this->input, $this->geometry, $this->services),
             fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreen($rawScreen, $this->geometry->width),
             fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->pipeline->renderFrame(

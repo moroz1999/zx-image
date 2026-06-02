@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use GdImage;
 use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\FrameSet;
@@ -44,31 +43,23 @@ class Hidden implements FramePluginInterface
 
     public function convertFrames(): ?FrameSet
     {
+        $renderer = new HiddenPixelRenderer();
+
         return $this->pipeline->buildFrameSetUsing(
-            null,
             fn(): ?RawScreen => $this->pipeline->loadBitsFor($this->input, $this->geometry, $this->services),
             fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreen($rawScreen, $this->geometry->width),
-            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->renderFrame(
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage) => $renderer->render(
                 $parsedScreen,
                 $colorTable,
                 $flashedImage,
+                $this->geometry->width,
+                $this->geometry->height,
+                $this->geometry->attributeWidth,
+                $this->geometry->attributeHeight,
             ),
             $this->renderSettings,
             $this->services,
             $this->geometry,
-        );
-    }
-
-    private function renderFrame(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage
-    {
-        return (new HiddenPixelRenderer())->render(
-            $parsedScreen,
-            $colorTable,
-            $flashedImage,
-            $this->geometry->width,
-            $this->geometry->height,
-            $this->geometry->attributeWidth,
-            $this->geometry->attributeHeight,
         );
     }
 }

@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use GdImage;
 use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\FrameSet;
-use ZxImage\Dto\MghBorders;
-use ZxImage\Dto\MghDimensions;
 use ZxImage\Dto\ParsedScreen;
+use ZxImage\Dto\PluginGeometry;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderGeometry;
 use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Multiartist\MghAttributeParser;
-use ZxImage\Plugin\Multiartist\MghBorderRenderer;
+use ZxImage\Plugin\Multiartist\MghBorders;
+use ZxImage\Plugin\Multiartist\MghDimensions;
+use ZxImage\Plugin\Multiartist\MghRenderer;
 use ZxImage\Plugin\Standard\PixelParser;
 use ZxImage\Service\GigascreenPipeline;
-use ZxImage\Service\PluginRuntime;
+use ZxImage\Service\PluginServices;
 
 class Multiartist implements FramePluginInterface
 {
@@ -25,27 +26,37 @@ class Multiartist implements FramePluginInterface
     private const int MGH_MODE_2 = 2;
     private const int MGH_MODE_4 = 4;
     private const int MGH_MODE_8 = 8;
+    private const int VERSION_OFFSET = 3;
+    private const int MODE_OFFSET = 4;
+    private const int FIRST_BORDER_OFFSET = 5;
+    private const int SECOND_BORDER_OFFSET = 6;
 
-    private PluginRuntime $runtime;
+    private PluginInput $input;
+    private PluginGeometry $geometry;
+    private RenderSettings $renderSettings;
+    private PluginServices $services;
 
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
         ?Converter $converter = null,
     ) {
-        $this->runtime = new PluginRuntime($sourceFilePath, $sourceFileContents);
+        $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
+        $this->geometry = new PluginGeometry();
+        $this->renderSettings = new RenderSettings();
+        $this->services = new PluginServices();
     }
 
     public function configure(RenderSettings $settings): void
     {
-        $this->runtime->applyRenderSettings($settings);
+        $this->renderSettings = $settings;
     }
 
     public function convertFrames(): ?FrameSet
     {
-        $reader = $this->runtime->services->fileLoader->openSource(
-            $this->runtime->sourceFilePath,
-            $this->runtime->sourceFileContents,
+        $reader = $this->services->fileLoader->openSource(
+            $this->input->sourceFilePath,
+            $this->input->sourceFileContents,
             null,
         );
         if ($reader === null) {
@@ -58,16 +69,16 @@ class Multiartist implements FramePluginInterface
         }
 
         $signature = substr($header, 0, 3);
-        $version = ord(substr($header, 3, 1));
+        $version = ord($header[self::VERSION_OFFSET]);
         if ($signature !== 'MGH' || $version !== 1) {
             return null;
         }
 
-        $mghMode = ord(substr($header, 4, 1));
+        $mghMode = ord($header[self::MODE_OFFSET]);
         $borders = $this->parseBorders($header);
 
         $dimensions = $this->getMghDimensions($mghMode);
-        $this->runtime->attributeHeight = $dimensions->attributeHeight;
+        $this->geometry = $this->geometry->withAttributeHeight($dimensions->attributeHeight);
 
         $pixelsBytes1 = $reader->readBytes(6144);
         $pixelsBytes2 = $reader->readBytes(6144);
@@ -82,24 +93,27 @@ class Multiartist implements FramePluginInterface
         }
 
         $attrParser = new MghAttributeParser();
-        $pixelParser = new PixelParser($this->runtime->width);
+        $pixelParser = new PixelParser($this->geometry->width);
         $screen1 = new ParsedScreen(
             $pixelParser->parse($pixelsBytes1),
-            $attrParser->parse($mghMode, $attributesBytes1, $outerAttributesBytes1, $this->runtime->width),
+            $attrParser->parse($mghMode, $attributesBytes1, $outerAttributesBytes1, $this->geometry->width),
         );
         $screen2 = new ParsedScreen(
             $pixelParser->parse($pixelsBytes2),
-            $attrParser->parse($mghMode, $attributesBytes2, $outerAttributesBytes2, $this->runtime->width),
+            $attrParser->parse($mghMode, $attributesBytes2, $outerAttributesBytes2, $this->geometry->width),
         );
 
-        $colorTable = $this->runtime->services->paletteService->buildColorTable($this->runtime->renderSettings->paletteString);
+        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
         return $this->buildResult($screen1, $screen2, $borders, $colorTable);
     }
 
     private function parseBorders(string $header): MghBorders
     {
-        if ($this->runtime->renderSettings->border !== null) {
-            return new MghBorders(ord(substr($header, 5, 1)), ord(substr($header, 6, 1)));
+        if ($this->renderSettings->border !== null) {
+            return new MghBorders(
+                ord($header[self::FIRST_BORDER_OFFSET]),
+                ord($header[self::SECOND_BORDER_OFFSET]),
+            );
         }
         return new MghBorders(null, null);
     }
@@ -117,60 +131,37 @@ class Multiartist implements FramePluginInterface
     private function buildResult(ParsedScreen $screen1, ParsedScreen $screen2, MghBorders $borders, ColorTable $colorTable): FrameSet
     {
         $pipeline = new GigascreenPipeline();
-        $borderRenderer = new MghBorderRenderer();
+        $renderer = new MghRenderer();
 
-        $renderSingle1 = function (ParsedScreen $screen, ColorTable $ct, bool $flashedImage) use ($borders, $screen1): GdImage {
-            $borderIndex = $screen === $screen1 ? $borders->border1 : $borders->border2;
-            $center = imagecreatetruecolor($this->runtime->width, $this->runtime->height);
-            foreach ($screen->pixelsData as $y => $row) {
-                foreach ($row as $x => $pixel) {
-                    $mapX = (int)($x / $this->runtime->attributeWidth);
-                    $mapY = (int)($y / $this->runtime->attributeHeight);
-                    if ($flashedImage && isset($screen->attributes->flashMap[$mapY][$mapX])) {
-                        $zxColor = $pixel === 1
-                            ? $screen->attributes->paperMap[$mapY][$mapX]
-                            : $screen->attributes->inkMap[$mapY][$mapX];
-                    } else {
-                        $zxColor = $pixel === 1
-                            ? $screen->attributes->inkMap[$mapY][$mapX]
-                            : $screen->attributes->paperMap[$mapY][$mapX];
-                    }
-                    imagesetpixel($center, $x, $y, $ct->colors[$zxColor]);
-                }
-            }
-            $image = $this->runtime->services->imageProcessor->applyBorder(
-                $center, $borderIndex, $ct,
-                $this->runtime->width, $this->runtime->height,
-                $this->runtime->borderWidth, $this->runtime->borderHeight, $this->runtime->usesBorder,
-            );
-            return $image;
-        };
+        $renderSingle1 = fn(ParsedScreen $screen, ColorTable $ct, bool $flashedImage) => $renderer->renderSingle(
+            $screen,
+            $screen1,
+            $borders,
+            $ct,
+            $flashedImage,
+            $this->geometry,
+            $this->services,
+        );
 
-        $renderMerged = function (ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashedImage) use ($borders, $borderRenderer): GdImage {
-            $center = imagecreatetruecolor($this->runtime->width, $this->runtime->height);
-            foreach ($s1->pixelsData as $y => $row) {
-                foreach ($row as $x => $pixel1) {
-                    $mapX = (int)($x / $this->runtime->attributeWidth);
-                    $mapY = (int)($y / $this->runtime->attributeHeight);
-                    $pixel2 = $s2->pixelsData[$y][$x];
-                    if ($flashedImage && isset($s1->attributes->flashMap[$mapY][$mapX])) {
-                        $color1 = $pixel1 === 1 ? $s1->attributes->paperMap[$mapY][$mapX] : $s1->attributes->inkMap[$mapY][$mapX];
-                    } else {
-                        $color1 = $pixel1 === 1 ? $s1->attributes->inkMap[$mapY][$mapX] : $s1->attributes->paperMap[$mapY][$mapX];
-                    }
-                    if ($flashedImage && isset($s2->attributes->flashMap[$mapY][$mapX])) {
-                        $color2 = $pixel2 === 1 ? $s2->attributes->paperMap[$mapY][$mapX] : $s2->attributes->inkMap[$mapY][$mapX];
-                    } else {
-                        $color2 = $pixel2 === 1 ? $s2->attributes->inkMap[$mapY][$mapX] : $s2->attributes->paperMap[$mapY][$mapX];
-                    }
-                    imagesetpixel($center, $x, $y, $ct->gigaColors[($color1 << 4) | $color2]);
-                }
-            }
-            $image = $borderRenderer->apply($center, $borders->border1, $borders->border2, $ct, $this->runtime);
-            return $image;
-        };
+        $renderMerged = fn(ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashedImage) => $renderer->renderMerged(
+            $s1,
+            $s2,
+            $borders,
+            $ct,
+            $flashedImage,
+            $this->geometry,
+            $this->services,
+        );
 
-        $frameSet = $pipeline->buildFrameSetFromParsedScreens($screen1, $screen2, $colorTable, $this->runtime, $renderSingle1, $renderMerged);
+        $frameSet = $pipeline->buildFrameSetFromParsedScreens(
+            $screen1,
+            $screen2,
+            $colorTable,
+            $renderSingle1,
+            $renderMerged,
+            $this->renderSettings,
+            $this->geometry,
+        );
 
         return new FrameSet(
             $frameSet->frames,
@@ -187,6 +178,6 @@ class Multiartist implements FramePluginInterface
             return new RenderGeometry(320, 240, 0, 0, false);
         }
 
-        return new RenderGeometry($this->runtime->width, $this->runtime->height, 0, 0, false);
+        return new RenderGeometry($this->geometry->width, $this->geometry->height, 0, 0, false);
     }
 }

@@ -46,7 +46,6 @@ class Attributes implements FramePluginInterface
     public function convertFrames(): ?FrameSet
     {
         return $this->pipeline->buildFrameSetUsing(
-            null,
             fn(): ?RawScreen => (new AttributesLoader())->loadFrom($this->input, $this->geometry, $this->services),
             fn(RawScreen $rawScreen): ParsedScreen => $this->parseScreen($rawScreen),
             fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->pipeline->renderFrame(

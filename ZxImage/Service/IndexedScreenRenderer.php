@@ -15,38 +15,6 @@ final readonly class IndexedScreenRenderer
      * @param int[] $pixelsBytes
      * @param IndexedPaletteEntry[] $paletteEntries
      */
-    public function render(
-        array $pixelsBytes,
-        array $paletteEntries,
-        ColorTable $colorTable,
-        PluginRuntime $runtime,
-    ): GdImage {
-        $image = $this->renderFrame(
-            $pixelsBytes,
-            $paletteEntries,
-            $colorTable,
-            $runtime->width,
-            $runtime->height,
-        );
-
-        $image = $runtime->services->imageProcessor->applyBorder(
-            $image,
-            $runtime->renderSettings->border,
-            $colorTable,
-            $runtime->width,
-            $runtime->height,
-            $runtime->borderWidth,
-            $runtime->borderHeight,
-            $runtime->usesBorder,
-        );
-        $image = $runtime->services->imageProcessor->resize($image, $runtime->renderSettings->zoom, $runtime->renderSettings->preFilters, $runtime->renderSettings->postFilters);
-        return $runtime->services->imageProcessor->rotate($image, $runtime->renderSettings->rotation);
-    }
-
-    /**
-     * @param int[] $pixelsBytes
-     * @param IndexedPaletteEntry[] $paletteEntries
-     */
     public function renderFrame(
         array $pixelsBytes,
         array $paletteEntries,

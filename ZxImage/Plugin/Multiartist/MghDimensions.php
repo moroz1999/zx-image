@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ZxImage\Dto;
+namespace ZxImage\Plugin\Multiartist;
 
-readonly class MghDimensions
+final readonly class MghDimensions
 {
     public function __construct(
         public int $attributeHeight,
         public int $attributesLength,
         public int $outerAttributesLength,
-    ) {}
+    ) {
+    }
 }

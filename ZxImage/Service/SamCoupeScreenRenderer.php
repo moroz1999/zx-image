@@ -16,44 +16,6 @@ final readonly class SamCoupeScreenRenderer
      * @param int[] $pixelsBytes
      * @param int[] $paletteBytes
      */
-    public function render(
-        array $pixelsBytes,
-        array $paletteBytes,
-        int $bitsPerPixel,
-        bool $doubleRows,
-        bool $swapMode3Colors,
-        ColorTable $colorTable,
-        PluginRuntime $runtime,
-    ): GdImage {
-        $image = $this->renderFrame(
-            $pixelsBytes,
-            $paletteBytes,
-            $bitsPerPixel,
-            $doubleRows,
-            $swapMode3Colors,
-            $colorTable,
-            $runtime->width,
-            $runtime->height,
-        );
-
-        $image = $runtime->services->imageProcessor->applyBorder(
-            $image,
-            $runtime->renderSettings->border,
-            $colorTable,
-            $runtime->width,
-            $runtime->height,
-            $runtime->borderWidth,
-            $runtime->borderHeight,
-            $runtime->usesBorder,
-        );
-        $image = $runtime->services->imageProcessor->resize($image, $runtime->renderSettings->zoom, $runtime->renderSettings->preFilters, $runtime->renderSettings->postFilters);
-        return $runtime->services->imageProcessor->rotate($image, $runtime->renderSettings->rotation);
-    }
-
-    /**
-     * @param int[] $pixelsBytes
-     * @param int[] $paletteBytes
-     */
     public function renderFrame(
         array $pixelsBytes,
         array $paletteBytes,

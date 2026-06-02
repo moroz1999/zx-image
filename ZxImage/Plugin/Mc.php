@@ -44,7 +44,6 @@ class Mc implements FramePluginInterface
     public function convertFrames(): ?FrameSet
     {
         return $this->pipeline->buildFrameSetUsing(
-            null,
             fn(): ?RawScreen => $this->pipeline->loadBitsFor($this->input, $this->geometry, $this->services),
             fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreenWithLinearPixels($rawScreen, $this->geometry->width),
             fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $this->pipeline->renderFrame(

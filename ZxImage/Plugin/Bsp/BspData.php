@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ZxImage\Dto;
+namespace ZxImage\Plugin\Bsp;
 
-readonly class BspData
+use ZxImage\Dto\ParsedScreen;
+
+final readonly class BspData
 {
     public function __construct(
         public bool $hasGigaData,
@@ -13,5 +15,6 @@ readonly class BspData
         public int $border2,
         public ParsedScreen $screen1,
         public ParsedScreen $screen2,
-    ) {}
+    ) {
+    }
 }
