@@ -10,6 +10,7 @@ use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
+use ZxImage\Plugin\SamCoupe\SamCoupeScreenLoader;
 use ZxImage\Service\PluginServices;
 use ZxImage\Service\SamCoupeScreenRenderer;
 
@@ -43,24 +44,23 @@ class Sam4 implements FramePluginInterface
 
     public function convertFrames(): ?FrameSet
     {
-        $reader = $this->services->fileLoader->openSource(
-            $this->input->sourceFilePath,
-            $this->input->sourceFileContents,
-            null,
+        $screenData = (new SamCoupeScreenLoader())->loadFrom(
+            $this->input,
+            $this->geometry,
+            $this->services,
+            self::BITS_PER_PIXEL,
+            self::PALETTE_LENGTH,
+            false,
         );
-        if ($reader === null) {
+        if ($screenData === null) {
             return null;
         }
 
         $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
 
-        $pixelByteCount = (int)($this->geometry->width * $this->geometry->height / (8 / self::BITS_PER_PIXEL));
-        $pixelsBytes = $reader->readBytes($pixelByteCount);
-        $paletteBytes = $reader->readBytes(self::PALETTE_LENGTH);
-
         $image = $this->renderer->renderFrame(
-            $pixelsBytes,
-            $paletteBytes,
+            $screenData->pixelsBytes,
+            $screenData->paletteBytes,
             self::BITS_PER_PIXEL,
             false,
             false,

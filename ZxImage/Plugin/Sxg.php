@@ -10,6 +10,7 @@ use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
+use ZxImage\Plugin\Sxg\SxgLoader;
 use ZxImage\Plugin\Sxg\SxgPaletteParser;
 use ZxImage\Plugin\Sxg\SxgPixelParser;
 use ZxImage\Plugin\Sxg\SxgRenderer;
@@ -17,8 +18,6 @@ use ZxImage\Service\PluginServices;
 
 class Sxg implements FramePluginInterface
 {
-    private const int FORMAT_256 = 8;
-
     private PluginInput $input;
     private PluginGeometry $geometry;
     private RenderSettings $renderSettings;
@@ -42,44 +41,14 @@ class Sxg implements FramePluginInterface
 
     public function convertFrames(): ?FrameSet
     {
-        $reader = $this->services->fileLoader->openSource(
-            $this->input->sourceFilePath,
-            $this->input->sourceFileContents,
-            null,
-        );
-        if ($reader === null) {
+        $sxgData = (new SxgLoader())->loadFrom($this->input, $this->geometry, $this->services);
+        if ($sxgData === null) {
             return null;
         }
 
-        $firstByte = $reader->readByte();
-        $signature = $reader->readString(3);
-        if ($firstByte !== 127 || $signature !== 'SXG') {
-            return null;
-        }
-
-        $reader->readByte(); // version
-        $reader->readByte(); // background
-        $reader->readByte(); // packed
-        $sxgFormat = $reader->readByte() ?? self::FORMAT_256;
-        $this->geometry = $this->geometry->withDimensions(
-            $reader->readWord() ?? $this->geometry->width,
-            $reader->readWord() ?? $this->geometry->height,
-        );
-        $paletteShift = $reader->readWord() ?? 0;
-        $pixelsShift = $reader->readWord() ?? 0;
-
-        $reader->readBytes($paletteShift - 2);
-
-        $paletteLength = (int)(($pixelsShift - $paletteShift + 2) / 2);
-        $paletteWords = $reader->readWords($paletteLength);
-
-        $pixelsBytes = [];
-        while (($byte = $reader->readByte()) !== null) {
-            $pixelsBytes[] = $byte;
-        }
-
-        $colors = (new SxgPaletteParser())->parse($paletteWords);
-        $pixelsData = (new SxgPixelParser())->parse($pixelsBytes, $sxgFormat, $this->geometry->width);
+        $this->geometry = $sxgData->geometry;
+        $colors = (new SxgPaletteParser())->parse($sxgData->paletteWords);
+        $pixelsData = (new SxgPixelParser())->parse($sxgData->pixelsBytes, $sxgData->format, $this->geometry->width);
         $image = (new SxgRenderer())->render($pixelsData, $colors, $this->geometry->width, $this->geometry->height);
 
         $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);

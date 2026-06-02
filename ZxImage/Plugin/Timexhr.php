@@ -13,6 +13,7 @@ use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Standard\PixelParser;
 use ZxImage\Plugin\Timexhr\TimexhrAttributeBuilder;
+use ZxImage\Plugin\Timexhr\TimexhrLoader;
 use ZxImage\Plugin\Timexhr\TimexhrPixelRenderer;
 use ZxImage\Service\PluginServices;
 
@@ -21,7 +22,6 @@ class Timexhr implements FramePluginInterface
     private const int REQUIRED_FILE_SIZE = 12289;
     private const int WIDTH = 512;
     private const int HEIGHT = 384;
-    private const int PLANE_SIZE = 6144;
 
     private PluginInput $input;
     private PluginGeometry $geometry;
@@ -47,32 +47,18 @@ class Timexhr implements FramePluginInterface
 
     public function convertFrames(): ?FrameSet
     {
-        $reader = $this->services->fileLoader->openSource(
-            $this->input->sourceFilePath,
-            $this->input->sourceFileContents,
-            $this->geometry->requiredFileSize,
-        );
-        if ($reader === null) {
+        $timexhrData = (new TimexhrLoader())->loadFrom($this->input, $this->geometry, $this->services);
+        if ($timexhrData === null) {
             return null;
-        }
-
-        $pixelsArray1 = $reader->readBytes(self::PLANE_SIZE);
-        $pixelsArray2 = $reader->readBytes(self::PLANE_SIZE);
-        $attributeByte = $reader->readByte() ?? 0;
-
-        $pixelsArray = [];
-        for ($i = 0; $i < self::PLANE_SIZE; $i++) {
-            $pixelsArray[] = $pixelsArray1[$i];
-            $pixelsArray[] = $pixelsArray2[$i];
         }
 
         $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
         $attributes = (new TimexhrAttributeBuilder())->build(
-            $attributeByte,
+            $timexhrData->attributeByte,
             $this->geometry->width,
             $this->geometry->height,
         );
-        $pixelsData = (new PixelParser($this->geometry->width))->parse($pixelsArray);
+        $pixelsData = (new PixelParser($this->geometry->width))->parse($timexhrData->pixelsBytes);
         $parsedScreen = new ParsedScreen($pixelsData, $attributes);
 
         $renderSettings = $this->renderSettings;

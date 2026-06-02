@@ -10,6 +10,7 @@ use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
+use ZxImage\Plugin\Atmega\AtmegaLoader;
 use ZxImage\Plugin\Atmega\AtmegaPaletteParser;
 use ZxImage\Plugin\Atmega\AtmegaPixelParser;
 use ZxImage\Service\PixelCanvas;
@@ -17,8 +18,6 @@ use ZxImage\Service\PluginServices;
 
 class Atmega implements FramePluginInterface
 {
-    private const int PIXEL_PAGE_SIZE = 8000;
-    private const int FILE_SIZE_WITH_GAPS = 32896;
     private const int WIDTH = 320;
     private const int HEIGHT = 200;
 
@@ -45,50 +44,15 @@ class Atmega implements FramePluginInterface
 
     public function convertFrames(): ?FrameSet
     {
-        $reader = $this->services->fileLoader->openSource(
-            $this->input->sourceFilePath,
-            $this->input->sourceFileContents,
-            null,
-        );
-        if ($reader === null) {
+        $atmegaData = (new AtmegaLoader())->loadFrom($this->input, $this->geometry, $this->services);
+        if ($atmegaData === null) {
             return null;
         }
 
         $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
-        $fileSize = $reader->getSize();
 
-        $pixelsArray = [];
-        if ($fileSize === self::FILE_SIZE_WITH_GAPS) {
-            for ($page = 0; $page < 4; $page++) {
-                $pixelsArray = array_merge($pixelsArray, $reader->readBytes(self::PIXEL_PAGE_SIZE));
-                $reader->readBytes(192);
-            }
-        } else {
-            $pixelsArray = $reader->readBytes(self::PIXEL_PAGE_SIZE * 4);
-        }
-        $reader->readBytes(21);
-
-        $paletteBytes = [
-            0b00000000,
-            0b00000001,
-            0b00000010,
-            0b00000011,
-            0b00010000,
-            0b00010001,
-            0b00010010,
-            0b00010011,
-            0b00000000,
-            0b00100001,
-            0b01000010,
-            0b01100011,
-            0b10010000,
-            0b10110001,
-            0b11010010,
-            0b11110011,
-        ];
-
-        $colors = (new AtmegaPaletteParser())->parse($paletteBytes, $colorTable->config);
-        $pixelsData = (new AtmegaPixelParser())->parse($pixelsArray, $this->geometry->width);
+        $colors = (new AtmegaPaletteParser())->parse($atmegaData->paletteBytes, $colorTable->config);
+        $pixelsData = (new AtmegaPixelParser())->parse($atmegaData->pixelsArray, $this->geometry->width);
 
         $image = (new PixelCanvas())->draw(
             $pixelsData,
