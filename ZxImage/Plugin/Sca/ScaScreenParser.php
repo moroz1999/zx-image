@@ -11,23 +11,14 @@ use ZxImage\Plugin\Standard\PixelParser;
 
 final readonly class ScaScreenParser
 {
-    /**
-     * @param RawScreen[] $rawScreens
-     * @return ParsedScreen[]
-     */
-    public function parseScreens(array $rawScreens, int $width): array
+    public function parseScreen(RawScreen $rawScreen, int $width): ParsedScreen
     {
-        $parsedScreens = [];
         $pixelParser = new PixelParser($width);
         $attributeParser = new AttributeParser($width);
 
-        foreach ($rawScreens as $rawScreen) {
-            $parsedScreens[] = new ParsedScreen(
-                $pixelParser->parse($rawScreen->pixelsBytes),
-                $attributeParser->parse($rawScreen->attributesBytes),
-            );
-        }
-
-        return $parsedScreens;
+        return new ParsedScreen(
+            $pixelParser->parse($rawScreen->pixelsBytes),
+            $attributeParser->parse($rawScreen->attributesBytes),
+        );
     }
 }

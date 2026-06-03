@@ -50,9 +50,10 @@ class Sca implements FramePluginInterface
         $colorTable = $this->services->paletteService->buildColorTable($renderSettings->paletteString);
         $frames = [];
         $renderer = new ScaRenderer();
-        $parsedScreens = (new ScaScreenParser())->parseScreens($scaData->screens, $this->geometry->width);
+        $parser = new ScaScreenParser();
 
-        foreach ($parsedScreens as $i => $parsedScreen) {
+        foreach ($scaData->screens as $i => $rawScreen) {
+            $parsedScreen = $parser->parseScreen($rawScreen, $this->geometry->width);
             $image = $renderer->render($parsedScreen, $colorTable, $this->geometry);
             $frames[] = new Frame($image, $scaData->delays[$i] ?? 0);
         }
