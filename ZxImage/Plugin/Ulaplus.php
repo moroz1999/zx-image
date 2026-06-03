@@ -7,15 +7,12 @@ namespace ZxImage\Plugin;
 use ZxImage\Converter;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
-use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
-use ZxImage\Plugin\Standard\PixelParser;
-use ZxImage\Plugin\Ulaplus\UlaplusAttributeParser;
 use ZxImage\Plugin\Ulaplus\UlaplusLoader;
-use ZxImage\Plugin\Ulaplus\UlaplusPaletteParser;
 use ZxImage\Plugin\Ulaplus\UlaplusPixelRenderer;
+use ZxImage\Plugin\Ulaplus\UlaplusScreenParser;
 use ZxImage\Service\PluginServices;
 
 class Ulaplus implements FramePluginInterface
@@ -51,10 +48,7 @@ class Ulaplus implements FramePluginInterface
         }
 
         $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
-        $attributes = (new UlaplusAttributeParser())->parse($rawScreen->attributesBytes, $this->geometry->width);
-        $pixelsData = (new PixelParser($this->geometry->width))->parse($rawScreen->pixelsBytes);
-        $colorOverrides = (new UlaplusPaletteParser())->parse($rawScreen->borderBytes, $colorTable->config);
-        $parsedScreen = new ParsedScreen($pixelsData, $attributes, $colorOverrides);
+        $parsedScreen = (new UlaplusScreenParser())->parse($rawScreen, $this->geometry->width, $colorTable->config);
 
         $image = (new UlaplusPixelRenderer())->render(
             $parsedScreen,

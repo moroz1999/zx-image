@@ -7,14 +7,12 @@ namespace ZxImage\Plugin;
 use ZxImage\Converter;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
-use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Sca\ScaLoader;
 use ZxImage\Plugin\Sca\ScaRenderer;
-use ZxImage\Plugin\Standard\AttributeParser;
-use ZxImage\Plugin\Standard\PixelParser;
+use ZxImage\Plugin\Sca\ScaScreenParser;
 use ZxImage\Service\PluginServices;
 
 class Sca implements FramePluginInterface
@@ -52,12 +50,9 @@ class Sca implements FramePluginInterface
         $colorTable = $this->services->paletteService->buildColorTable($renderSettings->paletteString);
         $frames = [];
         $renderer = new ScaRenderer();
+        $parsedScreens = (new ScaScreenParser())->parseScreens($scaData->screens, $this->geometry->width);
 
-        foreach ($scaData->screens as $i => $rawScreen) {
-            $pixelsData = (new PixelParser($this->geometry->width))->parse($rawScreen->pixelsBytes);
-            $attributes = (new AttributeParser($this->geometry->width))->parse($rawScreen->attributesBytes);
-            $parsedScreen = new ParsedScreen($pixelsData, $attributes);
-
+        foreach ($parsedScreens as $i => $parsedScreen) {
             $image = $renderer->render($parsedScreen, $colorTable, $this->geometry);
             $frames[] = new Frame($image, $scaData->delays[$i] ?? 0);
         }

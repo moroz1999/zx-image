@@ -8,6 +8,7 @@ use ZxImage\Converter;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
+use ZxImage\Plugin\Ssx\SsxPluginResolver;
 use ZxImage\Service\PluginServices;
 
 class Ssx implements FramePluginInterface
@@ -33,30 +34,7 @@ class Ssx implements FramePluginInterface
 
     public function convertFrames(): ?FrameSet
     {
-        $reader = $this->services->fileLoader->openSource(
-            $this->input->sourceFilePath,
-            $this->input->sourceFileContents,
-            null,
-        );
-        if ($reader === null) {
-            return null;
-        }
-
-        $fileSize = $reader->getSize();
-
-        $type = null;
-        if ($fileSize === 6928) {
-            $type = Standard::class;
-        } elseif ($fileSize === 12304) {
-            $type = Mc::class;
-        } elseif ($fileSize === 24580) {
-            $type = Sam3::class;
-        } elseif ($fileSize === 24592) {
-            $type = Sam4::class;
-        } elseif ($fileSize === 98304) {
-            $type = SsxRaw::class;
-        }
-
+        $type = (new SsxPluginResolver())->resolveType($this->input, $this->services);
         if ($type === null) {
             return null;
         }

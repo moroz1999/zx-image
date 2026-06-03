@@ -14,8 +14,7 @@ use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RawScreen;
 use ZxImage\Dto\RenderSettings;
-use ZxImage\Plugin\Standard\PixelParser;
-use ZxImage\Plugin\Timexhr\TimexhrAttributeBuilder;
+use ZxImage\Plugin\Timexhr\TimexhrScreenParser;
 use ZxImage\Plugin\Timexhrg\TimexhrgLoader;
 use ZxImage\Plugin\Timexhrg\TimexhrgPixelRenderer;
 use ZxImage\Service\PluginServices;
@@ -74,13 +73,11 @@ class Timexhrg implements FramePluginInterface
 
     private function parseRawScreen(RawScreen $rawScreen): ParsedScreen
     {
-        return new ParsedScreen(
-            (new PixelParser($this->geometry->width))->parse($rawScreen->pixelsBytes),
-            (new TimexhrAttributeBuilder())->build(
-                $rawScreen->attributesBytes[0] ?? 0,
-                $this->geometry->width,
-                $this->geometry->height,
-            ),
+        return (new TimexhrScreenParser())->parse(
+            $rawScreen->pixelsBytes,
+            $rawScreen->attributesBytes[0] ?? 0,
+            $this->geometry->width,
+            $this->geometry->height,
         );
     }
 

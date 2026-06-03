@@ -26,7 +26,7 @@ class Multicolor4 implements FramePluginInterface
         ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
-        $this->geometry = (new PluginGeometry())
+        $this->geometry = new PluginGeometry()
             ->withAttributeHeight(4)
             ->withRequiredFileSize(7680);
         $this->renderSettings = new RenderSettings();

@@ -10,6 +10,7 @@ use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
+use ZxImage\Plugin\SsxRaw\SsxRawLoader;
 use ZxImage\Plugin\SsxRaw\SsxRawRenderer;
 use ZxImage\Service\PluginServices;
 
@@ -45,19 +46,19 @@ class SsxRaw implements FramePluginInterface
 
     public function convertFrames(): ?FrameSet
     {
-        $reader = $this->services->fileLoader->openSource(
-            $this->input->sourceFilePath,
-            $this->input->sourceFileContents,
-            $this->geometry->requiredFileSize,
-        );
-        if ($reader === null) {
+        $ssxRawData = (new SsxRawLoader())->loadFrom($this->input, self::REQUIRED_FILE_SIZE, $this->services);
+        if ($ssxRawData === null) {
             return null;
         }
 
         $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
-        $pixelsBytes = $reader->readBytes(self::REQUIRED_FILE_SIZE);
 
-        $image = (new SsxRawRenderer())->render($pixelsBytes, $this->geometry->width, $this->geometry->height, $colorTable->config);
+        $image = (new SsxRawRenderer())->render(
+            $ssxRawData->pixelsBytes,
+            $this->geometry->width,
+            $this->geometry->height,
+            $colorTable->config,
+        );
 
         return new FrameSet(
             [new Frame($image)],

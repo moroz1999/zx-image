@@ -14,9 +14,8 @@ use ZxImage\Dto\RawScreen;
 use ZxImage\Dto\RenderGeometry;
 use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Bsc\BscLoader;
-use ZxImage\Plugin\Standard\AttributeParser;
 use ZxImage\Plugin\Standard\BscFrameRenderer;
-use ZxImage\Plugin\Standard\PixelParser;
+use ZxImage\Plugin\Standard\StandardScreenParser;
 use ZxImage\Service\PluginServices;
 use ZxImage\Service\StandardScreenPipeline;
 
@@ -56,14 +55,10 @@ class Bsc implements FramePluginInterface
     public function convertFrames(): ?FrameSet
     {
         $renderer = new BscFrameRenderer();
+        $screenParser = new StandardScreenParser();
         $frameSet = $this->pipeline->buildFrameSetUsing(
             fn(): ?RawScreen => (new BscLoader())->loadFrom($this->input, $this->geometry, $this->services),
-            fn(RawScreen $rawScreen): ParsedScreen => new ParsedScreen(
-                (new PixelParser($this->geometry->width))->parse($rawScreen->pixelsBytes),
-                (new AttributeParser($this->geometry->width))->parse($rawScreen->attributesBytes),
-                [],
-                $rawScreen->borderBytes,
-            ),
+            fn(RawScreen $rawScreen): ParsedScreen => $screenParser->parse($rawScreen, $this->geometry->width),
             fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage) => $renderer->render(
                 $parsedScreen,
                 $colorTable,

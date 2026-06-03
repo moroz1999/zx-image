@@ -11,14 +11,12 @@ use ZxImage\Dto\IndexedPaletteEntry;
 use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
+use ZxImage\Plugin\Sl2\Sl2Loader;
 use ZxImage\Service\IndexedScreenRenderer;
 use ZxImage\Service\PluginServices;
 
 class Sl2 implements FramePluginInterface
 {
-    private const int HEADER_SIZE = 128;
-    private const int DATA_SIZE = 49152;
-
     private static array $defaultNextPalette = [
         '0000000000000000',
         '0000000100000001',
@@ -303,27 +301,19 @@ class Sl2 implements FramePluginInterface
 
     public function convertFrames(): ?FrameSet
     {
-        $reader = $this->services->fileLoader->openSource(
-            $this->input->sourceFilePath,
-            $this->input->sourceFileContents,
-            null,
+        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
+        $sl2Data = (new Sl2Loader())->loadFrom(
+            $this->input,
+            $this->geometry->width * $this->geometry->height,
+            $this->services,
         );
-        if ($reader === null) {
+        if ($sl2Data === null) {
             return null;
         }
-
-        $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
-
-        $fileSize = $reader->getSize();
-        if ($fileSize === self::DATA_SIZE + self::HEADER_SIZE) {
-            $reader->seek(self::HEADER_SIZE);
-        }
-
-        $pixelsBytes = $reader->readBytes($this->geometry->width * $this->geometry->height);
         $paletteEntries = $this->getDefaultPaletteEntries();
 
         $image = $this->renderer->renderFrame(
-            $pixelsBytes,
+            $sl2Data->pixelsBytes,
             $paletteEntries,
             $colorTable,
             $this->geometry->width,

@@ -7,14 +7,12 @@ namespace ZxImage\Plugin;
 use ZxImage\Converter;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
-use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
-use ZxImage\Plugin\Standard\PixelParser;
-use ZxImage\Plugin\Timexhr\TimexhrAttributeBuilder;
 use ZxImage\Plugin\Timexhr\TimexhrLoader;
 use ZxImage\Plugin\Timexhr\TimexhrPixelRenderer;
+use ZxImage\Plugin\Timexhr\TimexhrScreenParser;
 use ZxImage\Service\PluginServices;
 
 class Timexhr implements FramePluginInterface
@@ -53,13 +51,12 @@ class Timexhr implements FramePluginInterface
         }
 
         $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
-        $attributes = (new TimexhrAttributeBuilder())->build(
+        $parsedScreen = (new TimexhrScreenParser())->parse(
+            $timexhrData->pixelsBytes,
             $timexhrData->attributeByte,
             $this->geometry->width,
             $this->geometry->height,
         );
-        $pixelsData = (new PixelParser($this->geometry->width))->parse($timexhrData->pixelsBytes);
-        $parsedScreen = new ParsedScreen($pixelsData, $attributes);
 
         $renderSettings = $this->renderSettings;
         $paperColor = $parsedScreen->attributes->paperMap[0][0];

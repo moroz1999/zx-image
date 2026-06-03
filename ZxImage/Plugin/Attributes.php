@@ -14,7 +14,7 @@ use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RawScreen;
 use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Attributes\AttributesLoader;
-use ZxImage\Plugin\Standard\AttributeParser;
+use ZxImage\Plugin\Attributes\AttributesScreenParser;
 use ZxImage\Service\PluginServices;
 use ZxImage\Service\StandardScreenPipeline;
 
@@ -62,19 +62,6 @@ class Attributes implements FramePluginInterface
 
     private function parseScreen(RawScreen $rawScreen): ParsedScreen
     {
-        $attributes = (new AttributeParser($this->geometry->width))->parse($rawScreen->attributesBytes);
-        $pixelsData = $this->generateCheckerboardPixels();
-        return new ParsedScreen($pixelsData, $attributes);
-    }
-
-    private function generateCheckerboardPixels(): array
-    {
-        $pixelsData = [];
-        for ($y = 0; $y < $this->geometry->height; $y++) {
-            for ($x = 0; $x < $this->geometry->width; $x++) {
-                $pixelsData[$y][$x] = ($x + $y) % 2;
-            }
-        }
-        return $pixelsData;
+        return (new AttributesScreenParser())->parse($rawScreen, $this->geometry->width, $this->geometry->height);
     }
 }
