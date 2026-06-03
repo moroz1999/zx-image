@@ -6,19 +6,23 @@ namespace ZxImage\Service;
 
 use GdImage;
 use ZxImage\Dto\ColorTable;
-use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\RawScreen;
 use ZxImage\Dto\RenderSettings;
-use ZxImage\Plugin\Standard\AttributeParser;
-use ZxImage\Plugin\Standard\PixelParser;
-use ZxImage\Plugin\Standard\PixelRenderer;
 
 final readonly class StandardScreenPipeline
 {
+    public function __construct(
+        private StandardRawScreenLoader $rawScreenLoader = new StandardRawScreenLoader(),
+        private StandardFrameSetBuilder $frameSetBuilder = new StandardFrameSetBuilder(),
+        private StandardParsedScreenParser $parsedScreenParser = new StandardParsedScreenParser(),
+        private StandardFrameRenderer $frameRenderer = new StandardFrameRenderer(),
+    ) {
+    }
+
     public function buildFrameSetFor(
         PluginInput $input,
         PluginGeometry $geometry,
@@ -61,69 +65,27 @@ final readonly class StandardScreenPipeline
 
         $colorTable = $services->paletteService->buildColorTable($renderSettings->paletteString);
         $parsedScreen = $parseScreen($rawScreen);
-        $hasFlash = count($parsedScreen->attributes->flashMap) > 0;
-
-        if ($hasFlash) {
-            return new FrameSet(
-                [
-                    new Frame($renderFrame($parsedScreen, $colorTable, false), 32),
-                    new Frame($renderFrame($parsedScreen, $colorTable, true), 32),
-                ],
-                $renderSettings,
-                $geometry->toRenderGeometry(),
-                $colorTable,
-            );
-        }
-
-        return new FrameSet(
-            [new Frame($renderFrame($parsedScreen, $colorTable, false))],
-            $renderSettings,
-            $geometry->toRenderGeometry(),
-            $colorTable,
-        );
+        return $this->frameSetBuilder->build($parsedScreen, $colorTable, $renderFrame, $renderSettings, $geometry);
     }
 
     public function loadBitsFor(PluginInput $input, PluginGeometry $geometry, PluginServices $services): ?RawScreen
     {
-        $reader = $services->fileLoader->openSource(
-            $input->sourceFilePath,
-            $input->sourceFileContents,
-            $geometry->requiredFileSize,
-        );
-        if ($reader === null) {
-            return null;
-        }
-
-        $pixelsBytes = $reader->readBytes(6144);
-        $attributesBytes = [];
-        while (($byte = $reader->readByte()) !== null) {
-            $attributesBytes[] = $byte;
-        }
-
-        return new RawScreen($pixelsBytes, $attributesBytes);
+        return $this->rawScreenLoader->load($input, $geometry, $services);
     }
 
     public function parseScreen(RawScreen $rawScreen, int $width): ParsedScreen
     {
-        $attributes = (new AttributeParser($width))->parse($rawScreen->attributesBytes);
-        $pixelsData = (new PixelParser($width))->parse($rawScreen->pixelsBytes);
-        return new ParsedScreen($pixelsData, $attributes);
+        return $this->parsedScreenParser->parse($rawScreen, $width);
     }
 
     public function parseScreenWithLinearPixels(RawScreen $rawScreen, int $width): ParsedScreen
     {
-        $linearMapper = static fn(int $y): int => $y;
-        $attributes = (new AttributeParser($width))->parse($rawScreen->attributesBytes);
-        $pixelsData = (new PixelParser($width))->parse($rawScreen->pixelsBytes, $linearMapper);
-        return new ParsedScreen($pixelsData, $attributes);
+        return $this->parsedScreenParser->parseWithLinearPixels($rawScreen, $width);
     }
 
     public function parseScreenWithZxAttributes(RawScreen $rawScreen, int $width): ParsedScreen
     {
-        $zxyMapper = \Closure::fromCallable([$this, 'calculateZxY']);
-        $attributes = (new AttributeParser($width))->parse($rawScreen->attributesBytes, $zxyMapper);
-        $pixelsData = (new PixelParser($width))->parse($rawScreen->pixelsBytes);
-        return new ParsedScreen($pixelsData, $attributes);
+        return $this->parsedScreenParser->parseWithZxAttributes($rawScreen, $width);
     }
 
     public function renderFrame(
@@ -132,30 +94,11 @@ final readonly class StandardScreenPipeline
         bool $flashedImage,
         PluginGeometry $runtime,
     ): GdImage {
-        return (new PixelRenderer())->render(
+        return $this->frameRenderer->render(
             $parsedScreen,
+            $colorTable,
             $flashedImage,
-            $colorTable->colors,
-            $runtime->width,
-            $runtime->height,
-            $runtime->attributeWidth,
-            $runtime->attributeHeight,
+            $runtime,
         );
-    }
-
-    private function calculateZxY(int $y): int
-    {
-        $offset = 0;
-        if ($y > 127) {
-            $offset = 128;
-            $y -= 128;
-        } elseif ($y > 63) {
-            $offset = 64;
-            $y -= 64;
-        }
-
-        $rows = (int)($y / 8);
-        $rests = $y - $rows * 8;
-        return $offset + $rests * 8 + $rows;
     }
 }

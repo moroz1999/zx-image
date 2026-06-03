@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace ZxImage;
 
+use ZxImage\Dto\ConversionHashInput;
 use ZxImage\Dto\RenderSettings;
-use ZxImage\Plugin\FramePluginInterface;
+use ZxImage\Enum\FilterType;
+use ZxImage\Enum\GigascreenMode;
+use ZxImage\Enum\PalettePreset;
+use ZxImage\Service\ConversionCache;
+use ZxImage\Service\ConversionHashBuilder;
 use ZxImage\Service\OutputRenderer;
+use ZxImage\Service\PluginFactory;
 
 class Converter
 {
@@ -32,15 +38,10 @@ class Converter
     protected array $postFilters = [];
 
     protected string $palette = '';
-    protected string $palette1 = '00,76,CD,E9,FF,9F:FF,00,00;00,FF,00;00,00,FF'; //pulsar
-    protected string $palette2 = '00,76,CD,E9,FF,9F:D0,00,00;00,E4,00;00,00,FF'; //orthodox
-    protected string $palette3 = '00,60,A0,E0,FF,A0:FF,00,00;00,FF,00;00,00,FF'; //alone
-    protected string $palette4 = '4F,A1,DD,F0,FF,BD:39,73,1D;3C,77,1E;46,8C,23'; //electroscale
-    protected string $palette5 = '00,96,CD,E8,FF,BC:FF,00,00;00,FF,00;00,00,FF'; //srgb
 
     public function __construct()
     {
-        $this->palette = $this->palette5;
+        $this->palette = PalettePreset::Srgb->paletteString();
         $this->cacheExpirationLimit = 60 * 60 * 24 * 30 * 1; //delete files older than 2 months
         $this->basePath = pathinfo((__FILE__), PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR;
     }
@@ -83,15 +84,16 @@ class Converter
 
     public function setGigascreenMode(string $mode): self
     {
-        if ($mode === 'flicker' || $mode === 'interlace2' || $mode === 'interlace1' || $mode === 'mix') {
-            $this->gigascreenMode = $mode;
+        $gigascreenMode = GigascreenMode::tryFrom($mode);
+        if ($gigascreenMode !== null) {
+            $this->gigascreenMode = $gigascreenMode->value;
         }
         return $this;
     }
 
     public function setRotation(int $rotation): self
     {
-        if (in_array($rotation, [0, 90, 180, 270])) {
+        if (in_array($rotation, [0, 90, 180, 270], true)) {
             $this->rotation = $rotation;
         }
         return $this;
@@ -99,31 +101,26 @@ class Converter
 
     public function addPreFilter(string $type): self
     {
-        $this->preFilters[] = $type;
+        $filterType = FilterType::tryFrom($type);
+        if ($filterType !== null) {
+            $this->preFilters[] = $filterType->value;
+        }
         return $this;
     }
 
     public function addPostFilter(string $type): self
     {
-        $this->postFilters[] = $type;
+        $filterType = FilterType::tryFrom($type);
+        if ($filterType !== null) {
+            $this->postFilters[] = $filterType->value;
+        }
         return $this;
     }
 
     public function setPalette(string $palette): self
     {
-        if ($palette === 'orthodox') {
-            $this->palette = $this->palette2;
-        } elseif ($palette === 'alone') {
-            $this->palette = $this->palette3;
-        } elseif ($palette === 'electroscale') {
-            $this->palette = $this->palette4;
-        } elseif ($palette === 'srgb') {
-            $this->palette = $this->palette5;
-        } elseif ($palette === 'pulsar') {
-            $this->palette = $this->palette1;
-        } else {
-            $this->palette = $this->palette5;
-        }
+        $palettePreset = PalettePreset::tryFrom($palette) ?? PalettePreset::Srgb;
+        $this->palette = $palettePreset->paletteString();
         return $this;
     }
 
@@ -164,9 +161,7 @@ class Converter
         $resultMime = null;
         if ($this->cacheEnabled) {
             if ($resultFilePath = $this->getCacheFileName()) {
-                if (is_file($resultFilePath) && ($info = getimagesize($resultFilePath))) {
-                    $resultMime = $info['mime'];
-                }
+                $resultMime = (new ConversionCache())->getMime($resultFilePath);
             }
         } else {
             if (!$this->resultMime){
@@ -196,45 +191,8 @@ class Converter
 
     public function getHash(): ?string
     {
-        if (!$this->hash && ($this->sourceFileContents || $this->sourceFilePath)) {
-            $text = '';
-            if (is_file($this->sourceFilePath)) {
-                $text .= $this->sourceFilePath;
-                $text .= filemtime($this->sourceFilePath);
-            } elseif ($this->sourceFileContents) {
-                $text .= md5($this->sourceFileContents);
-            }
-            $text .= $this->type;
-            if (in_array(
-                $this->type,
-                [
-                    'gigascreen',
-                    'tricolor',
-                    'multiartist',
-                    'mg1',
-                    'mg2',
-                    'mg4',
-                    'mg8',
-                    'lowresgs',
-                    'chr$',
-                    'bsp',
-                    'timexhrg',
-                    'stellar',
-                ]
-            )
-            ) {
-                $text .= $this->gigascreenMode;
-            }
-            $text .= $this->border;
-            $text .= $this->palette;
-            $text .= $this->zoom;
-            $text .= implode($this->preFilters);
-            $text .= implode($this->postFilters);
-            if ($this->rotation > 0) {
-                $text .= $this->rotation;
-            }
-
-            $this->hash = md5($text);
+        if ($this->hash === null) {
+            $this->hash = (new ConversionHashBuilder())->build($this->createHashInput());
         }
         return $this->hash;
     }
@@ -251,21 +209,9 @@ class Converter
     public function generateBinary(): ?string
     {
         $result = null;
-        if ($this->type === 'mg1' || $this->type === 'mg2' || $this->type === 'mg4' || $this->type === 'mg8') {
-            $className = 'multiartist';
-        } elseif ($this->type === 'chr$') {
-            $className = 'chrd';
-        } else {
-            $className = $this->type;
-        }
-        $className = __NAMESPACE__ . '\\Plugin\\' . ucfirst($className);
-        if (class_exists($className)) {
-            $converter = new $className($this->sourceFilePath, $this->sourceFileContents, $this);
-            if (!$converter instanceof FramePluginInterface) {
-                return null;
-            }
-
-            $converter->configure(new RenderSettings(
+        $plugin = (new PluginFactory())->create($this->type, $this->sourceFilePath, $this->sourceFileContents);
+        if ($plugin !== null) {
+            $plugin->configure(new RenderSettings(
                 $this->border,
                 $this->zoom,
                 $this->rotation,
@@ -276,7 +222,7 @@ class Converter
                 $this->basePath,
             ));
 
-            $frameSet = $converter->convertFrames();
+            $frameSet = $plugin->convertFrames();
             if ($frameSet !== null) {
                 $renderedImage = (new OutputRenderer())->render($frameSet);
                 $result = $renderedImage->binary;
@@ -288,16 +234,27 @@ class Converter
 
     public function generateCacheFile(): ?string
     {
-        $result = null;
-        if ($resultFilePath = $this->getCacheFileName()) {
-            if (!file_exists($resultFilePath)) {
-                if ($result = $this->generateBinary()) {
-                    file_put_contents($resultFilePath, $result);
-                }
-            } else {
-                $result = file_get_contents($resultFilePath);
-            }
-        }
-        return $result;
+        $resultFilePath = $this->getCacheFileName();
+
+        return (new ConversionCache())->loadOrGenerate(
+            $resultFilePath,
+            fn(): ?string => $this->generateBinary(),
+        );
+    }
+
+    private function createHashInput(): ConversionHashInput
+    {
+        return new ConversionHashInput(
+            $this->sourceFileContents,
+            $this->sourceFilePath,
+            $this->type,
+            $this->gigascreenMode,
+            $this->border,
+            $this->palette,
+            $this->zoom,
+            $this->preFilters,
+            $this->postFilters,
+            $this->rotation,
+        );
     }
 }

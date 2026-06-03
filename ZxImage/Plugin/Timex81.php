@@ -30,7 +30,7 @@ class Timex81 implements FramePluginInterface
         ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
-        $this->geometry = (new PluginGeometry())
+        $this->geometry = new PluginGeometry()
             ->withAttributeHeight(1)
             ->withRequiredFileSize(12288);
         $this->renderSettings = new RenderSettings();

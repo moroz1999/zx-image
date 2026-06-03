@@ -16,7 +16,7 @@ Converter  ───────────────────────
   setPalette()
   setGigascreenMode()
   addPreFilter() / addPostFilter()
-  getBinary()  ──► generateBinary()  ──► OutputRenderer::render()
+  getBinary()  ──► generateBinary()  ──► PluginFactory ──► OutputRenderer::render()
 ```
 
 ---
@@ -25,9 +25,11 @@ Converter  ───────────────────────
 
 Entry point and configuration holder. Responsibilities:
 - Holds all rendering parameters (type, border, zoom, rotation, palette, gigascreenMode, pre/post filters)
-- Maps `type` string to a `Plugin` subclass under `ZxImage\Plugin\` via `ucfirst(className)`
-- Type aliases: `mg1/mg2/mg4/mg8` → `Multiartist`, `chr$` → `Chrd`
+- Normalizes string parameters through internal enums while keeping the public setter contract string-based
+- Delegates plugin creation to `PluginFactory`
+- Plugin type aliases: `mg1/mg2/mg4/mg8` → `Multiartist`, `chr$` → `Chrd`
 - Manages the file cache: stores rendered output as flat files, names them by MD5 hash of rendering parameters
+- Delegates hash construction to `ConversionHashBuilder` and cache file IO/MIME checks to `ConversionCache`
 - Exposes `getBinary()` → `generateBinary()` (direct) or `generateCacheFile()` (cached)
 - After conversion, `getResultMime()` returns the MIME type of the last output
 
@@ -45,7 +47,11 @@ Most standard-like plugins run through three steps:
 2. Parse bytes into pixel maps, attribute maps, palette data, or plugin-local data.
 3. Render one or more GD frame images and return a `FrameSet`.
 
-`StandardScreenPipeline` can build a `FrameSet` for the standard SCR path. `OutputRenderer` turns `FrameSet` DTOs into final PNG/GIF binaries and returns `RenderedImage` with MIME. `GigascreenPipeline` handles dual-screen mix, flicker, and interlace modes.
+`StandardScreenPipeline` coordinates the standard SCR path. `StandardRawScreenLoader`, `StandardParsedScreenParser`, `StandardFrameRenderer`, and `StandardFrameSetBuilder` own loading, parsing, rendering, and flash/static frame-set assembly.
+
+`OutputRenderer` turns `FrameSet` DTOs into final PNG/GIF binaries and returns `RenderedImage` with MIME.
+
+`GigascreenPipeline` coordinates dual-screen processing. `GigascreenScreenParser`, `GigascreenFrameRenderer`, and `GigascreenFrameSetBuilder` own parsing, single/merged rendering, and mix/flicker/interlace frame-set assembly.
 
 Indexed and SAM Coupe formats use narrower render services:
 - `IndexedScreenRenderer` draws linear 8-bit indexed pixels through the active palette correction matrix.
@@ -70,7 +76,9 @@ Migrated plugins implement `FramePluginInterface` and return `FrameSet`:
 - `Frame` can override render settings when a format needs per-frame render metadata, such as frame-specific border color.
 - `FrameSet` groups frames with `RenderSettings`, `RenderGeometry`, and `ColorTable`.
 - `FrameSet` can request interlace mixing for animated pairs after final frame processing.
-- `OutputRenderer` applies border, resize, filters, rotation, optional interlace mixing, and encoding.
+- `OutputRenderer` chooses static PNG or animated GIF output.
+- `FrameFinalizer` applies border, resize, filters, and rotation.
+- `PngOutputRenderer` and `AnimatedGifOutputRenderer` encode the final image binary.
 - `RenderedImage` carries the final binary and MIME.
 
 ### File Reading Primitives
@@ -94,10 +102,12 @@ When set on `PluginGeometry` and passed to a loader call, `FileLoader` checks th
 
 ### Rendering Helpers
 
-- `drawBorder($centerImage, ...)` — creates a larger canvas, fills with border color, pastes center image
-- `resizeImage($srcImage)` — applies pre-filters, resamples to zoom factor (gamma-corrected), applies post-filters
-- `checkRotation($image)` — pixel-by-pixel rotation at 90°/180°/270°
-- `applyPreFilters` / `applyPostFilters` — instantiates `Filter` classes by name and calls `apply()`
+`ImageProcessor` is a compatibility facade over smaller image services:
+- `BorderApplier` creates a larger canvas, fills it with border color, and pastes the center image.
+- `ImageResizer` applies gamma correction, pre-filters, resampling, post-filters, and final gamma correction.
+- `ImageRotator` performs pixel-by-pixel rotation at 90°/180°/270°.
+- `InterlaceMixer` swaps alternating line bands between animated frame pairs.
+- `FilterApplier` maps filter keys through `FilterType` and applies pre/post filters.
 
 ---
 
@@ -219,6 +229,6 @@ There is no active abstract plugin base class. Migrated standard-like plugins us
 - `PluginInput` for source input
 - `PluginGeometry` for format geometry and strict file size
 - `PluginServices` for shared loader, palette, processing, and encoding services
-- `StandardScreenPipeline` for default SCR loading/parsing/rendering
+- `StandardScreenPipeline` and its focused helper services for default SCR loading/parsing/rendering
 - Narrow render services such as `IndexedScreenRenderer` or `SamCoupeScreenRenderer` when the format is not SCR-shaped
 - plugin-local DTOs, loaders, parsers, and renderers for format-specific behavior

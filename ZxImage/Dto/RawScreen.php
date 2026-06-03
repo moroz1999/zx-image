@@ -8,10 +8,10 @@ readonly class RawScreen
 {
     public function __construct(
         /** @var int[] */
-        public readonly array $pixelsBytes,
+        public array $pixelsBytes,
         /** @var int[] */
-        public readonly array $attributesBytes,
-        public readonly array $borderBytes = [],
+        public array $attributesBytes,
+        public array $borderBytes = [],
     ) {
     }
 }
