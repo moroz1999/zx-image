@@ -1,4 +1,5 @@
 ## Psalm
+- Run Psalm without experimental JIT and with one analysis thread to keep `#[Override]` handling deterministic.
 - NEVER use @psalm-suppress. Instead, add clear and minimal type annotations.
 - Do NOT use `@var` by default. Allow it only when native PHP types cannot express the needed information, primarily for generics (including typed arrays) and complex Psalm array shapes.
 - Do NOT add PHPDoc that only duplicates native parameter, property, or return types. Use PHPDoc only when it adds information that native types cannot express.

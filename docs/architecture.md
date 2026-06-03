@@ -145,7 +145,7 @@ B_out = round((r * R31 + g * R32 + b * R33) / 0xFF)
 
 ## Filter (`ZxImage/Filter/Filter.php`)
 
-Abstract class with a single method `apply($image, $srcImage)`. Pre-filters receive the source image before zoom; post-filters receive both the scaled destination image and the original source.
+Abstract class with a single typed method `apply(GdImage $image, ?GdImage $srcImage): GdImage`. Pre-filters receive the source image before zoom; post-filters receive both the scaled destination image and the original source.
 
 | Class | Key | Notes |
 |-------|-----|-------|
@@ -221,6 +221,8 @@ Expiry sweep: triggered probabilistically. If `time() % cacheDeletionPeriod == 0
 | `image/avif` | `imageavif()` via output buffer | Available but not used in standard flow |
 
 `GifCreator` (composer dependency) takes an array of GIF binary strings and per-frame delay values (centiseconds) and assembles a single animated GIF binary.
+
+Animated frames are finalized and encoded sequentially to avoid retaining all resized GD images. Interlace modes finalize and encode one frame pair at a time.
 
 ---
 

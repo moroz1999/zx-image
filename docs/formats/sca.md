@@ -30,7 +30,7 @@ ZX Spectrum multi-frame animation container.
 
 ## Rendering
 
-Each frame is parsed and rendered sequentially as a standard ZX Spectrum screen, so parsed pixel maps are not retained for the entire animation. All frames are encoded as GIF palette images and assembled into a single animated GIF using `GifCreator`. Frame delays come from the file's delay table.
+Each frame is parsed, rendered, finalized, and encoded sequentially as a standard ZX Spectrum screen, so parsed pixel maps and resized GD images are not retained for the entire animation. Encoded GIF frames are assembled into a single animated GIF using `GifCreator`. Frame delays come from the file's delay table.
 
 ## Output
 

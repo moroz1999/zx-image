@@ -25,6 +25,7 @@ final class ScaMemoryTest extends TestCase
     private const int ATTRIBUTES_SIZE = 768;
     private const int PAPER_WHITE_ATTRIBUTE = 7;
     private const string MEMORY_LIMIT = '128M';
+    private const int ZOOMED_MAX_RSS_KILOBYTES = 262144;
 
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
@@ -40,6 +41,21 @@ final class ScaMemoryTest extends TestCase
 
         self::assertIsString($binary);
         self::assertStringStartsWith('GIF89a', $binary);
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testLongZoomedAnimationDoesNotRetainFinalizedFrames(): void
+    {
+        $binary = (new Converter())
+            ->setType('sca')
+            ->setSourceFileContents($this->createScaSource())
+            ->setZoom(3)
+            ->getBinary();
+
+        self::assertIsString($binary);
+        self::assertStringStartsWith('GIF89a', $binary);
+        self::assertLessThan(self::ZOOMED_MAX_RSS_KILOBYTES, getrusage()['ru_maxrss']);
     }
 
     private function createScaSource(): string

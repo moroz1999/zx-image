@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ZxImage\Service\Output;
 
-use GdImage;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\RenderedImage;
 use ZxImage\Service\ImageEncoder;
@@ -23,38 +22,53 @@ final readonly class AnimatedGifOutputRenderer
     {
         $gifFrames = [];
         $delays = [];
-        $images = [];
 
-        foreach ($frameSet->frames as $frame) {
-            $images[] = $this->frameFinalizer->finalize($frame, $frameSet);
-            $delays[] = $frame->delayCentiseconds;
-        }
-
-        $this->applyInterlacePairs($images, $frameSet);
-
-        foreach ($images as $image) {
-            $gifFrames[] = $this->imageEncoder->toPaletteGif($image);
+        if ($frameSet->interlaceLineHeight === null) {
+            foreach ($frameSet->frames as $frame) {
+                $image = $this->frameFinalizer->finalize($frame, $frameSet);
+                $gifFrames[] = $this->imageEncoder->toPaletteGif($image);
+                $delays[] = $frame->delayCentiseconds;
+            }
+        } else {
+            $this->renderInterlacePairs($frameSet, $frameSet->interlaceLineHeight, $gifFrames, $delays);
         }
 
         return new RenderedImage($this->imageEncoder->toAnimatedGif($gifFrames, $delays), 'image/gif');
     }
 
     /**
-     * @param GdImage[] $images
+     * @param string[] $gifFrames
+     * @param int[] $delays
      */
-    private function applyInterlacePairs(array $images, FrameSet $frameSet): void
+    private function renderInterlacePairs(
+        FrameSet $frameSet,
+        int $interlaceLineHeight,
+        array &$gifFrames,
+        array &$delays,
+    ): void
     {
-        if ($frameSet->interlaceLineHeight === null) {
-            return;
-        }
-
-        for ($i = 0; $i + 1 < count($images); $i += 2) {
+        for ($i = 0; $i + 1 < count($frameSet->frames); $i += 2) {
+            $firstFrame = $frameSet->frames[$i];
+            $secondFrame = $frameSet->frames[$i + 1];
+            $firstImage = $this->frameFinalizer->finalize($firstFrame, $frameSet);
+            $secondImage = $this->frameFinalizer->finalize($secondFrame, $frameSet);
             $this->imageProcessor->interlaceMix(
-                $images[$i],
-                $images[$i + 1],
-                $frameSet->interlaceLineHeight,
+                $firstImage,
+                $secondImage,
+                $interlaceLineHeight,
                 $frameSet->renderSettings->zoom,
             );
+            $gifFrames[] = $this->imageEncoder->toPaletteGif($firstImage);
+            $gifFrames[] = $this->imageEncoder->toPaletteGif($secondImage);
+            $delays[] = $firstFrame->delayCentiseconds;
+            $delays[] = $secondFrame->delayCentiseconds;
+        }
+
+        if (count($frameSet->frames) % 2 === 1) {
+            $lastFrame = $frameSet->frames[count($frameSet->frames) - 1];
+            $lastImage = $this->frameFinalizer->finalize($lastFrame, $frameSet);
+            $gifFrames[] = $this->imageEncoder->toPaletteGif($lastImage);
+            $delays[] = $lastFrame->delayCentiseconds;
         }
     }
 }

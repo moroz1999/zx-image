@@ -31,7 +31,7 @@
   },
   "scripts": {
     "test": "vendor/bin/phpunit",
-    "psalm": "vendor/bin/psalm --memory-limit=2G --use-baseline=psalm-baseline.xml --no-cache --force-jit",
+    "psalm": "vendor/bin/psalm --memory-limit=2G --no-cache --threads=1",
     "psalm-baseline": "vendor/bin/psalm --memory-limit=2G --set-baseline=psalm-baseline.xml --no-cache"
   }
 }

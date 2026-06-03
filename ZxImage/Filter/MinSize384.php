@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace ZxImage\Filter;
 
+use GdImage;
+use Override as OverrideAttribute;
+
 class MinSize384 extends Filter
 {
-    protected $canvasWidth = 384;
-    protected $canvasHeight = 288;
+    protected int $canvasWidth = 384;
+    protected int $canvasHeight = 288;
 
-    public function apply($image, $srcImage = false)
+    #[OverrideAttribute]
+    public function apply(GdImage $image, ?GdImage $srcImage = null): GdImage
     {
         $srcWidth = imagesx($image);
         $srcHeight = imagesy($image);
@@ -20,20 +24,31 @@ class MinSize384 extends Filter
         $widthScale = null;
         $heightScale = null;
         if ($srcWidth < $this->canvasWidth) {
-            $widthScale = floor($this->canvasWidth / $srcWidth);
+            $widthScale = intdiv($this->canvasWidth, $srcWidth);
             if ($srcHeight < $this->canvasHeight) {
-                $heightScale = floor($this->canvasHeight / $srcHeight);
+                $heightScale = intdiv($this->canvasHeight, $srcHeight);
             }
         }
-        if ($widthScale && $heightScale) {
+        if ($widthScale !== null && $heightScale !== null) {
             $scale = min($widthScale, $heightScale);
             $dstWidth = $srcWidth * $scale;
             $dstHeight = $srcHeight * $scale;
         }
 
-        $dstImage = imagecreatetruecolor($this->canvasWidth, $this->canvasHeight);
+        $dstImage = $this->createImage($this->canvasWidth, $this->canvasHeight);
         imagefill($dstImage, 0, 0, 0);
-        imagecopyresized($dstImage, $image, (int)(($this->canvasWidth - $dstWidth) / 2), (int)(($this->canvasHeight - $dstHeight) / 2), 0, 0, (int)$dstWidth, (int)$dstHeight, (int)$srcWidth, (int)$srcHeight);
+        imagecopyresized(
+            $dstImage,
+            $image,
+            intdiv($this->canvasWidth - $dstWidth, 2),
+            intdiv($this->canvasHeight - $dstHeight, 2),
+            0,
+            0,
+            $dstWidth,
+            $dstHeight,
+            $srcWidth,
+            $srcHeight,
+        );
 
         return $dstImage;
     }
