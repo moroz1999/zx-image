@@ -28,8 +28,8 @@ Entry point and configuration holder. Responsibilities:
 - Normalizes string parameters through internal enums while keeping the public setter contract string-based
 - Delegates plugin creation to `PluginFactory`
 - Plugin type aliases: `mg1/mg2/mg4/mg8` → `Multiartist`, `chr$` → `Chrd`
-- Manages the file cache: stores rendered output as flat files, names them by MD5 hash of rendering parameters
-- Delegates hash construction to `ConversionHashBuilder` and cache file IO/MIME checks to `ConversionCache`
+- Delegates cache state and cache file operations to `ConversionCacheManager`
+- Delegates hash construction to `ConversionHashBuilder`
 - Exposes `getBinary()` → `generateBinary()` (direct) or `generateCacheFile()` (cached)
 - After conversion, `getResultMime()` returns the MIME type of the last output
 
@@ -193,6 +193,8 @@ Zoom values 0.25/0.5/2/3/4 scale by the given factor. Zoom 1 skips resampling.
 ---
 
 ## Cache Implementation
+
+`Converter` keeps the public cache setters for compatibility, but cache state is owned by `ConversionCacheManager`.
 
 Cache filename = `cachePath + MD5(hash_input)`.
 

@@ -18,7 +18,6 @@ final readonly class RenderSettings
         public string $paletteString = '',
         public array $preFilters = [],
         public array $postFilters = [],
-        public string $basePath = '',
     ) {
     }
 
@@ -32,7 +31,6 @@ final readonly class RenderSettings
             $this->paletteString,
             $this->preFilters,
             $this->postFilters,
-            $this->basePath,
         );
     }
 }

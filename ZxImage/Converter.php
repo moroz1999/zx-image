@@ -9,7 +9,7 @@ use ZxImage\Dto\RenderSettings;
 use ZxImage\Enum\FilterType;
 use ZxImage\Enum\GigascreenMode;
 use ZxImage\Enum\PalettePreset;
-use ZxImage\Service\ConversionCache;
+use ZxImage\Service\ConversionCacheManager;
 use ZxImage\Service\ConversionHashBuilder;
 use ZxImage\Service\OutputRenderer;
 use ZxImage\Service\PluginFactory;
@@ -19,31 +19,24 @@ class Converter
     protected ?string $hash = null;
     protected array $colors = [];
     protected string $gigascreenMode = 'mix';
-    protected string $cachePath;
     protected string $sourceFileContents = '';
     protected string $sourceFilePath = '';
     protected string $resultFilePath;
-    protected int $cacheDeletionPeriod = 300; //start cache clearing every 5 minutes
-    protected int $cacheDeletionAmount = 1000; //delete not more than 1000 images at once
-    protected int $cacheExpirationLimit;
     protected string $type = 'standard';
     protected ?int $border = null;
     protected float $zoom = 1;
     protected int $rotation = 0;
-    protected ?string $cacheFileName = null;
-    protected bool $cacheEnabled = false;
     protected ?string $resultMime = null;
-    protected string $basePath;
     protected array $preFilters = [];
     protected array $postFilters = [];
 
     protected string $palette = '';
+    private ConversionCacheManager $cacheManager;
 
     public function __construct()
     {
         $this->palette = PalettePreset::Srgb->paletteString();
-        $this->cacheExpirationLimit = 60 * 60 * 24 * 30 * 1; //delete files older than 2 months
-        $this->basePath = pathinfo((__FILE__), PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR;
+        $this->cacheManager = new ConversionCacheManager();
     }
 
     public function setSourceFileContents(string $sourceFileContents): self
@@ -54,31 +47,31 @@ class Converter
 
     public function setCacheEnabled(bool $cacheEnabled): self
     {
-        $this->cacheEnabled = $cacheEnabled;
+        $this->cacheManager->setEnabled($cacheEnabled);
         return $this;
     }
 
     public function setCachePath(string $cachePath): self
     {
-        $this->cachePath = $cachePath . DIRECTORY_SEPARATOR;
+        $this->cacheManager->setPath($cachePath);
         return $this;
     }
 
     public function setCacheExpirationLimit(int $cacheExpirationLimit): self
     {
-        $this->cacheExpirationLimit = $cacheExpirationLimit;
+        $this->cacheManager->setExpirationLimit($cacheExpirationLimit);
         return $this;
     }
 
     public function setCacheDeletionAmount(int $cacheDeletionAmount): self
     {
-        $this->cacheDeletionAmount = $cacheDeletionAmount;
+        $this->cacheManager->setDeletionAmount($cacheDeletionAmount);
         return $this;
     }
 
     public function setCacheDeletionPeriod(int $cacheDeletionPeriod): self
     {
-        $this->cacheDeletionPeriod = $cacheDeletionPeriod;
+        $this->cacheManager->setDeletionPeriod($cacheDeletionPeriod);
         return $this;
     }
 
@@ -159,10 +152,8 @@ class Converter
     public function getResultMime(): ?string
     {
         $resultMime = null;
-        if ($this->cacheEnabled) {
-            if ($resultFilePath = $this->getCacheFileName()) {
-                $resultMime = (new ConversionCache())->getMime($resultFilePath);
-            }
+        if ($this->cacheManager->isEnabled()) {
+            $resultMime = $this->cacheManager->getMime($this->getHash());
         } else {
             if (!$this->resultMime){
                 $this->generateBinary();
@@ -176,17 +167,12 @@ class Converter
 
     public function setCacheFileName(string $cacheFileName): void
     {
-        $this->cacheFileName = $cacheFileName;
+        $this->cacheManager->setFileName($cacheFileName);
     }
 
     public function getCacheFileName(): string
     {
-        if ($this->cacheFileName === null) {
-            $parametersHash = $this->getHash();
-            $this->cacheFileName = $this->cachePath . $parametersHash;
-        }
-
-        return $this->cacheFileName;
+        return $this->cacheManager->getFileName($this->getHash());
     }
 
     public function getHash(): ?string
@@ -199,7 +185,7 @@ class Converter
 
     public function getBinary(): ?string
     {
-        if (!$this->cacheEnabled) {
+        if (!$this->cacheManager->isEnabled()) {
             return $this->generateBinary();
         }
 
@@ -219,7 +205,6 @@ class Converter
                 $this->palette,
                 $this->preFilters,
                 $this->postFilters,
-                $this->basePath,
             ));
 
             $frameSet = $plugin->convertFrames();
@@ -234,10 +219,8 @@ class Converter
 
     public function generateCacheFile(): ?string
     {
-        $resultFilePath = $this->getCacheFileName();
-
-        return (new ConversionCache())->loadOrGenerate(
-            $resultFilePath,
+        return $this->cacheManager->loadOrGenerate(
+            $this->getHash(),
             fn(): ?string => $this->generateBinary(),
         );
     }

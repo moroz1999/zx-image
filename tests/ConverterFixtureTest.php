@@ -56,6 +56,56 @@ final class ConverterFixtureTest extends TestCase
         $this->assertConversionMatchesExpectedFixture($fixture);
     }
 
+    public function testDisabledCacheDoesNotCreateCacheFile(): void
+    {
+        $cacheFilePath = $this->createTemporaryCacheFilePath('disabled');
+
+        try {
+            $converter = (new Converter())
+                ->setType('standard')
+                ->setPath(self::EXAMPLE_PATH . 'example.scr');
+            $converter->setCacheFileName($cacheFilePath);
+            $actualBinary = $converter->getBinary();
+
+            self::assertIsString($actualBinary);
+            self::assertFileDoesNotExist($cacheFilePath);
+        } finally {
+            $this->removeTemporaryCacheFile($cacheFilePath);
+        }
+    }
+
+    public function testEnabledCacheCreatesAndReadsCacheFile(): void
+    {
+        $cacheFilePath = $this->createTemporaryCacheFilePath('enabled');
+
+        try {
+            $converter = (new Converter())
+                ->setType('standard')
+                ->setPath(self::EXAMPLE_PATH . 'example.scr')
+                ->setCacheEnabled(true);
+            $converter->setCacheFileName($cacheFilePath);
+            $actualBinary = $converter->getBinary();
+
+            self::assertIsString($actualBinary);
+            self::assertFileExists($cacheFilePath);
+            self::assertSame($actualBinary, file_get_contents($cacheFilePath));
+
+            $cachedBinary = 'cached-binary';
+            file_put_contents($cacheFilePath, $cachedBinary);
+
+            $secondConverter = (new Converter())
+                ->setType('missing')
+                ->setPath(self::EXAMPLE_PATH . 'example.scr')
+                ->setCacheEnabled(true);
+            $secondConverter->setCacheFileName($cacheFilePath);
+            $secondBinary = $secondConverter->getBinary();
+
+            self::assertSame($cachedBinary, $secondBinary);
+        } finally {
+            $this->removeTemporaryCacheFile($cacheFilePath);
+        }
+    }
+
     /**
      * @return iterable<string, array{ConversionFixture}>
      */
@@ -228,5 +278,25 @@ final class ConverterFixtureTest extends TestCase
         }
 
         file_put_contents(self::RECEIVED_PATH . $expectedFileName, $actualBinary);
+    }
+
+    private function createTemporaryCacheFilePath(string $name): string
+    {
+        $cacheDirectory = sys_get_temp_dir() . '/zx-image-cache-test-' . bin2hex(random_bytes(8));
+        mkdir($cacheDirectory);
+
+        return $cacheDirectory . DIRECTORY_SEPARATOR . $name;
+    }
+
+    private function removeTemporaryCacheFile(string $cacheFilePath): void
+    {
+        if (is_file($cacheFilePath)) {
+            unlink($cacheFilePath);
+        }
+
+        $cacheDirectory = dirname($cacheFilePath);
+        if (is_dir($cacheDirectory)) {
+            rmdir($cacheDirectory);
+        }
     }
 }
