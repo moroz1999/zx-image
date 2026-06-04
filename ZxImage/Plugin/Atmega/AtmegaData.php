@@ -7,8 +7,8 @@ namespace ZxImage\Plugin\Atmega;
 final readonly class AtmegaData
 {
     /**
-     * @param int[] $pixelsArray
-     * @param int[] $paletteBytes
+     * @param list<int> $pixelsArray
+     * @param list<int> $paletteBytes
      */
     public function __construct(
         public array $pixelsArray,

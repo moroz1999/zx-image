@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use Override;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
@@ -14,7 +14,7 @@ use ZxImage\Plugin\Standard\FlashPixelRenderer;
 use ZxImage\Service\PluginServices;
 use ZxImage\Service\StandardScreenPipeline;
 
-class Flash implements FramePluginInterface
+final class Flash implements FramePluginInterface
 {
     private PluginInput $input;
     private PluginGeometry $geometry;
@@ -25,7 +25,6 @@ class Flash implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry();
@@ -34,11 +33,13 @@ class Flash implements FramePluginInterface
         $this->pipeline = new StandardScreenPipeline();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $rawScreen = $this->pipeline->loadBitsFor($this->input, $this->geometry, $this->services);

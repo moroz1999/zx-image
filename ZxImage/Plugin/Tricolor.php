@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use Override;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
@@ -16,7 +16,7 @@ use ZxImage\Plugin\Tricolor\TricolorScreenParser;
 use ZxImage\Service\PluginServices;
 use ZxImage\Service\StandardScreenPipeline;
 
-class Tricolor implements FramePluginInterface
+final class Tricolor implements FramePluginInterface
 {
     private const int REQUIRED_FILE_SIZE = 18432;
 
@@ -28,7 +28,6 @@ class Tricolor implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry(requiredFileSize: self::REQUIRED_FILE_SIZE);
@@ -36,11 +35,13 @@ class Tricolor implements FramePluginInterface
         $this->services = new PluginServices();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $tricolorData = (new TricolorLoader())->loadFrom($this->input, self::REQUIRED_FILE_SIZE, $this->services);

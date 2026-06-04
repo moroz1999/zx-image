@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use GdImage;
+use Override;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
@@ -18,7 +19,7 @@ use ZxImage\Plugin\Bsp\BspRenderer;
 use ZxImage\Service\GigascreenPipeline;
 use ZxImage\Service\PluginServices;
 
-class Bsp implements FramePluginInterface
+final class Bsp implements FramePluginInterface
 {
     private const int BORDER_WIDTH = 64;
     private const int BORDER_HEIGHT = 64;
@@ -32,7 +33,6 @@ class Bsp implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry(
@@ -43,11 +43,13 @@ class Bsp implements FramePluginInterface
         $this->services = new PluginServices();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $bspData = (new BspLoader())->loadFrom($this->input, $this->geometry, $this->services);
@@ -75,7 +77,7 @@ class Bsp implements FramePluginInterface
     ): FrameSet {
         $renderer = new BspRenderer();
 
-        $renderSingle = fn(ParsedScreen $screen, ColorTable $ct, bool $flashedImage) => $renderer->renderSingle(
+        $renderSingle = fn(ParsedScreen $screen, ColorTable $ct, bool $flashedImage): GdImage => $renderer->renderSingle(
             $bspData,
             $screen,
             $ct,
@@ -83,7 +85,7 @@ class Bsp implements FramePluginInterface
             $this->geometry,
         );
 
-        $renderMerged = fn(ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashedImage) => $renderer->renderMerged(
+        $renderMerged = fn(ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashedImage): GdImage => $renderer->renderMerged(
             $bspData,
             $s1,
             $s2,

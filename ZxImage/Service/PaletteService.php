@@ -7,7 +7,7 @@ namespace ZxImage\Service;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\PaletteConfig;
 
-readonly class PaletteService
+final readonly class PaletteService
 {
     public function buildColorTable(string $paletteString): ColorTable
     {
@@ -46,7 +46,7 @@ readonly class PaletteService
     }
 
     /**
-     * @return int[]
+     * @return array<int, int>
      */
     private function generateColors(PaletteConfig $config): array
     {
@@ -74,7 +74,7 @@ readonly class PaletteService
     }
 
     /**
-     * @return int[]
+     * @return array<int, int>
      */
     private function generateGigaColors(PaletteConfig $config): array
     {

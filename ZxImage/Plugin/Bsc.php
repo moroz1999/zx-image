@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use GdImage;
+use Override;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
@@ -19,7 +20,7 @@ use ZxImage\Plugin\Standard\StandardScreenParser;
 use ZxImage\Service\PluginServices;
 use ZxImage\Service\StandardScreenPipeline;
 
-class Bsc implements FramePluginInterface
+final class Bsc implements FramePluginInterface
 {
     private const int FILE_SIZE = 11136;
     private const int BORDER_WIDTH = 64;
@@ -34,7 +35,6 @@ class Bsc implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry(
@@ -47,11 +47,13 @@ class Bsc implements FramePluginInterface
         $this->pipeline = new StandardScreenPipeline();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $renderer = new BscFrameRenderer();
@@ -59,7 +61,7 @@ class Bsc implements FramePluginInterface
         $frameSet = $this->pipeline->buildFrameSetUsing(
             fn(): ?RawScreen => (new BscLoader())->loadFrom($this->input, $this->geometry, $this->services),
             fn(RawScreen $rawScreen): ParsedScreen => $screenParser->parse($rawScreen, $this->geometry->width),
-            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage) => $renderer->render(
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $renderer->render(
                 $parsedScreen,
                 $colorTable,
                 $flashedImage,

@@ -7,9 +7,10 @@ namespace ZxImage\Plugin\Grf;
 final readonly class GrfPixelParser
 {
     /**
-     * @param int[] $pixelsArray
-     * @param int[] $attributesArray
-     * @return int[][]
+     * @param array<int, int> $pixelsArray
+     * @param array<int, int> $attributesArray
+     *
+     * @return array<int, array<int, int>>
      */
     public function parse(array $pixelsArray, array $attributesArray, int $width): array
     {

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace ZxImage\Dto;
 
-readonly class ColorTable
+final readonly class ColorTable
 {
     public function __construct(
         public readonly PaletteConfig $config,
-        /** @var int[] */
+        /** @var array<int, int> */
         public readonly array $colors,
-        /** @var int[] */
+        /** @var array<int, int> */
         public readonly array $gigaColors,
     ) {
     }

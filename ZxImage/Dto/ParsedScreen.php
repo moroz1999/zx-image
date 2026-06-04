@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace ZxImage\Dto;
 
-readonly class ParsedScreen
+final readonly class ParsedScreen
 {
     public function __construct(
-        /** @var int[][] */
+        /** @var array<int, array<int, int>> */
         public array $pixelsData,
         public AttributeMap $attributes,
-        /** @var int[] */
+        /** @var array<int, int> */
         public array $colorOverrides = [],
-        public array $borderData = [],
+        /** @var array<int, int> */
+        public array $borderBytes = [],
+        /** @var array<int, array<int, int>> */
+        public array $borderPixels = [],
     ) {
     }
 }

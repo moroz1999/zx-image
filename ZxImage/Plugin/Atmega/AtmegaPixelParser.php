@@ -9,8 +9,9 @@ final readonly class AtmegaPixelParser
     private const int PAGE_SIZE = 8000;
 
     /**
-     * @param int[] $pixelsArray
-     * @return int[][]
+     * @param list<int> $pixelsArray
+     *
+     * @return array<int, array<int, int>>
      */
     public function parse(array $pixelsArray, int $width): array
     {

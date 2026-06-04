@@ -13,12 +13,14 @@ final readonly class TricolorScreenParser
     private const int CELL_SIZE = 8;
 
     /**
-     * @param array<int, int[]> $screenPixelsBytes
-     * @return ParsedScreen[]
+     * @param list{list<int>, list<int>, list<int>} $screenPixelsBytes
+     *
+     * @return non-empty-list<ParsedScreen>
      */
     public function parse(array $screenPixelsBytes, int $width, int $height): array
     {
         $screens = [];
+        /** @var list{list{int, int}, list{int, int}, list{int, int}} $screenColors */
         $screenColors = [
             [10, 0],
             [12, 0],

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use Override;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
@@ -17,7 +17,7 @@ use ZxImage\Plugin\Grf\GrfPixelParser;
 use ZxImage\Service\PixelCanvas;
 use ZxImage\Service\PluginServices;
 
-class Grf implements FramePluginInterface
+final class Grf implements FramePluginInterface
 {
     private PluginInput $input;
     private PluginGeometry $geometry;
@@ -27,7 +27,6 @@ class Grf implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry(usesBorder: false);
@@ -35,11 +34,13 @@ class Grf implements FramePluginInterface
         $this->services = new PluginServices();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $grfData = (new GrfLoader())->loadFrom($this->input, $this->geometry, $this->services);

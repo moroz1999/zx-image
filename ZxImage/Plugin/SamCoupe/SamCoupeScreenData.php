@@ -7,8 +7,8 @@ namespace ZxImage\Plugin\SamCoupe;
 final readonly class SamCoupeScreenData
 {
     /**
-     * @param int[] $pixelsBytes
-     * @param int[] $paletteBytes
+     * @param list<int> $pixelsBytes
+     * @param list<int> $paletteBytes
      */
     public function __construct(
         public array $pixelsBytes,

@@ -17,17 +17,17 @@ use ZxImage\Service\PluginFactory;
 class Converter
 {
     protected ?string $hash = null;
-    protected array $colors = [];
     protected string $gigascreenMode = 'mix';
     protected string $sourceFileContents = '';
     protected string $sourceFilePath = '';
-    protected string $resultFilePath;
     protected string $type = 'standard';
     protected ?int $border = null;
     protected float $zoom = 1;
     protected int $rotation = 0;
     protected ?string $resultMime = null;
+    /** @var list<string> */
     protected array $preFilters = [];
+    /** @var list<string> */
     protected array $postFilters = [];
 
     protected string $palette = '';
@@ -119,16 +119,12 @@ class Converter
 
     public function setBorder(?int $border = null): self
     {
-        if (($border >= 0 && $border < 8) || $border === null) {
+        if ($border === null || ($border >= 0 && $border < 8)) {
             $this->border = $border;
         }
         return $this;
     }
 
-    /**
-     * @param $zoom
-     * @return $this
-     */
     public function setZoom(float $zoom): self
     {
         if ($zoom >= 0.25 && $zoom <= 4) {
@@ -155,10 +151,10 @@ class Converter
         if ($this->cacheManager->isEnabled()) {
             $resultMime = $this->cacheManager->getMime($this->getHash());
         } else {
-            if (!$this->resultMime){
+            if ($this->resultMime === null) {
                 $this->generateBinary();
             }
-            if ($this->resultMime) {
+            if ($this->resultMime !== null) {
                 $resultMime = $this->resultMime;
             }
         }

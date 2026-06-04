@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Service;
 
 use GdImage;
+use RuntimeException;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\PaletteConfig;
 
@@ -13,8 +14,8 @@ final readonly class SamCoupeScreenRenderer
     private const int BRIGHTNESS_MULTIPLIER = 36;
 
     /**
-     * @param int[] $pixelsBytes
-     * @param int[] $paletteBytes
+     * @param array<int, int> $pixelsBytes
+     * @param array<int, int> $paletteBytes
      */
     public function renderFrame(
         array $pixelsBytes,
@@ -30,6 +31,9 @@ final readonly class SamCoupeScreenRenderer
         $pixelsData = $this->parsePixels($pixelsBytes, $bitsPerPixel, $width);
 
         $image = imagecreatetruecolor($width, $height);
+        if ($image === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
         foreach ($pixelsData as $y => $row) {
             foreach ($row as $x => $colorIndex) {
                 if ($swapMode3Colors === true) {
@@ -50,8 +54,9 @@ final readonly class SamCoupeScreenRenderer
     }
 
     /**
-     * @param int[] $pixelsBytes
-     * @return int[][]
+     * @param array<int, int> $pixelsBytes
+     *
+     * @return array<int, array<int, int>>
      */
     private function parsePixels(array $pixelsBytes, int $bitsPerPixel, int $width): array
     {
@@ -76,21 +81,28 @@ final readonly class SamCoupeScreenRenderer
     }
 
     /**
-     * @param int[] $paletteBytes
-     * @return int[]
+     * @param array<int, int> $paletteBytes
+     *
+     * @return list<int>
      */
     private function parsePalette(array $paletteBytes, PaletteConfig $config): array
     {
         $colors = [];
         foreach ($paletteBytes as $byte) {
             $bright = ($byte >> 3) & 1;
-            $r = ((($byte >> 5) & 1) * 4 + (($byte >> 1) & 1) * 2 + $bright) * self::BRIGHTNESS_MULTIPLIER;
-            $g = ((($byte >> 6) & 1) * 4 + (($byte >> 2) & 1) * 2 + $bright) * self::BRIGHTNESS_MULTIPLIER;
-            $b = ((($byte >> 4) & 1) * 4 + ($byte & 1) * 2 + $bright) * self::BRIGHTNESS_MULTIPLIER;
+            $redValue = ((($byte >> 5) & 1) * 4 + (($byte >> 1) & 1) * 2 + $bright) * self::BRIGHTNESS_MULTIPLIER;
+            $greenValue = ((($byte >> 6) & 1) * 4 + (($byte >> 2) & 1) * 2 + $bright) * self::BRIGHTNESS_MULTIPLIER;
+            $blueValue = ((($byte >> 4) & 1) * 4 + ($byte & 1) * 2 + $bright) * self::BRIGHTNESS_MULTIPLIER;
 
-            $red = (int)round(($r * $config->r11 + $g * $config->r12 + $b * $config->r13) / 0xFF);
-            $green = (int)round(($r * $config->r21 + $g * $config->r22 + $b * $config->r23) / 0xFF);
-            $blue = (int)round(($r * $config->r31 + $g * $config->r32 + $b * $config->r33) / 0xFF);
+            $red = (int)round(
+                ($redValue * $config->r11 + $greenValue * $config->r12 + $blueValue * $config->r13) / 0xFF
+            );
+            $green = (int)round(
+                ($redValue * $config->r21 + $greenValue * $config->r22 + $blueValue * $config->r23) / 0xFF
+            );
+            $blue = (int)round(
+                ($redValue * $config->r31 + $greenValue * $config->r32 + $blueValue * $config->r33) / 0xFF
+            );
 
             $colors[] = $red * 0x010000 + $green * 0x0100 + $blue;
         }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Service;
 
 use GdImage;
+use RuntimeException;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\IndexedPaletteEntry;
 use ZxImage\Dto\PaletteConfig;
@@ -12,8 +13,8 @@ use ZxImage\Dto\PaletteConfig;
 final readonly class IndexedScreenRenderer
 {
     /**
-     * @param int[] $pixelsBytes
-     * @param IndexedPaletteEntry[] $paletteEntries
+     * @param array<int, int>                 $pixelsBytes
+     * @param array<int, IndexedPaletteEntry> $paletteEntries
      */
     public function renderFrame(
         array $pixelsBytes,
@@ -26,6 +27,9 @@ final readonly class IndexedScreenRenderer
         $pixelsData = $this->parseLinearPixels($pixelsBytes, $width);
 
         $image = imagecreatetruecolor($width, $height);
+        if ($image === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
         foreach ($pixelsData as $y => $row) {
             foreach ($row as $x => $pixel) {
                 imagesetpixel($image, $x, $y, $colors[$pixel]);
@@ -36,8 +40,9 @@ final readonly class IndexedScreenRenderer
     }
 
     /**
-     * @param int[] $pixelsBytes
-     * @return int[][]
+     * @param array<int, int> $pixelsBytes
+     *
+     * @return array<int, array<int, int>>
      */
     private function parseLinearPixels(array $pixelsBytes, int $width): array
     {
@@ -56,20 +61,27 @@ final readonly class IndexedScreenRenderer
     }
 
     /**
-     * @param IndexedPaletteEntry[] $paletteEntries
-     * @return int[]
+     * @param array<int, IndexedPaletteEntry> $paletteEntries
+     *
+     * @return list<int>
      */
     private function parsePalette(array $paletteEntries, PaletteConfig $config): array
     {
         $colors = [];
         foreach ($paletteEntries as $entry) {
-            $r = $this->rgb3ToRgb8(($entry->byte1 >> 5) & 0x07);
-            $g = $this->rgb3ToRgb8(($entry->byte1 >> 2) & 0x07);
-            $b = $this->rgb3ToRgb8((($entry->byte1 & 0x03) << 1) | ($entry->byte2 & 0x01));
+            $redValue = $this->rgb3ToRgb8(($entry->byte1 >> 5) & 0x07);
+            $greenValue = $this->rgb3ToRgb8(($entry->byte1 >> 2) & 0x07);
+            $blueValue = $this->rgb3ToRgb8((($entry->byte1 & 0x03) << 1) | ($entry->byte2 & 0x01));
 
-            $red = (int)round(($r * $config->r11 + $g * $config->r12 + $b * $config->r13) / 0xFF);
-            $green = (int)round(($r * $config->r21 + $g * $config->r22 + $b * $config->r23) / 0xFF);
-            $blue = (int)round(($r * $config->r31 + $g * $config->r32 + $b * $config->r33) / 0xFF);
+            $red = (int)round(
+                ($redValue * $config->r11 + $greenValue * $config->r12 + $blueValue * $config->r13) / 0xFF
+            );
+            $green = (int)round(
+                ($redValue * $config->r21 + $greenValue * $config->r22 + $blueValue * $config->r23) / 0xFF
+            );
+            $blue = (int)round(
+                ($redValue * $config->r31 + $greenValue * $config->r32 + $blueValue * $config->r33) / 0xFF
+            );
 
             $colors[] = $red * 0x010000 + $green * 0x0100 + $blue;
         }

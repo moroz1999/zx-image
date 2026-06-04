@@ -7,8 +7,9 @@ namespace ZxImage\Plugin\Grf;
 final readonly class GrfPaletteParser
 {
     /**
-     * @param int[] $paletteBytes
-     * @return int[]
+     * @param array<int, int> $paletteBytes
+     *
+     * @return list<int>
      */
     public function parse(array $paletteBytes): array
     {

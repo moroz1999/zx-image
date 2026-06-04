@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Plugin\Grf;
 
 use GdImage;
+use RuntimeException;
 
 final readonly class GrfAspectScaler
 {
@@ -17,9 +18,12 @@ final readonly class GrfAspectScaler
         imagegammacorrect($srcImage, 2.2, 1.0);
 
         $dstWidth = $srcWidth;
-        $dstHeight = (int)($srcHeight * self::ASPECT_RATIO);
+        $dstHeight = (int)((float)$srcHeight * self::ASPECT_RATIO);
 
         $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
+        if ($dstImage === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
         imagealphablending($dstImage, false);
         imagesavealpha($dstImage, true);
         imagecopyresized($dstImage, $srcImage, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);

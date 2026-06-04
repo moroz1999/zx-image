@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Service\Image;
 
 use GdImage;
+use RuntimeException;
 
 final readonly class ImageResizer
 {
@@ -26,8 +27,8 @@ final readonly class ImageResizer
         $dstWidth = $srcWidth;
         $dstHeight = $srcHeight;
         if (in_array($zoom, [0.25, 0.5, 2.0, 3.0, 4.0], true)) {
-            $dstWidth = (int)($srcWidth * $zoom);
-            $dstHeight = (int)($srcHeight * $zoom);
+            $dstWidth = (int)((float)$srcWidth * $zoom);
+            $dstHeight = (int)((float)$srcHeight * $zoom);
         }
 
         $image = $this->filterApplier->applyPreFilters($image, $preFilters);
@@ -36,6 +37,9 @@ final readonly class ImageResizer
             $dstImage = $image;
         } else {
             $dstImage = imagecreatetruecolor($dstWidth, $dstHeight);
+            if ($dstImage === false) {
+                throw new RuntimeException('Unable to create GD image');
+            }
             imagealphablending($dstImage, false);
             imagesavealpha($dstImage, true);
             imagecopyresampled($dstImage, $image, 0, 0, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);

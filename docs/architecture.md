@@ -63,6 +63,8 @@ Indexed and SAM Coupe formats use narrower render services:
 
 `PluginInput` holds source input. `PluginGeometry` holds format dimensions, attribute cell size, border dimensions, and required file size. Plugins pass these DTOs to pipeline services and plugin-local loaders.
 
+`ParsedScreen` keeps encoded linear border bytes in `borderBytes` and decoded coordinate-indexed border pixels in `borderPixels`. Renderers consume only the representation used by their format.
+
 `PluginServices` holds shared stateless services used by plugins and pipelines:
 - `FileLoader`
 - `PaletteService`
@@ -89,6 +91,8 @@ Migrated plugins implement `FramePluginInterface` and return `FrameSet`:
 - `readString(n)` → raw string of n bytes
 - `readBytes(n)` → array of n unsigned bytes
 - `seek(offset)` → absolute seek
+
+Single-value and fixed-length reads return `null` when the requested data is unavailable. Reaching EOF does not close the underlying resource, so the same reader can still seek or report its size.
 
 ### Character Screen Builder
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use Override;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
@@ -16,7 +16,7 @@ use ZxImage\Plugin\Atmega\AtmegaPixelParser;
 use ZxImage\Service\PixelCanvas;
 use ZxImage\Service\PluginServices;
 
-class Atmega implements FramePluginInterface
+final class Atmega implements FramePluginInterface
 {
     private const int WIDTH = 320;
     private const int HEIGHT = 200;
@@ -29,7 +29,6 @@ class Atmega implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = (new PluginGeometry())->withDimensions(self::WIDTH, self::HEIGHT);
@@ -37,11 +36,13 @@ class Atmega implements FramePluginInterface
         $this->services = new PluginServices();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $atmegaData = (new AtmegaLoader())->loadFrom($this->input, $this->geometry, $this->services);

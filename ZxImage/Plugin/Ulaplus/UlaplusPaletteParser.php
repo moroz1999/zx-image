@@ -8,27 +8,32 @@ use ZxImage\Dto\PaletteConfig;
 
 final readonly class UlaplusPaletteParser
 {
+    /**
+     * @param array<int, int> $bytes
+     *
+     * @return list<int>
+     */
     public function parse(array $bytes, PaletteConfig $config): array
     {
         $paletteData = [];
 
         foreach ($bytes as $byte) {
-            $g = ($byte >> 5) & 0x07;
-            $r = ($byte >> 2) & 0x07;
-            $b = $byte & 0x03;
+            $green = ($byte >> 5) & 0x07;
+            $red = ($byte >> 2) & 0x07;
+            $blue = $byte & 0x03;
 
-            $rValue = $r * 32;
-            $gValue = $g * 32;
-            $bValue = $b * 64;
+            $redValue = $red * 32;
+            $greenValue = $green * 32;
+            $blueValue = $blue * 64;
 
             $redChannel = (int)round(
-                ($rValue * $config->r11 + $gValue * $config->r12 + $bValue * $config->r13) / 0xFF
+                ($redValue * $config->r11 + $greenValue * $config->r12 + $blueValue * $config->r13) / 0xFF
             );
             $greenChannel = (int)round(
-                ($rValue * $config->r21 + $gValue * $config->r22 + $bValue * $config->r23) / 0xFF
+                ($redValue * $config->r21 + $greenValue * $config->r22 + $blueValue * $config->r23) / 0xFF
             );
             $blueChannel = (int)round(
-                ($rValue * $config->r31 + $gValue * $config->r32 + $bValue * $config->r33) / 0xFF
+                ($redValue * $config->r31 + $greenValue * $config->r32 + $blueValue * $config->r33) / 0xFF
             );
 
             $paletteData[] = $redChannel * 0x010000 + $greenChannel * 0x0100 + $blueChannel;

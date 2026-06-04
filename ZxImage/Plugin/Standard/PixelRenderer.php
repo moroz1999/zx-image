@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace ZxImage\Plugin\Standard;
 
 use GdImage;
+use RuntimeException;
 use ZxImage\Dto\ParsedScreen;
 
-readonly class PixelRenderer
+final readonly class PixelRenderer
 {
+    /**
+     * @param array<int, int> $colors
+     */
     public function render(
         ParsedScreen $parsedData,
         bool $flashedImage,
@@ -19,11 +23,14 @@ readonly class PixelRenderer
         int $attributeHeight
     ): GdImage {
         $image = imagecreatetruecolor($width, $height);
+        if ($image === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
 
         foreach ($parsedData->pixelsData as $y => $row) {
             foreach ($row as $x => $pixel) {
-                $mapPositionX = (int)($x / $attributeWidth);
-                $mapPositionY = (int)($y / $attributeHeight);
+                $mapPositionX = intdiv($x, $attributeWidth);
+                $mapPositionY = intdiv($y, $attributeHeight);
 
                 if ($flashedImage && isset($parsedData->attributes->flashMap[$mapPositionY][$mapPositionX])) {
                     $zxColor = $pixel === 1

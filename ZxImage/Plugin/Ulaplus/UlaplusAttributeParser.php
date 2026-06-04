@@ -8,13 +8,16 @@ use ZxImage\Dto\AttributeMap;
 
 final readonly class UlaplusAttributeParser
 {
+    /**
+     * @param array<int, int> $bytes
+     */
     public function parse(array $bytes, int $width): AttributeMap
     {
         $x = 0;
         $y = 0;
         $inkMap = [];
         $paperMap = [];
-        $columnsPerRow = (int)($width / 8);
+        $columnsPerRow = intdiv($width, 8);
 
         foreach ($bytes as $byte) {
             $group = ($byte >> 6) & 0x03;

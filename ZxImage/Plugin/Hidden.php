@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use GdImage;
+use Override;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
@@ -16,7 +17,7 @@ use ZxImage\Plugin\Standard\HiddenPixelRenderer;
 use ZxImage\Service\PluginServices;
 use ZxImage\Service\StandardScreenPipeline;
 
-class Hidden implements FramePluginInterface
+final class Hidden implements FramePluginInterface
 {
     private PluginInput $input;
     private PluginGeometry $geometry;
@@ -27,7 +28,6 @@ class Hidden implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry();
@@ -36,11 +36,13 @@ class Hidden implements FramePluginInterface
         $this->pipeline = new StandardScreenPipeline();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $renderer = new HiddenPixelRenderer();
@@ -48,7 +50,7 @@ class Hidden implements FramePluginInterface
         return $this->pipeline->buildFrameSetUsing(
             fn(): ?RawScreen => $this->pipeline->loadBitsFor($this->input, $this->geometry, $this->services),
             fn(RawScreen $rawScreen): ParsedScreen => $this->pipeline->parseScreen($rawScreen, $this->geometry->width),
-            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage) => $renderer->render(
+            fn(ParsedScreen $parsedScreen, ColorTable $colorTable, bool $flashedImage): GdImage => $renderer->render(
                 $parsedScreen,
                 $colorTable,
                 $flashedImage,

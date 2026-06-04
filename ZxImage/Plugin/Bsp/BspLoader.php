@@ -110,6 +110,7 @@ final readonly class BspLoader
             $pixelParser->parse($pixelsBytes1),
             $attrParser->parse($attributesBytes1),
             [],
+            [],
             $borderData1,
         );
 
@@ -117,6 +118,7 @@ final readonly class BspLoader
             ? new ParsedScreen(
                 $pixelParser->parse($pixelsBytes2),
                 $attrParser->parse($attributesBytes2),
+                [],
                 [],
                 $borderData2,
             )

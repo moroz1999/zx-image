@@ -10,6 +10,9 @@ final readonly class SpecsciiTokenParser
 {
     private const int CHARS_PER_ROW = 32;
 
+    /**
+     * @param list<int> $tokens
+     */
     public function parse(array $tokens): RawScreen
     {
         $pixelsArray = [];
@@ -23,18 +26,20 @@ final readonly class SpecsciiTokenParser
         foreach ($tokens as $token) {
             if ($command === null) {
                 $nextCommand = match ($token) {
-                    SpecsciiChr::INK->value, SpecsciiChr::PAPER->value, SpecsciiChr::FLASH->value, SpecsciiChr::BRIGHT->value => $token,
+                    SpecsciiChr::INK->value => SpecsciiChr::INK,
+                    SpecsciiChr::PAPER->value => SpecsciiChr::PAPER,
+                    SpecsciiChr::FLASH->value => SpecsciiChr::FLASH,
+                    SpecsciiChr::BRIGHT->value => SpecsciiChr::BRIGHT,
                     default => $nextCommand,
                 };
             }
 
             if ($command !== null) {
                 $currentAttribute = match ($command) {
-                    SpecsciiChr::INK->value => ($currentAttribute & ~0x07) | ($token & 0x07),
-                    SpecsciiChr::PAPER->value => ($currentAttribute & ~0x38) | (($token & 0x07) << 3),
-                    SpecsciiChr::FLASH->value => $token === 1 ? ($currentAttribute | 0x80) : ($currentAttribute & ~0x80),
-                    SpecsciiChr::BRIGHT->value => $token === 1 ? ($currentAttribute | 0x40) : ($currentAttribute & ~0x40),
-                    default => $currentAttribute,
+                    SpecsciiChr::INK => ($currentAttribute & ~0x07) | ($token & 0x07),
+                    SpecsciiChr::PAPER => ($currentAttribute & ~0x38) | (($token & 0x07) << 3),
+                    SpecsciiChr::FLASH => $token === 1 ? ($currentAttribute | 0x80) : ($currentAttribute & ~0x80),
+                    SpecsciiChr::BRIGHT => $token === 1 ? ($currentAttribute | 0x40) : ($currentAttribute & ~0x40),
                 };
                 $command = null;
             } elseif ($nextCommand === null) {

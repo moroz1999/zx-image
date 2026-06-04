@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace ZxImage\Dto;
 
-readonly class RawScreen
+final readonly class RawScreen
 {
     public function __construct(
-        /** @var int[] */
+        /** @var array<int, int> */
         public array $pixelsBytes,
-        /** @var int[] */
+        /** @var array<int, int> */
         public array $attributesBytes,
+        /** @var array<int, int> */
         public array $borderBytes = [],
     ) {
     }

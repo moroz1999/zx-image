@@ -4,14 +4,21 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin\Standard;
 
-readonly class PixelParser
+use Closure;
+
+final readonly class PixelParser
 {
     public function __construct(private int $width)
     {
     }
 
-    /** @return int[][] */
-    public function parse(array $bytes, ?\Closure $zxyMapper = null): array
+    /**
+     * @param array<int, int>         $bytes
+     * @param null|Closure(int): int $zxyMapper
+     *
+     * @return array<int, array<int, int>>
+     */
+    public function parse(array $bytes, ?Closure $zxyMapper = null): array
     {
         $x = 0;
         $y = 0;

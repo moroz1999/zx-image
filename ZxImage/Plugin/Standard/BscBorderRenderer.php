@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Plugin\Standard;
 
 use GdImage;
+use RuntimeException;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
 
@@ -28,11 +29,14 @@ final readonly class BscBorderRenderer
             $width + $borderWidth * 2,
             $height + $borderHeight * 2,
         );
+        if ($resultImage === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
 
         $x = 0;
         $y = 0;
 
-        foreach ($parsedScreen->borderData as $byte) {
+        foreach ($parsedScreen->borderBytes as $byte) {
             $leftColor = $byte & 0x07;
             $color = $colorTable->colors[$leftColor];
             for ($i = 0; $i < 8; $i++) {

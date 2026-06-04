@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Plugin\Multiartist;
 
 use GdImage;
+use RuntimeException;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\PluginGeometry;
@@ -51,6 +52,9 @@ final readonly class MghRenderer
         PluginServices $services,
     ): GdImage {
         $center = imagecreatetruecolor($geometry->width, $geometry->height);
+        if ($center === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
         foreach ($firstScreen->pixelsData as $y => $row) {
             foreach ($row as $x => $pixel1) {
                 $mapX = (int)($x / $geometry->attributeWidth);
@@ -79,6 +83,9 @@ final readonly class MghRenderer
         PluginGeometry $geometry,
     ): GdImage {
         $center = imagecreatetruecolor($geometry->width, $geometry->height);
+        if ($center === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
         foreach ($screen->pixelsData as $y => $row) {
             foreach ($row as $x => $pixel) {
                 $mapX = (int)($x / $geometry->attributeWidth);

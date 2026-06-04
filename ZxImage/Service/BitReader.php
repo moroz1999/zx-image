@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ZxImage\Service;
 
-class BitReader
+use RuntimeException;
+
+final class BitReader
 {
     /** @var resource */
     private $handle;
@@ -20,8 +22,7 @@ class BitReader
     public function readByte(): ?int
     {
         $read = fread($this->handle, 1);
-        if (feof($this->handle)) {
-            fclose($this->handle);
+        if ($read === false || $read === '') {
             return null;
         }
         return ord($read);
@@ -29,21 +30,19 @@ class BitReader
 
     public function readWord(): ?int
     {
-        $b1 = fread($this->handle, 1);
-        if (feof($this->handle)) {
-            fclose($this->handle);
+        $leastSignificantByte = $this->readByte();
+        if ($leastSignificantByte === null) {
             return null;
         }
-        $b2 = fread($this->handle, 1);
-        if (feof($this->handle)) {
-            fclose($this->handle);
+        $mostSignificantByte = $this->readByte();
+        if ($mostSignificantByte === null) {
             return null;
         }
-        return ord($b2) * 256 + ord($b1);
+        return $mostSignificantByte * 256 + $leastSignificantByte;
     }
 
     /**
-     * @return int[]
+     * @return list<int>
      */
     public function readBytes(int $count): array
     {
@@ -59,7 +58,7 @@ class BitReader
     }
 
     /**
-     * @return int[]
+     * @return list<int>
      */
     public function readWords(int $count): array
     {
@@ -77,8 +76,7 @@ class BitReader
     public function readString(int $length): ?string
     {
         $result = fread($this->handle, $length);
-        if (feof($this->handle)) {
-            fclose($this->handle);
+        if ($result === false || strlen($result) !== $length) {
             return null;
         }
         return $result;
@@ -92,8 +90,14 @@ class BitReader
     public function getSize(): int
     {
         $current = ftell($this->handle);
+        if ($current === false) {
+            throw new RuntimeException('Unable to get current stream position');
+        }
         fseek($this->handle, 0, SEEK_END);
         $size = ftell($this->handle);
+        if ($size === false) {
+            throw new RuntimeException('Unable to get stream size');
+        }
         fseek($this->handle, $current);
         return $size;
     }

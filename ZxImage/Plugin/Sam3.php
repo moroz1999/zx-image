@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use Override;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
@@ -14,7 +14,7 @@ use ZxImage\Plugin\SamCoupe\SamCoupeScreenLoader;
 use ZxImage\Service\PluginServices;
 use ZxImage\Service\SamCoupeScreenRenderer;
 
-class Sam3 implements FramePluginInterface
+final class Sam3 implements FramePluginInterface
 {
     private const int PALETTE_LENGTH = 4;
     private const int BITS_PER_PIXEL = 2;
@@ -28,7 +28,6 @@ class Sam3 implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry(width: 512, height: 384);
@@ -37,11 +36,13 @@ class Sam3 implements FramePluginInterface
         $this->renderer = new SamCoupeScreenRenderer();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $screenData = (new SamCoupeScreenLoader())->loadFrom(

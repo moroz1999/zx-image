@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use GdImage;
+use Override;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
@@ -19,7 +20,7 @@ use ZxImage\Plugin\Multiartist\MghScreenParser;
 use ZxImage\Service\GigascreenPipeline;
 use ZxImage\Service\PluginServices;
 
-class Multiartist implements FramePluginInterface
+final class Multiartist implements FramePluginInterface
 {
     private PluginInput $input;
     private PluginGeometry $geometry;
@@ -29,7 +30,6 @@ class Multiartist implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry();
@@ -37,11 +37,13 @@ class Multiartist implements FramePluginInterface
         $this->services = new PluginServices();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $mghData = (new MghLoader())->loadFrom(
@@ -64,7 +66,7 @@ class Multiartist implements FramePluginInterface
         $pipeline = new GigascreenPipeline();
         $renderer = new MghRenderer();
 
-        $renderSingle1 = fn(ParsedScreen $screen, ColorTable $ct, bool $flashedImage) => $renderer->renderSingle(
+        $renderSingle1 = fn(ParsedScreen $screen, ColorTable $ct, bool $flashedImage): GdImage => $renderer->renderSingle(
             $screen,
             $screen1,
             $borders,
@@ -74,7 +76,7 @@ class Multiartist implements FramePluginInterface
             $this->services,
         );
 
-        $renderMerged = fn(ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashedImage) => $renderer->renderMerged(
+        $renderMerged = fn(ParsedScreen $s1, ParsedScreen $s2, ColorTable $ct, bool $flashedImage): GdImage => $renderer->renderMerged(
             $s1,
             $s2,
             $borders,

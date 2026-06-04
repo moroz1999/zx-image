@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Plugin\Timexhrg;
 
 use GdImage;
+use RuntimeException;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
 
@@ -15,6 +16,9 @@ final readonly class TimexhrgPixelRenderer
         $inkColor = $parsedScreen->attributes->inkMap[0][0];
         $paperColor = $parsedScreen->attributes->paperMap[0][0];
         $image = imagecreatetruecolor($width, $height);
+        if ($image === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
 
         foreach ($parsedScreen->pixelsData as $rowY => $row) {
             $y = $rowY * 2;
@@ -42,6 +46,9 @@ final readonly class TimexhrgPixelRenderer
         $paper2 = $parsedScreen2->attributes->paperMap[0][0];
 
         $image = imagecreatetruecolor($width, $height);
+        if ($image === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
 
         foreach ($parsedScreen1->pixelsData as $rowY => $row) {
             $y = $rowY * 2;

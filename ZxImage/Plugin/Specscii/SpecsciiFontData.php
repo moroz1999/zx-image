@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin\Specscii;
 
-class SpecsciiFontData
+final class SpecsciiFontData
 {
+    /** @var list<list<string>> */
     private static array $data = [
         [
             '00000000',
@@ -1129,8 +1130,14 @@ class SpecsciiFontData
         ],
     ];
 
+    /**
+     * @return list<int>
+     */
     public static function getChar(int $number): array
     {
-        return array_map('bindec', self::$data[$number]);
+        return array_map(
+            static fn(string $binaryRow): int => (int)bindec($binaryRow),
+            self::$data[$number],
+        );
     }
 }

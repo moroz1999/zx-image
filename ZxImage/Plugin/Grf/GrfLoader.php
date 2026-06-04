@@ -49,8 +49,13 @@ final readonly class GrfLoader
         $attributesArray = [];
         $length = (int)($geometry->width * $geometry->height / $bitsPerPixel);
         do {
-            $pixelsArray[] = $reader->readByte();
-            $attributesArray[] = $reader->readByte();
+            $pixel = $reader->readByte();
+            $attribute = $reader->readByte();
+            if ($pixel === null || $attribute === null) {
+                return null;
+            }
+            $pixelsArray[] = $pixel;
+            $attributesArray[] = $attribute;
         } while ($length = $length - 2);
 
         return new GrfData($geometry, $paletteBytes, $pixelsArray, $attributesArray);

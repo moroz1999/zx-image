@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace ZxImage\Dto;
 
-readonly class AttributeMap
+final readonly class AttributeMap
 {
     public function __construct(
-        /** @var int[][] */
+        /** @var array<int, array<int, int>> */
         public array $inkMap,
-        /** @var int[][] */
+        /** @var array<int, array<int, int>> */
         public array $paperMap,
-        /** @var bool[][] */
+        /** @var array<int, array<int, bool>> */
         public array $flashMap,
     ) {
     }

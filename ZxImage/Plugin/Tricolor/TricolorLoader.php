@@ -10,8 +10,6 @@ use ZxImage\Service\PluginServices;
 final readonly class TricolorLoader
 {
     private const int SCREEN_PIXELS_SIZE = 6144;
-    private const int SCREEN_COUNT = 3;
-
     public function loadFrom(PluginInput $input, int $requiredFileSize, PluginServices $services): ?TricolorData
     {
         $reader = $services->fileLoader->openSource(
@@ -23,11 +21,10 @@ final readonly class TricolorLoader
             return null;
         }
 
-        $screenPixelsBytes = [];
-        for ($screenIndex = 0; $screenIndex < self::SCREEN_COUNT; $screenIndex++) {
-            $screenPixelsBytes[] = $reader->readBytes(self::SCREEN_PIXELS_SIZE);
-        }
-
-        return new TricolorData($screenPixelsBytes);
+        return new TricolorData([
+            $reader->readBytes(self::SCREEN_PIXELS_SIZE),
+            $reader->readBytes(self::SCREEN_PIXELS_SIZE),
+            $reader->readBytes(self::SCREEN_PIXELS_SIZE),
+        ]);
     }
 }

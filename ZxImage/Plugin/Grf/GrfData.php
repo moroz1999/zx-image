@@ -9,9 +9,9 @@ use ZxImage\Dto\PluginGeometry;
 final readonly class GrfData
 {
     /**
-     * @param int[] $paletteBytes
-     * @param int[] $pixelsArray
-     * @param int[] $attributesArray
+     * @param list<int> $paletteBytes
+     * @param list<int> $pixelsArray
+     * @param list<int> $attributesArray
      */
     public function __construct(
         public PluginGeometry $geometry,

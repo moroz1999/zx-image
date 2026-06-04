@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use GdImage;
-use ZxImage\Converter;
+use Override;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\ParsedScreen;
@@ -18,7 +18,7 @@ use ZxImage\Plugin\Attributes\AttributesScreenParser;
 use ZxImage\Service\PluginServices;
 use ZxImage\Service\StandardScreenPipeline;
 
-class Attributes implements FramePluginInterface
+final class Attributes implements FramePluginInterface
 {
     private PluginInput $input;
     private PluginGeometry $geometry;
@@ -29,7 +29,6 @@ class Attributes implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = (new PluginGeometry())->withRequiredFileSize(768);
@@ -38,11 +37,13 @@ class Attributes implements FramePluginInterface
         $this->pipeline = new StandardScreenPipeline();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         return $this->pipeline->buildFrameSetUsing(
