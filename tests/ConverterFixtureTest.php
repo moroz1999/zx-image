@@ -201,6 +201,8 @@ final class ConverterFixtureTest extends TestCase
         yield 'chrd' => [new ConversionFixture(type: 'chrd', sourceFileName: 'example.ch$', expectedFileName: 'chrd.png')];
         yield 'nxi' => [new ConversionFixture(type: 'nxi', sourceFileName: 'example.nxi', expectedFileName: 'nxi.png')];
         yield 'sl2' => [new ConversionFixture(type: 'sl2', sourceFileName: 'example.sl2', expectedFileName: 'sl2.png')];
+        yield 'sl2 320x256' => [new ConversionFixture(type: 'sl2', sourceFileName: 'sl2-320x256.sl2', expectedFileName: 'sl2-320x256.png')];
+        yield 'sl2 640x256' => [new ConversionFixture(type: 'sl2', sourceFileName: 'sl2-640x256.sl2', expectedFileName: 'sl2-640x256.png')];
         yield 'zxevo' => [new ConversionFixture(type: 'zxevo', sourceFileName: 'example.bmp', expectedFileName: 'zxevo.png')];
         yield 'sxg' => [new ConversionFixture(type: 'sxg', sourceFileName: 'example.sxg', expectedFileName: 'sxg.png')];
         yield 'sam3' => [new ConversionFixture(type: 'sam3', sourceFileName: 'sam.ss3', expectedFileName: 'sam3.png')];

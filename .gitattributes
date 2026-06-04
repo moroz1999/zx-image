@@ -6,3 +6,4 @@
 /psalm.xml export-ignore
 /psalm.bat export-ignore
 * text=auto eol=lf
+*.sl2 binary
