@@ -10,7 +10,6 @@ use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
-use ZxImage\Plugin\Sl2\Sl2DefaultPaletteFactory;
 use ZxImage\Plugin\Sl2\Sl2Loader;
 use ZxImage\Service\IndexedScreenRenderer;
 use ZxImage\Service\PluginServices;
@@ -47,26 +46,25 @@ final class Sl2 implements FramePluginInterface
         $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);
         $sl2Data = (new Sl2Loader())->loadFrom(
             $this->input,
-            $this->geometry->width * $this->geometry->height,
             $this->services,
         );
         if ($sl2Data === null) {
             return null;
         }
-        $paletteEntries = (new Sl2DefaultPaletteFactory())->create();
+        $geometry = $this->geometry->withDimensions($sl2Data->width, $sl2Data->height);
 
         $image = $this->renderer->renderFrame(
             $sl2Data->pixelsBytes,
-            $paletteEntries,
+            $sl2Data->paletteEntries,
             $colorTable,
-            $this->geometry->width,
-            $this->geometry->height,
+            $geometry->width,
+            $geometry->height,
         );
 
         return new FrameSet(
             [new Frame($image)],
             $this->renderSettings,
-            $this->geometry->toRenderGeometry(),
+            $geometry->toRenderGeometry(),
             $colorTable,
         );
     }

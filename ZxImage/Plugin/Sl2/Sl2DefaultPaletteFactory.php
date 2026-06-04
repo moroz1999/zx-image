@@ -8,16 +8,14 @@ use ZxImage\Dto\IndexedPaletteEntry;
 
 final readonly class Sl2DefaultPaletteFactory
 {
-    private const int PALETTE_SIZE = 256;
-
     /**
      * @return list<IndexedPaletteEntry>
      */
-    public function create(): array
+    public function create(int $paletteSize): array
     {
         $paletteEntries = [];
 
-        for ($index = 0; $index < self::PALETTE_SIZE; $index++) {
+        for ($index = 0; $index < $paletteSize; $index++) {
             $paletteEntries[] = new IndexedPaletteEntry(
                 $index,
                 $index % 4 === 0 ? 0 : 1,
