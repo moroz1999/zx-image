@@ -14,6 +14,7 @@ use ZxImage\Service\ConversionHashBuilder;
 use ZxImage\Service\OutputRenderer;
 use ZxImage\Service\PluginFactory;
 
+/** @psalm-api */
 class Converter
 {
     protected ?string $hash = null;
@@ -54,24 +55,6 @@ class Converter
     public function setCachePath(string $cachePath): self
     {
         $this->cacheManager->setPath($cachePath);
-        return $this;
-    }
-
-    public function setCacheExpirationLimit(int $cacheExpirationLimit): self
-    {
-        $this->cacheManager->setExpirationLimit($cacheExpirationLimit);
-        return $this;
-    }
-
-    public function setCacheDeletionAmount(int $cacheDeletionAmount): self
-    {
-        $this->cacheManager->setDeletionAmount($cacheDeletionAmount);
-        return $this;
-    }
-
-    public function setCacheDeletionPeriod(int $cacheDeletionPeriod): self
-    {
-        $this->cacheManager->setDeletionPeriod($cacheDeletionPeriod);
         return $this;
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Service;
 
 use GdImage;
+use RuntimeException;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
 use ZxImage\Dto\PluginGeometry;
@@ -37,11 +38,14 @@ final readonly class GigascreenFrameRenderer
         PluginGeometry $geometry,
     ): GdImage {
         $image = imagecreatetruecolor($geometry->width, $geometry->height);
+        if ($image === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
 
         foreach ($firstScreen->pixelsData as $y => $row) {
             foreach ($row as $x => $firstPixel) {
-                $mapX = (int)($x / $geometry->attributeWidth);
-                $mapY = (int)($y / $geometry->attributeHeight);
+                $mapX = intdiv($x, $geometry->attributeWidth);
+                $mapY = intdiv($y, $geometry->attributeHeight);
                 $secondPixel = $secondScreen->pixelsData[$y][$x];
                 $firstColor = $this->resolveColor($firstScreen, $firstPixel, $mapX, $mapY, $flashedImage);
                 $secondColor = $this->resolveColor($secondScreen, $secondPixel, $mapX, $mapY, $flashedImage);

@@ -11,7 +11,7 @@ use ZxImage\Service\Image\ImageResizer;
 use ZxImage\Service\Image\ImageRotator;
 use ZxImage\Service\Image\InterlaceMixer;
 
-readonly class ImageProcessor
+final readonly class ImageProcessor
 {
     public function __construct(
         private BorderApplier $borderApplier = new BorderApplier(),
@@ -43,6 +43,10 @@ readonly class ImageProcessor
         );
     }
 
+    /**
+     * @param list<string> $preFilters
+     * @param list<string> $postFilters
+     */
     public function resize(GdImage $image, float $zoom, array $preFilters, array $postFilters): GdImage
     {
         return $this->imageResizer->resize($image, $zoom, $preFilters, $postFilters);

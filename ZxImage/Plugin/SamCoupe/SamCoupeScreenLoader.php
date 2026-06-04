@@ -28,7 +28,8 @@ final readonly class SamCoupeScreenLoader
         }
 
         $rowDivisor = $doubleRows ? 2 : 1;
-        $pixelByteCount = (int)($geometry->width * $geometry->height / $rowDivisor / (8 / $bitsPerPixel));
+        $pixelCount = intdiv($geometry->width * $geometry->height, $rowDivisor);
+        $pixelByteCount = intdiv($pixelCount, intdiv(8, $bitsPerPixel));
         $pixelsBytes = $reader->readBytes($pixelByteCount);
         $paletteBytes = $reader->readBytes($paletteLength);
 

@@ -7,16 +7,12 @@ namespace ZxImage\Service;
 final class ConversionCacheManager
 {
     private string $cachePath = '';
-    private int $cacheDeletionPeriod = 300;
-    private int $cacheDeletionAmount = 1000;
-    private int $cacheExpirationLimit;
     private ?string $cacheFileName = null;
     private bool $cacheEnabled = false;
 
     public function __construct(
         private readonly ConversionCache $cache = new ConversionCache(),
     ) {
-        $this->cacheExpirationLimit = 60 * 60 * 24 * 30;
     }
 
     public function setEnabled(bool $cacheEnabled): void
@@ -34,21 +30,6 @@ final class ConversionCacheManager
         $this->cachePath = $cachePath . DIRECTORY_SEPARATOR;
     }
 
-    public function setExpirationLimit(int $cacheExpirationLimit): void
-    {
-        $this->cacheExpirationLimit = $cacheExpirationLimit;
-    }
-
-    public function setDeletionAmount(int $cacheDeletionAmount): void
-    {
-        $this->cacheDeletionAmount = $cacheDeletionAmount;
-    }
-
-    public function setDeletionPeriod(int $cacheDeletionPeriod): void
-    {
-        $this->cacheDeletionPeriod = $cacheDeletionPeriod;
-    }
-
     public function setFileName(string $cacheFileName): void
     {
         $this->cacheFileName = $cacheFileName;
@@ -57,7 +38,7 @@ final class ConversionCacheManager
     public function getFileName(?string $hash): string
     {
         if ($this->cacheFileName === null) {
-            $this->cacheFileName = $this->cachePath . $hash;
+            $this->cacheFileName = $this->cachePath . ($hash ?? '');
         }
 
         return $this->cacheFileName;
@@ -68,6 +49,9 @@ final class ConversionCacheManager
         return $this->cache->getMime($this->getFileName($hash));
     }
 
+    /**
+     * @param callable(): ?string $binaryGenerator
+     */
     public function loadOrGenerate(?string $hash, callable $binaryGenerator): ?string
     {
         return $this->cache->loadOrGenerate($this->getFileName($hash), $binaryGenerator);

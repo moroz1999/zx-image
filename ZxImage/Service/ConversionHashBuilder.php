@@ -23,14 +23,14 @@ final readonly class ConversionHashBuilder
             $hashInput .= $input->gigascreenMode;
         }
 
-        $hashInput .= $input->border;
+        $hashInput .= $input->border === null ? '' : (string)$input->border;
         $hashInput .= $input->palette;
-        $hashInput .= $input->zoom;
+        $hashInput .= (string)$input->zoom;
         $hashInput .= implode($input->preFilters);
         $hashInput .= implode($input->postFilters);
 
         if ($input->rotation > 0) {
-            $hashInput .= $input->rotation;
+            $hashInput .= (string)$input->rotation;
         }
 
         return md5($hashInput);
@@ -39,7 +39,8 @@ final readonly class ConversionHashBuilder
     private function buildSourceHashInput(ConversionHashInput $input): string
     {
         if (is_file($input->sourceFilePath)) {
-            return $input->sourceFilePath . filemtime($input->sourceFilePath);
+            $modifiedTime = filemtime($input->sourceFilePath);
+            return $input->sourceFilePath . ($modifiedTime === false ? '' : (string)$modifiedTime);
         }
 
         if ($input->sourceFileContents !== '') {

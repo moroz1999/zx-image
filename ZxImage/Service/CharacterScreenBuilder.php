@@ -51,7 +51,7 @@ final readonly class CharacterScreenBuilder
 
     /**
      * @param array<int, array<int, list<int>>> $characterRows
-     * @return int[][]
+     * @return array<int, array<int, int>>
      */
     public function buildPixelsFromCharacterRows(
         array $characterRows,

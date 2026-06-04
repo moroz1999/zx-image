@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use Override;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
@@ -15,7 +15,7 @@ use ZxImage\Plugin\Sca\ScaRenderer;
 use ZxImage\Plugin\Sca\ScaScreenParser;
 use ZxImage\Service\PluginServices;
 
-class Sca implements FramePluginInterface
+final class Sca implements FramePluginInterface
 {
     private PluginInput $input;
     private PluginGeometry $geometry;
@@ -25,7 +25,6 @@ class Sca implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry();
@@ -33,11 +32,13 @@ class Sca implements FramePluginInterface
         $this->services = new PluginServices();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $scaData = (new ScaLoader())->loadFrom($this->input, $this->geometry, $this->renderSettings, $this->services);

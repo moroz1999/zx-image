@@ -9,8 +9,8 @@ use ZxImage\Dto\PluginGeometry;
 final readonly class SxgData
 {
     /**
-     * @param int[] $paletteWords
-     * @param int[] $pixelsBytes
+     * @param list<int> $paletteWords
+     * @param list<int> $pixelsBytes
      */
     public function __construct(
         public PluginGeometry $geometry,

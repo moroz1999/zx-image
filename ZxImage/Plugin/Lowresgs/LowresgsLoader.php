@@ -53,6 +53,11 @@ final readonly class LowresgsLoader
         );
     }
 
+    /**
+     * @param list<int> $texture
+     *
+     * @return list<int>
+     */
     private function generatePixelsArray(array $texture): array
     {
         $pixelsArray = [];

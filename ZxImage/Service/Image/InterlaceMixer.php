@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Service\Image;
 
 use GdImage;
+use RuntimeException;
 
 final readonly class InterlaceMixer
 {
@@ -19,6 +20,9 @@ final readonly class InterlaceMixer
                 for ($x = 0; $x < $width; $x++) {
                     $pixel1 = imagecolorat($firstImage, $x, $y);
                     $pixel2 = imagecolorat($secondImage, $x, $y);
+                    if ($pixel1 === false || $pixel2 === false) {
+                        throw new RuntimeException('Unable to read GD image pixel');
+                    }
                     imagesetpixel($secondImage, $x, $y, $pixel1);
                     imagesetpixel($firstImage, $x, $y, $pixel2);
                 }

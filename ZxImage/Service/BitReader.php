@@ -102,14 +102,4 @@ final class BitReader
         return $size;
     }
 
-    public static function bit(int $byte, int $position): int
-    {
-        return ($byte >> $position) & 1;
-    }
-
-    public static function bits(int $byte, int $offset, int $length): int
-    {
-        $mask = (1 << $length) - 1;
-        return ($byte >> $offset) & $mask;
-    }
 }

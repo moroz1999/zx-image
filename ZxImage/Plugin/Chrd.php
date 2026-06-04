@@ -6,7 +6,6 @@ namespace ZxImage\Plugin;
 
 use GdImage;
 use Override;
-use ZxImage\Converter;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
@@ -20,7 +19,7 @@ use ZxImage\Plugin\Chrd\ChrdRenderer;
 use ZxImage\Service\GigascreenPipeline;
 use ZxImage\Service\PluginServices;
 
-class Chrd implements FramePluginInterface
+final class Chrd implements FramePluginInterface
 {
     private const int COLOR_TYPE_STANDARD = 9;
     private const int COLOR_TYPE_GIGASCREEN = 18;
@@ -33,7 +32,6 @@ class Chrd implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry(usesBorder: false);
@@ -41,6 +39,7 @@ class Chrd implements FramePluginInterface
         $this->services = new PluginServices();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;

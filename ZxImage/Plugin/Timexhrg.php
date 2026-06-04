@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Plugin;
 
 use GdImage;
-use ZxImage\Converter;
+use Override;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
@@ -19,7 +19,7 @@ use ZxImage\Plugin\Timexhrg\TimexhrgLoader;
 use ZxImage\Plugin\Timexhrg\TimexhrgPixelRenderer;
 use ZxImage\Service\PluginServices;
 
-class Timexhrg implements FramePluginInterface
+final class Timexhrg implements FramePluginInterface
 {
     private const int REQUIRED_FILE_SIZE = 24578;
     private const int WIDTH = 512;
@@ -33,7 +33,6 @@ class Timexhrg implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = (new PluginGeometry(requiredFileSize: self::REQUIRED_FILE_SIZE))
@@ -42,11 +41,13 @@ class Timexhrg implements FramePluginInterface
         $this->services = new PluginServices();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $dualRawScreen = (new TimexhrgLoader())->loadFrom($this->input, $this->geometry, $this->services);

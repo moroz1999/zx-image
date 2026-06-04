@@ -10,7 +10,6 @@ final readonly class PluginServices
         public FileLoader $fileLoader = new FileLoader(),
         public PaletteService $paletteService = new PaletteService(),
         public ImageProcessor $imageProcessor = new ImageProcessor(),
-        public ImageEncoder $imageEncoder = new ImageEncoder(),
     ) {
     }
 }

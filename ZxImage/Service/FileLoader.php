@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Service;
 
-readonly class FileLoader
+final readonly class FileLoader
 {
     public function openSource(?string $path, ?string $contents, ?int $requiredSize): ?BitReader
     {
@@ -14,6 +14,9 @@ readonly class FileLoader
                 return null;
             }
             $handle = fopen($path, 'rb');
+            if ($handle === false) {
+                return null;
+            }
             return new BitReader($handle);
         }
 
@@ -23,6 +26,9 @@ readonly class FileLoader
                 return null;
             }
             $handle = fopen('php://memory', 'wb+');
+            if ($handle === false) {
+                return null;
+            }
             fwrite($handle, $contents);
             rewind($handle);
             return new BitReader($handle);

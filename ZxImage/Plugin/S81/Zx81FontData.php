@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin\S81;
 
-class Zx81FontData
+final class Zx81FontData
 {
     /** @var list<list<string>> */
     private static array $data = [

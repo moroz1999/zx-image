@@ -18,6 +18,9 @@ final readonly class AttributesScreenParser
         return new ParsedScreen($pixelsData, $attributes);
     }
 
+    /**
+     * @return array<int, array<int, int>>
+     */
     private function generateCheckerboardPixels(int $width, int $height): array
     {
         $pixelsData = [];

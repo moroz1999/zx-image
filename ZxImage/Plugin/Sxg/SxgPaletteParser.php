@@ -33,25 +33,27 @@ final readonly class SxgPaletteParser
         23 => 245,
         24 => 255,
     ];
+    private const int DEFAULT_LEVEL = 0;
 
     /**
-     * @param int[] $words
-     * @return int[]
+     * @param list<int> $words
+     *
+     * @return list<int>
      */
     public function parse(array $words): array
     {
         $colors = [];
         foreach ($words as $word) {
             if (($word >> 15) === 0) {
-                $r = self::LEVEL_TABLE[($word >> 10) & 0x1F] ?? reset(self::LEVEL_TABLE);
-                $g = self::LEVEL_TABLE[($word >> 5) & 0x1F] ?? reset(self::LEVEL_TABLE);
-                $b = self::LEVEL_TABLE[$word & 0x1F] ?? reset(self::LEVEL_TABLE);
+                $red = self::LEVEL_TABLE[($word >> 10) & 0x1F] ?? self::DEFAULT_LEVEL;
+                $green = self::LEVEL_TABLE[($word >> 5) & 0x1F] ?? self::DEFAULT_LEVEL;
+                $blue = self::LEVEL_TABLE[$word & 0x1F] ?? self::DEFAULT_LEVEL;
             } else {
-                $r = (($word >> 10) & 0x1F) << 3;
-                $g = (($word >> 5) & 0x1F) << 3;
-                $b = ($word & 0x1F) << 3;
+                $red = (($word >> 10) & 0x1F) << 3;
+                $green = (($word >> 5) & 0x1F) << 3;
+                $blue = ($word & 0x1F) << 3;
             }
-            $colors[] = $r * 0x010000 + $g * 0x0100 + $b;
+            $colors[] = $red * 0x010000 + $green * 0x0100 + $blue;
         }
         return $colors;
     }

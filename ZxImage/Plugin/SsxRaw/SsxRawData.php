@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin\SsxRaw;
 
-readonly class SsxRawData
+final readonly class SsxRawData
 {
     public function __construct(
-        /** @var int[] */
+        /** @var list<int> */
         public array $pixelsBytes,
     ) {
     }

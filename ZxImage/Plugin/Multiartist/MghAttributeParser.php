@@ -12,8 +12,8 @@ final readonly class MghAttributeParser
     private const int MGH_MODE_1 = 1;
 
     /**
-     * @param int[] $innerBytes
-     * @param int[] $outerBytes
+     * @param list<int> $innerBytes
+     * @param list<int> $outerBytes
      */
     public function parse(int $mghMode, array $innerBytes, array $outerBytes, int $width): AttributeMap
     {
@@ -24,8 +24,8 @@ final readonly class MghAttributeParser
     }
 
     /**
-     * @param int[] $innerBytes
-     * @param int[] $outerBytes
+     * @param list<int> $innerBytes
+     * @param list<int> $outerBytes
      */
     private function buildMgh1Map(array $innerBytes, array $outerBytes): AttributeMap
     {

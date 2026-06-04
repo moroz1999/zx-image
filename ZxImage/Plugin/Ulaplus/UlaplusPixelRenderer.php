@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Plugin\Ulaplus;
 
 use GdImage;
+use RuntimeException;
 use ZxImage\Dto\ParsedScreen;
 
 final readonly class UlaplusPixelRenderer
@@ -17,11 +18,14 @@ final readonly class UlaplusPixelRenderer
         int $attributeHeight,
     ): GdImage {
         $image = imagecreatetruecolor($width, $height);
+        if ($image === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
 
         foreach ($parsedScreen->pixelsData as $y => $row) {
             foreach ($row as $x => $pixel) {
-                $mapX = (int)($x / $attributeWidth);
-                $mapY = (int)($y / $attributeHeight);
+                $mapX = intdiv($x, $attributeWidth);
+                $mapY = intdiv($y, $attributeHeight);
 
                 $zxColor = $pixel === 1
                     ? $parsedScreen->attributes->inkMap[$mapY][$mapX]

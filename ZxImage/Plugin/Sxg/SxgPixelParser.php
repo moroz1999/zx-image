@@ -9,8 +9,9 @@ final readonly class SxgPixelParser
     public const int FORMAT_16 = 1;
 
     /**
-     * @param int[] $pixelsBytes
-     * @return int[][]
+     * @param list<int> $pixelsBytes
+     *
+     * @return array<int, array<int, int>>
      */
     public function parse(array $pixelsBytes, int $format, int $width): array
     {

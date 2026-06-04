@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin\Sl2;
 
-readonly class Sl2Data
+final readonly class Sl2Data
 {
     public function __construct(
-        /** @var int[] */
+        /** @var list<int> */
         public array $pixelsBytes,
     ) {
     }

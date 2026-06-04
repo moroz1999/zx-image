@@ -10,7 +10,7 @@ use ZxImage\Plugin\Standard\PixelParser;
 final readonly class TimexhrScreenParser
 {
     /**
-     * @param int[] $pixelsBytes
+     * @param array<int, int> $pixelsBytes
      */
     public function parse(array $pixelsBytes, int $attributeByte, int $width, int $height): ParsedScreen
     {

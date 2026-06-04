@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin\Multiartist;
 
-readonly class MghData
+final readonly class MghData
 {
     public function __construct(
         public int $mode,
         public MghBorders $borders,
         public MghDimensions $dimensions,
-        /** @var int[] */
+        /** @var list<int> */
         public array $firstPixelsBytes,
-        /** @var int[] */
+        /** @var list<int> */
         public array $secondPixelsBytes,
-        /** @var int[] */
+        /** @var list<int> */
         public array $firstAttributesBytes,
-        /** @var int[] */
+        /** @var list<int> */
         public array $secondAttributesBytes,
-        /** @var int[] */
+        /** @var list<int> */
         public array $firstOuterAttributesBytes,
-        /** @var int[] */
+        /** @var list<int> */
         public array $secondOuterAttributesBytes,
     ) {
     }

@@ -6,8 +6,9 @@ namespace ZxImage\Service;
 
 use GdImage;
 use GifCreator\GifCreator;
+use RuntimeException;
 
-readonly class ImageEncoder
+final readonly class ImageEncoder
 {
     public function toPng(GdImage $image): string
     {
@@ -26,6 +27,9 @@ readonly class ImageEncoder
     public function toPaletteGif(GdImage $image): string
     {
         $palettedImage = imagecreate(imagesx($image), imagesy($image));
+        if ($palettedImage === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
         imagecopy($palettedImage, $image, 0, 0, 0, 0, imagesx($image), imagesy($image));
         imagecolormatch($image, $palettedImage);
         return $this->toGif($palettedImage);

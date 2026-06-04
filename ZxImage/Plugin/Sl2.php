@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use Override;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
@@ -15,7 +15,7 @@ use ZxImage\Plugin\Sl2\Sl2Loader;
 use ZxImage\Service\IndexedScreenRenderer;
 use ZxImage\Service\PluginServices;
 
-class Sl2 implements FramePluginInterface
+final class Sl2 implements FramePluginInterface
 {
 
     private PluginInput $input;
@@ -27,7 +27,6 @@ class Sl2 implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry();
@@ -36,11 +35,13 @@ class Sl2 implements FramePluginInterface
         $this->renderer = new IndexedScreenRenderer();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $colorTable = $this->services->paletteService->buildColorTable($this->renderSettings->paletteString);

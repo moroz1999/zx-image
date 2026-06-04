@@ -7,7 +7,7 @@ namespace ZxImage\Plugin\Timexhr;
 final readonly class TimexhrData
 {
     /**
-     * @param int[] $pixelsBytes
+     * @param list<int> $pixelsBytes
      */
     public function __construct(
         public array $pixelsBytes,

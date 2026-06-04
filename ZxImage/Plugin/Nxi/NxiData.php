@@ -9,8 +9,8 @@ use ZxImage\Dto\IndexedPaletteEntry;
 final readonly class NxiData
 {
     /**
-     * @param IndexedPaletteEntry[] $paletteEntries
-     * @param int[] $pixelsBytes
+     * @param list<IndexedPaletteEntry> $paletteEntries
+     * @param list<int>                 $pixelsBytes
      */
     public function __construct(
         public array $paletteEntries,

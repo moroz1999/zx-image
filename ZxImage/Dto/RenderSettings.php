@@ -7,8 +7,8 @@ namespace ZxImage\Dto;
 final readonly class RenderSettings
 {
     /**
-     * @param string[] $preFilters
-     * @param string[] $postFilters
+     * @param list<string> $preFilters
+     * @param list<string> $postFilters
      */
     public function __construct(
         public ?int $border = null,

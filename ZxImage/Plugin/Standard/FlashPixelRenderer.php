@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ZxImage\Plugin\Standard;
 
 use GdImage;
+use RuntimeException;
 use ZxImage\Dto\ColorTable;
 use ZxImage\Dto\ParsedScreen;
 
@@ -19,11 +20,14 @@ final readonly class FlashPixelRenderer
         int $attributeHeight,
     ): GdImage {
         $image = imagecreatetruecolor($width, $height);
+        if ($image === false) {
+            throw new RuntimeException('Unable to create GD image');
+        }
 
         foreach ($parsedScreen->pixelsData as $y => $row) {
             foreach ($row as $x => $pixel) {
-                $mapX = (int)($x / $attributeWidth);
-                $mapY = (int)($y / $attributeHeight);
+                $mapX = intdiv($x, $attributeWidth);
+                $mapY = intdiv($y, $attributeHeight);
 
                 $inkKey = $parsedScreen->attributes->inkMap[$mapY][$mapX];
                 $paperKey = $parsedScreen->attributes->paperMap[$mapY][$mapX];

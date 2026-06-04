@@ -198,7 +198,7 @@ Zoom values 0.25/0.5/2/3/4 scale by the given factor. Zoom 1 skips resampling.
 
 ## Cache Implementation
 
-`Converter` keeps the public cache setters for compatibility, but cache state is owned by `ConversionCacheManager`.
+Cache state is owned by `ConversionCacheManager`.
 
 Cache filename = `cachePath + MD5(hash_input)`.
 
@@ -212,7 +212,7 @@ Hash input is the concatenation of:
 - Pre-filter and post-filter lists
 - Rotation (if non-zero)
 
-Expiry sweep: triggered probabilistically. If `time() % cacheDeletionPeriod == 0`, up to `cacheDeletionAmount` files older than `cacheExpirationLimit` (default 30 days) are deleted.
+Cache expiry is managed by the application using the converter.
 
 ---
 

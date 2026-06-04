@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Dto;
 
-readonly class PaletteConfig
+final readonly class PaletteConfig
 {
     public function __construct(
         public int $zz,

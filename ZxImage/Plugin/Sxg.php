@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use Override;
 use ZxImage\Dto\Frame;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginGeometry;
@@ -16,7 +16,7 @@ use ZxImage\Plugin\Sxg\SxgPixelParser;
 use ZxImage\Plugin\Sxg\SxgRenderer;
 use ZxImage\Service\PluginServices;
 
-class Sxg implements FramePluginInterface
+final class Sxg implements FramePluginInterface
 {
     private PluginInput $input;
     private PluginGeometry $geometry;
@@ -26,7 +26,6 @@ class Sxg implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->geometry = new PluginGeometry(usesBorder: false);
@@ -34,11 +33,13 @@ class Sxg implements FramePluginInterface
         $this->services = new PluginServices();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $sxgData = (new SxgLoader())->loadFrom($this->input, $this->geometry, $this->services);

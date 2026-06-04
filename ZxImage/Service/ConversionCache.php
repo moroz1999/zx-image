@@ -20,6 +20,9 @@ final readonly class ConversionCache
         return $imageInfo['mime'];
     }
 
+    /**
+     * @param callable(): ?string $binaryGenerator
+     */
     public function loadOrGenerate(string $filePath, callable $binaryGenerator): ?string
     {
         if (file_exists($filePath)) {

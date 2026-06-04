@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace ZxImage\Plugin;
 
-use ZxImage\Converter;
+use Override;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
 use ZxImage\Plugin\Ssx\SsxPluginResolver;
 use ZxImage\Service\PluginServices;
 
-class Ssx implements FramePluginInterface
+final class Ssx implements FramePluginInterface
 {
     private PluginInput $input;
     private RenderSettings $renderSettings;
@@ -20,18 +20,19 @@ class Ssx implements FramePluginInterface
     public function __construct(
         ?string $sourceFilePath = null,
         ?string $sourceFileContents = null,
-        ?Converter $converter = null,
     ) {
         $this->input = new PluginInput($sourceFilePath, $sourceFileContents);
         $this->renderSettings = new RenderSettings();
         $this->services = new PluginServices();
     }
 
+    #[Override]
     public function configure(RenderSettings $settings): void
     {
         $this->renderSettings = $settings;
     }
 
+    #[Override]
     public function convertFrames(): ?FrameSet
     {
         $type = (new SsxPluginResolver())->resolveType($this->input, $this->services);

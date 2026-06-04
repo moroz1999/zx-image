@@ -47,6 +47,9 @@ final readonly class StellarLoader
         );
     }
 
+    /**
+     * @return list<int>
+     */
     private function generatePixelsArray(int $width, int $height): array
     {
         $pixelsArray = [];

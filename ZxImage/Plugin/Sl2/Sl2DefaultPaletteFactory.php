@@ -11,7 +11,7 @@ final readonly class Sl2DefaultPaletteFactory
     private const int PALETTE_SIZE = 256;
 
     /**
-     * @return IndexedPaletteEntry[]
+     * @return list<IndexedPaletteEntry>
      */
     public function create(): array
     {

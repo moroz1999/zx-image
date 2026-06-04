@@ -44,16 +44,19 @@ final readonly class Bmc4Loader
         return new RawScreen($pixelsBytes, $attributesBytes, $borderBytes);
     }
 
+    /**
+     * @param list<int> $firstBytes
+     * @param list<int> $secondBytes
+     *
+     * @return list<int>
+     */
     private function interleaveAttributes(array $firstBytes, array $secondBytes): array
     {
         $result = [];
         for ($row = 0; $row < self::ROWS; $row++) {
-            for ($col = 0; $col < self::COLS; $col++) {
-                $result[] = $firstBytes[$row * self::COLS + $col];
-            }
-            for ($col = 0; $col < self::COLS; $col++) {
-                $result[] = $secondBytes[$row * self::COLS + $col];
-            }
+            $offset = $row * self::COLS;
+            array_push($result, ...array_slice($firstBytes, $offset, self::COLS));
+            array_push($result, ...array_slice($secondBytes, $offset, self::COLS));
         }
         return $result;
     }
