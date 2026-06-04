@@ -13,7 +13,7 @@ final class ScaMemoryTest extends TestCase
 {
     private const string SIGNATURE = 'SCA';
     private const int VERSION = 1;
-    private const int FRAME_COUNT = 150;
+    private const int FRAME_COUNT = 285;
     private const int WIDTH = 256;
     private const int HEIGHT = 192;
     private const int BORDER = 0;
@@ -25,7 +25,7 @@ final class ScaMemoryTest extends TestCase
     private const int ATTRIBUTES_SIZE = 768;
     private const int PAPER_WHITE_ATTRIBUTE = 7;
     private const string MEMORY_LIMIT = '128M';
-    private const int ZOOMED_MAX_RSS_KILOBYTES = 262144;
+    private const int ZOOMED_MAX_RSS_KILOBYTES = 98304;
 
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]

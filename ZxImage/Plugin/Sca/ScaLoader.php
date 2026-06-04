@@ -8,6 +8,7 @@ use ZxImage\Dto\PluginGeometry;
 use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RawScreen;
 use ZxImage\Dto\RenderSettings;
+use ZxImage\Service\BitReader;
 use ZxImage\Service\PluginServices;
 
 final readonly class ScaLoader
@@ -63,14 +64,24 @@ final readonly class ScaLoader
             $delays[] = (int)(($reader->readByte() ?? 0) * (self::CENTISECONDS_PER_SECOND / self::TICKS_PER_SECOND));
         }
 
-        $screens = [];
+        return new ScaData(
+            $geometry,
+            $renderSettings,
+            $delays,
+            $this->readScreens($reader, $framesAmount),
+        );
+    }
+
+    /**
+     * @return iterable<int, RawScreen>
+     */
+    private function readScreens(BitReader $reader, int $framesAmount): iterable
+    {
         for ($i = 0; $i < $framesAmount; $i++) {
-            $screens[] = new RawScreen(
+            yield new RawScreen(
                 $reader->readBytes(self::PIXELS_SIZE),
                 $reader->readBytes(self::ATTRIBUTES_SIZE),
             );
         }
-
-        return new ScaData($geometry, $renderSettings, $delays, $screens);
     }
 }

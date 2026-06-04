@@ -19,7 +19,7 @@ final readonly class OutputRenderer
 
     public function render(FrameSet $frameSet): RenderedImage
     {
-        if (count($frameSet->frames) === 1) {
+        if ($frameSet->getFrameCount() === 1) {
             return $this->pngOutputRenderer->render($frameSet);
         }
 

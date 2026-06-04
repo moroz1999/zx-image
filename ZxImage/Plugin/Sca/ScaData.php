@@ -11,14 +11,14 @@ use ZxImage\Dto\RenderSettings;
 final readonly class ScaData
 {
     /**
-     * @param int[] $delays
-     * @param RawScreen[] $screens
+     * @param list<int> $delays
+     * @param iterable<int, RawScreen> $screens
      */
     public function __construct(
         public PluginGeometry $geometry,
         public RenderSettings $renderSettings,
         public array $delays,
-        public array $screens,
+        public iterable $screens,
     ) {
     }
 }

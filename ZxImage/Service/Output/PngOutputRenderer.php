@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ZxImage\Service\Output;
 
+use RuntimeException;
 use ZxImage\Dto\FrameSet;
 use ZxImage\Dto\RenderedImage;
 use ZxImage\Service\ImageEncoder;
@@ -18,9 +19,12 @@ final readonly class PngOutputRenderer
 
     public function render(FrameSet $frameSet): RenderedImage
     {
-        $frame = $frameSet->frames[0];
-        $image = $this->frameFinalizer->finalize($frame, $frameSet);
+        foreach ($frameSet->frames as $frame) {
+            $image = $this->frameFinalizer->finalize($frame, $frameSet);
 
-        return new RenderedImage($this->imageEncoder->toPng($image), 'image/png');
+            return new RenderedImage($this->imageEncoder->toPng($image), 'image/png');
+        }
+
+        throw new RuntimeException('Cannot render an empty frame set');
     }
 }

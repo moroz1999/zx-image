@@ -7,14 +7,20 @@ namespace ZxImage\Dto;
 final readonly class FrameSet
 {
     /**
-     * @param Frame[] $frames
+     * @param iterable<Frame> $frames
      */
     public function __construct(
-        public array $frames,
+        public iterable $frames,
         public RenderSettings $renderSettings,
         public RenderGeometry $geometry,
         public ColorTable $colorTable,
         public ?int $interlaceLineHeight = null,
+        public ?int $frameCount = null,
     ) {
+    }
+
+    public function getFrameCount(): int
+    {
+        return $this->frameCount ?? (is_array($this->frames) ? count($this->frames) : 0);
     }
 }

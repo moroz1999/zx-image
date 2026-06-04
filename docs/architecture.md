@@ -69,14 +69,13 @@ Indexed and SAM Coupe formats use narrower render services:
 - `FileLoader`
 - `PaletteService`
 - `ImageProcessor`
-- `ImageEncoder`
 
 ### Frame Output
 
 Migrated plugins implement `FramePluginInterface` and return `FrameSet`:
 - `Frame` holds a GD image and an optional delay in centiseconds.
 - `Frame` can override render settings when a format needs per-frame render metadata, such as frame-specific border color.
-- `FrameSet` groups frames with `RenderSettings`, `RenderGeometry`, and `ColorTable`.
+- `FrameSet` carries an array or one-pass stream with a known frame count alongside `RenderSettings`, `RenderGeometry`, and `ColorTable`.
 - `FrameSet` can request interlace mixing for animated pairs after final frame processing.
 - `OutputRenderer` chooses static PNG or animated GIF output.
 - `FrameFinalizer` applies border, resize, filters, and rotation.
