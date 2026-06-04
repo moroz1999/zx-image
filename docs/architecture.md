@@ -7,31 +7,34 @@ Implementation details for the ZX-Image library. Domain concepts are in [domain.
 ## Component Overview
 
 ```
-Converter  ──────────────────────────► FramePluginInterface implementation
-  setType()                               convertFrames(): ?FrameSet
-  setPath() / setSourceFileContents()     plugin-local loaders/parsers/renderers
-  setBorder()                             Frame DTOs with GD images and delays
-  setZoom()                               OutputRenderer
-  setRotation()
-  setPalette()
-  setGigascreenMode()
-  addPreFilter() / addPostFilter()
-  getBinary()  ──► generateBinary()  ──► PluginFactory ──► OutputRenderer::render()
+Converter ──► ConversionRequest ──► ConversionService ──► FramePluginInterface implementation
+  fluent configuration                  PluginFactory       convertFrames(): ?FrameSet
+  cache coordination                    OutputRenderer      plugin-local loaders/parsers/renderers
 ```
 
 ---
 
 ## Converter (`ZxImage/Converter.php`)
 
-Entry point and configuration holder. Responsibilities:
+Public fluent facade. Responsibilities:
 - Holds all rendering parameters (type, border, zoom, rotation, palette, gigascreenMode, pre/post filters)
 - Normalizes string parameters through internal enums while keeping the public setter contract string-based
-- Delegates plugin creation to `PluginFactory`
-- Plugin type aliases: `mg1/mg2/mg4/mg8` → `Multiartist`, `chr$` → `Chrd`
+- Builds immutable `ConversionRequest` and `ConversionHashInput` DTOs from the current configuration
+- Delegates plugin creation, conversion, and output rendering to `ConversionService`
 - Delegates cache state and cache file operations to `ConversionCacheManager`
 - Delegates hash construction to `ConversionHashBuilder`
 - Exposes `getBinary()` → `generateBinary()` (direct) or `generateCacheFile()` (cached)
-- After conversion, `getResultMime()` returns the MIME type of the last output
+- After conversion, `getResultMime()` returns the MIME type of the last output without triggering conversion
+- Invalidates the last result MIME whenever source or rendering configuration changes
+- Rebuilds hashes on demand so source-file modification times remain current
+
+`ConversionService` owns the conversion execution pipeline:
+- Creates the selected plugin through `PluginFactory`
+- Applies `RenderSettings`
+- Converts source data into a `FrameSet`
+- Delegates final output encoding to `OutputRenderer`
+
+Plugin type aliases are resolved by `PluginType`: `mg1/mg2/mg4/mg8` → `Multiartist`, `chr$` → `Chrd`.
 
 ---
 

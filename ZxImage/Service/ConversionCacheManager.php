@@ -37,11 +37,11 @@ final class ConversionCacheManager
 
     public function getFileName(?string $hash): string
     {
-        if ($this->cacheFileName === null) {
-            $this->cacheFileName = $this->cachePath . ($hash ?? '');
+        if ($this->cacheFileName !== null) {
+            return $this->cacheFileName;
         }
 
-        return $this->cacheFileName;
+        return $this->cachePath . ($hash ?? '');
     }
 
     public function getMime(?string $hash): ?string

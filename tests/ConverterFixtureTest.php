@@ -89,6 +89,7 @@ final class ConverterFixtureTest extends TestCase
             self::assertIsString($actualBinary);
             self::assertFileExists($cacheFilePath);
             self::assertSame($actualBinary, file_get_contents($cacheFilePath));
+            self::assertSame('image/png', $converter->getResultMime());
 
             $cachedBinary = 'cached-binary';
             file_put_contents($cacheFilePath, $cachedBinary);
@@ -103,6 +104,72 @@ final class ConverterFixtureTest extends TestCase
             self::assertSame($cachedBinary, $secondBinary);
         } finally {
             $this->removeTemporaryCacheFile($cacheFilePath);
+        }
+    }
+
+    public function testChangingRenderSettingsInvalidatesHashAndGeneratedCacheFileName(): void
+    {
+        $cacheDirectory = sys_get_temp_dir() . '/zx-image-cache-test-' . bin2hex(random_bytes(8));
+        mkdir($cacheDirectory);
+
+        try {
+            $converter = (new Converter())
+                ->setType('standard')
+                ->setPath(self::EXAMPLE_PATH . 'example.scr')
+                ->setCachePath($cacheDirectory);
+
+            $initialHash = $converter->getHash();
+            $initialCacheFileName = $converter->getCacheFileName();
+
+            $converter->setZoom(2);
+
+            self::assertNotSame($initialHash, $converter->getHash());
+            self::assertNotSame($initialCacheFileName, $converter->getCacheFileName());
+        } finally {
+            rmdir($cacheDirectory);
+        }
+    }
+
+    public function testChangingConfigurationInvalidatesResultMime(): void
+    {
+        $converter = (new Converter())
+            ->setType('standard')
+            ->setPath(self::EXAMPLE_PATH . 'example.scr');
+
+        self::assertIsString($converter->getBinary());
+        self::assertSame('image/png', $converter->getResultMime());
+
+        $converter->setType('missing');
+
+        self::assertNull($converter->getResultMime());
+    }
+
+    public function testGettingResultMimeDoesNotTriggerConversion(): void
+    {
+        $converter = (new Converter())
+            ->setType('standard')
+            ->setPath(self::EXAMPLE_PATH . 'example.scr');
+
+        self::assertNull($converter->getResultMime());
+    }
+
+    public function testHashReflectsSourceFileModification(): void
+    {
+        $sourceFilePath = tempnam(sys_get_temp_dir(), 'zx-image-source-');
+        self::assertIsString($sourceFilePath);
+
+        try {
+            file_put_contents($sourceFilePath, 'initial');
+            touch($sourceFilePath, 100);
+            $converter = (new Converter())->setPath($sourceFilePath);
+            $initialHash = $converter->getHash();
+
+            touch($sourceFilePath, 200);
+            clearstatcache(true, $sourceFilePath);
+
+            self::assertNotSame($initialHash, $converter->getHash());
+        } finally {
+            unlink($sourceFilePath);
         }
     }
 

@@ -5,19 +5,19 @@ declare(strict_types=1);
 namespace ZxImage;
 
 use ZxImage\Dto\ConversionHashInput;
+use ZxImage\Dto\ConversionRequest;
+use ZxImage\Dto\PluginInput;
 use ZxImage\Dto\RenderSettings;
 use ZxImage\Enum\FilterType;
 use ZxImage\Enum\GigascreenMode;
 use ZxImage\Enum\PalettePreset;
 use ZxImage\Service\ConversionCacheManager;
 use ZxImage\Service\ConversionHashBuilder;
-use ZxImage\Service\OutputRenderer;
-use ZxImage\Service\PluginFactory;
+use ZxImage\Service\ConversionService;
 
 /** @psalm-api */
 class Converter
 {
-    protected ?string $hash = null;
     protected string $gigascreenMode = 'mix';
     protected string $sourceFileContents = '';
     protected string $sourceFilePath = '';
@@ -32,17 +32,19 @@ class Converter
     protected array $postFilters = [];
 
     protected string $palette = '';
-    private ConversionCacheManager $cacheManager;
 
-    public function __construct()
-    {
+    public function __construct(
+        private ConversionService $conversionService = new ConversionService(),
+        private ConversionHashBuilder $hashBuilder = new ConversionHashBuilder(),
+        private ConversionCacheManager $cacheManager = new ConversionCacheManager(),
+    ) {
         $this->palette = PalettePreset::Srgb->paletteString();
-        $this->cacheManager = new ConversionCacheManager();
     }
 
     public function setSourceFileContents(string $sourceFileContents): self
     {
         $this->sourceFileContents = $sourceFileContents;
+        $this->resetResultMime();
         return $this;
     }
 
@@ -63,6 +65,7 @@ class Converter
         $gigascreenMode = GigascreenMode::tryFrom($mode);
         if ($gigascreenMode !== null) {
             $this->gigascreenMode = $gigascreenMode->value;
+            $this->resetResultMime();
         }
         return $this;
     }
@@ -71,6 +74,7 @@ class Converter
     {
         if (in_array($rotation, [0, 90, 180, 270], true)) {
             $this->rotation = $rotation;
+            $this->resetResultMime();
         }
         return $this;
     }
@@ -80,6 +84,7 @@ class Converter
         $filterType = FilterType::tryFrom($type);
         if ($filterType !== null) {
             $this->preFilters[] = $filterType->value;
+            $this->resetResultMime();
         }
         return $this;
     }
@@ -89,6 +94,7 @@ class Converter
         $filterType = FilterType::tryFrom($type);
         if ($filterType !== null) {
             $this->postFilters[] = $filterType->value;
+            $this->resetResultMime();
         }
         return $this;
     }
@@ -97,6 +103,7 @@ class Converter
     {
         $palettePreset = PalettePreset::tryFrom($palette) ?? PalettePreset::Srgb;
         $this->palette = $palettePreset->paletteString();
+        $this->resetResultMime();
         return $this;
     }
 
@@ -104,6 +111,7 @@ class Converter
     {
         if ($border === null || ($border >= 0 && $border < 8)) {
             $this->border = $border;
+            $this->resetResultMime();
         }
         return $this;
     }
@@ -112,6 +120,7 @@ class Converter
     {
         if ($zoom >= 0.25 && $zoom <= 4) {
             $this->zoom = $zoom;
+            $this->resetResultMime();
         }
         return $this;
     }
@@ -119,29 +128,24 @@ class Converter
     public function setType(string $type): self
     {
         $this->type = $type;
+        $this->resetResultMime();
         return $this;
     }
 
     public function setPath(string $path): self
     {
         $this->sourceFilePath = $path;
+        $this->resetResultMime();
         return $this;
     }
 
     public function getResultMime(): ?string
     {
-        $resultMime = null;
         if ($this->cacheManager->isEnabled()) {
-            $resultMime = $this->cacheManager->getMime($this->getHash());
-        } else {
-            if ($this->resultMime === null) {
-                $this->generateBinary();
-            }
-            if ($this->resultMime !== null) {
-                $resultMime = $this->resultMime;
-            }
+            return $this->cacheManager->getMime($this->getHash());
         }
-        return $resultMime;
+
+        return $this->resultMime;
     }
 
     public function setCacheFileName(string $cacheFileName): void
@@ -156,10 +160,7 @@ class Converter
 
     public function getHash(): ?string
     {
-        if ($this->hash === null) {
-            $this->hash = (new ConversionHashBuilder())->build($this->createHashInput());
-        }
-        return $this->hash;
+        return $this->hashBuilder->build($this->createHashInput());
     }
 
     public function getBinary(): ?string
@@ -173,27 +174,14 @@ class Converter
 
     public function generateBinary(): ?string
     {
-        $result = null;
-        $plugin = (new PluginFactory())->create($this->type, $this->sourceFilePath, $this->sourceFileContents);
-        if ($plugin !== null) {
-            $plugin->configure(new RenderSettings(
-                $this->border,
-                $this->zoom,
-                $this->rotation,
-                $this->gigascreenMode,
-                $this->palette,
-                $this->preFilters,
-                $this->postFilters,
-            ));
-
-            $frameSet = $plugin->convertFrames();
-            if ($frameSet !== null) {
-                $renderedImage = (new OutputRenderer())->render($frameSet);
-                $result = $renderedImage->binary;
-                $this->resultMime = $renderedImage->mime;
-            }
+        $renderedImage = $this->conversionService->convert($this->createConversionRequest());
+        if ($renderedImage === null) {
+            $this->resultMime = null;
+            return null;
         }
-        return $result;
+
+        $this->resultMime = $renderedImage->mime;
+        return $renderedImage->binary;
     }
 
     public function generateCacheFile(): ?string
@@ -218,5 +206,27 @@ class Converter
             $this->postFilters,
             $this->rotation,
         );
+    }
+
+    private function createConversionRequest(): ConversionRequest
+    {
+        return new ConversionRequest(
+            $this->type,
+            new PluginInput($this->sourceFilePath, $this->sourceFileContents),
+            new RenderSettings(
+                $this->border,
+                $this->zoom,
+                $this->rotation,
+                $this->gigascreenMode,
+                $this->palette,
+                $this->preFilters,
+                $this->postFilters,
+            ),
+        );
+    }
+
+    private function resetResultMime(): void
+    {
+        $this->resultMime = null;
     }
 }

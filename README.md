@@ -37,7 +37,7 @@ $converter->setCachePath($folderForCache);
 //enable file cache
 $converter->setCacheEnabled(true);
 ```
-After this all images will be stored in folder as a cache. Converter will check and delete outdated images automatically.
+After this all images will be stored in the cache folder. Cache expiry must be managed by the application.
 
 
 ## Installation
